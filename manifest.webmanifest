@@ -1,0 +1,9 @@
+{
+  "name": "CRM San Isidro",
+  "short_name": "CRM SI",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0b0b0d",
+  "theme_color": "#d4af37",
+  "icons": []
+}

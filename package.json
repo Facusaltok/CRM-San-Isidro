@@ -1,0 +1,9 @@
+{
+  "name": "crm-san-isidro",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "serve -l 8080 .",
+    "start": "python -m http.server 8080"
+  }
+}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CRM San Isidro — Ingreso</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: "#C7A600",
+            brand2: "#E5C558"
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    body { background:#fff; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial }
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.06)}
+    .btn{border:1px solid #e5e7eb;border-radius:12px;padding:.6rem .9rem;font-weight:700;width:100%}
+    .btn-primary{background:linear-gradient(90deg,#C7A600,#E5C558);color:#2b2500;border-color:#dabb00}
+    .input{border:1px solid #d1d5db;border-radius:.7rem;padding:.55rem .75rem;width:100%}
+    .input:focus{outline:none;border-color:#C7A600;box-shadow:0 0 0 3px rgba(199,166,0,.2)}
+  </style>
+
+  <script>
+    window.sb = supabase.createClient(
+      "https://upprsqwloohuzxpwobiu.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJzcXdsb29odXp4cHdvYml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3MjQ3MjYsImV4cCI6MjA3MTMwMDcyNn0.dk0KHCrrCBLZUVM4FRbYfBMqbMuCGqpSh-6fkVKdCag"
+    );
+  </script>
+</head>
+
+<body class="flex items-center justify-center h-screen">
+
+  <div class="card w-full max-w-md p-8">
+    <div class="flex items-center justify-center gap-2 mb-6">
+      <div class="w-4 h-4 rounded-full" style="background:linear-gradient(90deg,#C7A600,#E5C558)"></div>
+      <h1 class="text-xl font-extrabold">CRM SAN ISIDRO</h1>
+    </div>
+
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">Email</label>
+        <input type="email" id="email" class="input" required>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">Contraseña</label>
+        <input type="password" id="password" class="input" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Ingresar</button>
+    </form>
+
+    <p class="text-center text-sm text-gray-500 mt-4" id="msg"></p>
+  </div>
+
+<script>
+  const sb = window.sb;
+
+  document.getElementById("loginForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const email=document.getElementById("email").value.trim();
+    const pass=document.getElementById("password").value.trim();
+    const msg=document.getElementById("msg");
+
+    msg.textContent="Validando…";
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password:pass });
+    if(error){
+      msg.textContent="Error: "+error.message;
+    }else{
+      location.href="./dashboard.html";
+    }
+  });
+
+  // Si ya hay sesión activa, redirige
+  sb.auth.getSession().then(({data})=>{
+    if(data.session) location.href="./dashboard.html";
+  });
+</script>
+</body>
+</html>
