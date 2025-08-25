@@ -15,7 +15,12 @@ tailwind.config = { theme:{ extend:{ colors:{ brand:"#C7A600", textmut:"#6b7280"
 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 <!-- Supabase -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  window.sb = supabase.createClient(
+    "https://ecmjxpnpdgmvnxmbciur.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
+  );
+</script>
 
 <!-- jsPDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
