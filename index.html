@@ -9,225 +9,234 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              gold: '#C7A600',
-              gold2: '#d8b800',
-              dark: '#0b0b0b'
-            }
-          },
-          boxShadow: {
-            glow: '0 0 0 3px rgba(199,166,0,.25), 0 12px 40px rgba(0,0,0,.25)'
-          },
-          borderRadius: {
-            '2.5xl': '20px'
-          },
-          keyframes: {
-            float: { '0%,100%': { transform:'translateY(0px)' }, '50%': { transform:'translateY(-12px)'} },
-            blob: {
-              '0%':   { transform:'translate(0,0) scale(1)' },
-              '33%':  { transform:'translate(10%, -5%) scale(1.05)' },
-              '66%':  { transform:'translate(-8%, 6%) scale(0.98)' },
-              '100%': { transform:'translate(0,0) scale(1)' },
-            },
-            shake: {
-              '10%, 90%': { transform: 'translateX(-1px)' },
-              '20%, 80%': { transform: 'translateX(2px)'  },
-              '30%, 50%, 70%': { transform: 'translateX(-4px)' },
-              '40%, 60%': { transform: 'translateX(4px)' }
-            }
-          },
-          animation: {
-            float: 'float 6s ease-in-out infinite',
-            blob: 'blob 18s ease-in-out infinite',
-            shake: 'shake .6s cubic-bezier(.36,.07,.19,.97) both'
-          }
-        }
-      }
-    }
-  </script>
-
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 
   <style>
-    :root { color-scheme: light dark; }
-    html,body { height: 100%; }
-    body {
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", Helvetica, sans-serif;
+    /* ===== Reset & tokens ===== */
+    *,*::before,*::after{ box-sizing:border-box }
+    :root{
+      --bg-1:#0c0c0c;
+      --bg-2:#141414;
+      --gold:#C7A600;
+      --gold-2:#d8b800;
+      --text:#f3f4f6;
+      --muted:#cbd5e1;
+      --muted-2:#9aa4b2;
+      --glass:rgba(255,255,255,.06);
+      --glass-b:rgba(255,255,255,.12);
+      --ring:rgba(199,166,0,.35);
+      --danger:#ff6b6b;
+      --ok:#7ddc7a;
+      --radius:20px;
+      --shadow:0 20px 60px rgba(0,0,0,.45);
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", Helvetica, sans-serif;
+      color:var(--text);
       background:
         radial-gradient(1200px 600px at 10% 10%, rgba(199,166,0,.10), transparent 60%),
         radial-gradient(1000px 500px at 90% 80%, rgba(199,166,0,.10), transparent 60%),
-        linear-gradient(180deg, #0c0c0c 0%, #141414 100%);
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      display:grid;
+      place-items:center;
+      padding:24px;
     }
-    /* Textura sutil */
     body::after{
       content:""; position:fixed; inset:0; pointer-events:none;
       background-image:url("data:image/svg+xml,%3Csvg opacity='0.15' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3Cpattern id='d' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='1' cy='1' r='1' fill='%23ffffff'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23d)'/%3E%3C/svg%3E");
       mix-blend-mode: soft-light;
     }
+
+    /* ===== Layout ===== */
+    .wrap{ width:100%; max-width:520px }
+    .brand{ display:flex; align-items:center; gap:12px; user-select:none; margin-bottom:14px }
+    .logo{
+      height:48px; width:48px; border-radius:16px;
+      background:linear-gradient(135deg,var(--gold),var(--gold-2));
+      box-shadow:0 0 0 6px rgba(199,166,0,.18), 0 18px 40px rgba(0,0,0,.35);
+      display:grid; place-items:center;
+    }
+    .logo svg{ fill:#0b0b0b }
+    h1{ font-size:28px; line-height:1; margin:0; letter-spacing:.3px }
+    .kicker{ font-size:12px; letter-spacing:.26em; text-transform:uppercase; opacity:.8 }
+
+    .card{
+      backdrop-filter: blur(18px);
+      background:var(--glass);
+      border:1px solid var(--glass-b);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card-head{ padding:28px 28px 0 28px }
+    .card-sub{ color:var(--muted-2); margin-top:8px; margin-bottom:20px }
+
+    .card-body{ padding:24px 28px 28px 28px; display:grid; gap:16px }
+    label{ font-size:14px; color:#e5e7eb }
+    .field{ position:relative }
+    .input{
+      width:100%; padding:14px 44px 14px 14px;
+      border-radius:14px; border:1px solid var(--glass-b);
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      outline:none; transition:border .2s, box-shadow .2s, background .2s;
+    }
+    .input::placeholder{ color:rgba(243,244,246,.5) }
+    .input:focus{
+      border-color:var(--gold);
+      box-shadow:0 0 0 6px var(--ring);
+      background:rgba(255,255,255,.12);
+    }
+    .icon{ position:absolute; right:12px; top:50%; transform:translateY(-50%); opacity:.7 }
+    .muted{ color:var(--muted-2); font-size:14px }
+
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:12px }
+    .check{ display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none }
+    .check input{ width:18px; height:18px; accent-color:var(--gold) }
+    a{ color:#d7dbff; text-decoration:underline; text-underline-offset:3px }
+    a:hover{ color:#fff }
+
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      padding:14px 16px; border-radius:14px; font-weight:700; width:100%;
+      border:1px solid transparent; cursor:pointer; transition:transform .06s ease, opacity .2s, box-shadow .2s, filter .2s;
+    }
+    .btn:disabled{ opacity:.7; cursor:not-allowed }
+    .btn:active{ transform:translateY(1px) }
+
+    .btn-primary{
+      color:#0b0b0b;
+      background:linear-gradient(180deg,var(--gold),var(--gold-2));
+      border-color:rgba(199,166,0,.5);
+      box-shadow:0 0 0 6px var(--ring), 0 10px 28px rgba(0,0,0,.4);
+    }
+    .btn-ghost{
+      color:var(--text); background:rgba(255,255,255,.10); border-color:var(--glass-b);
+    }
+    .msg{ min-height:20px; text-align:center; font-size:14px }
+    .msg.ok{ color:var(--ok) }
+    .msg.error{ color:var(--danger) }
+
+    .foot{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 20px; border-top:1px solid var(--glass-b); font-size:12px; color:var(--muted-2)
+    }
+    .dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); animation:pulse 2s infinite }
+    @keyframes pulse{
+      0%{ opacity:.6 } 50%{ opacity:1 } 100%{ opacity:.6 }
+    }
+    @keyframes shake{
+      10%,90%{ transform:translateX(-1px) }
+      20%,80%{ transform:translateX(2px) }
+      30%,50%,70%{ transform:translateX(-4px) }
+      40%,60%{ transform:translateX(4px) }
+    }
+    .shake{ animation:shake .6s cubic-bezier(.36,.07,.19,.97) both }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 text-slate-100">
-
-  <!-- Fondo decorativo -->
-  <div aria-hidden="true" class="pointer-events-none fixed inset-0 overflow-hidden">
-    <div class="absolute -top-24 -left-24 w-[36rem] h-[36rem] rounded-full blur-3xl opacity-30 bg-brand.gold animate-blob"></div>
-    <div class="absolute -bottom-20 -right-24 w-[30rem] h-[30rem] rounded-full blur-3xl opacity-20 bg-yellow-400 animate-blob" style="animation-delay: -6s"></div>
-    <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[22rem] h-[22rem] rounded-full blur-3xl opacity-10 bg-white/60 animate-blob" style="animation-delay: -12s"></div>
-  </div>
-
-  <!-- Contenedor -->
-  <main class="relative w-full max-w-[480px]">
+<body>
+  <main class="wrap">
     <!-- Marca -->
-    <header class="mb-5 text-center select-none">
-      <div class="inline-flex items-center gap-3">
-        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-brand.gold to-brand.gold2 ring-4 ring-brand.gold/20 shadow-glow flex items-center justify-center">
-          <!-- Ícono minimal (estrella/escudo) -->
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="#0b0b0b" aria-hidden="true">
-            <path d="M12 2l2.39 4.84 5.34.78-3.86 3.76.91 5.32L12 14.77 6.22 16.7l.91-5.32L3.27 7.62l5.34-.78L12 2z"/>
-          </svg>
-        </div>
-        <div class="text-left">
-          <p class="text-xs tracking-widest text-white/70">CRM</p>
-          <h1 class="text-xl font-extrabold tracking-wide">San Isidro</h1>
-        </div>
+    <header class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84 5.34.78-3.86 3.76.91 5.32L12 14.77 6.22 16.7l.91-5.32L3.27 7.62l5.34-.78L12 2z"/></svg>
+      </div>
+      <div>
+        <div class="kicker">CRM</div>
+        <h1>San Isidro</h1>
       </div>
     </header>
 
     <!-- Card -->
-    <section
-      class="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2.5xl shadow-2xl shadow-black/30 overflow-hidden">
-      <!-- Head -->
-      <div class="p-6 sm:p-8 border-b border-white/10">
-        <h2 class="text-lg font-bold">Ingreso</h2>
-        <p class="text-sm text-white/70 mt-1">Accedé a tu panel para gestionar clientes, citas y reportes.</p>
+    <section class="card" role="region" aria-labelledby="title-ingreso">
+      <div class="card-head">
+        <h2 id="title-ingreso" style="margin:0;font-size:20px">Ingreso</h2>
+        <p class="card-sub">Accedé a tu panel para gestionar clientes, citas y reportes.</p>
       </div>
 
-      <!-- Form -->
-      <form id="loginForm" class="p-6 sm:p-8 grid gap-5">
-        <div class="grid gap-2">
-          <label for="email" class="text-sm text-white/80">Email</label>
-          <div class="relative">
-            <input id="email" name="email" type="email" required autocomplete="email"
-              class="w-full rounded-xl bg-white/8 border border-white/15 px-4 py-3 outline-none text-white placeholder-white/40
-                     focus:ring-4 focus:ring-brand.gold/30 focus:border-brand.gold/60 transition"
-              placeholder="tu@correo.com" />
-            <svg class="absolute right-3 top-1/2 -translate-y-1/2 opacity-60" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M20 4H4a2 2 0 0 0-2 2v1l10 6 10-6V6a2 2 0 0 0-2-2zm0 6.236-8 4.8-8-4.8V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z"/>
+      <form id="loginForm" class="card-body" novalidate>
+        <div>
+          <label for="email">Email</label>
+          <div class="field">
+            <input id="email" name="email" type="email" class="input" placeholder="tu@correo.com" autocomplete="email" required />
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v1l10 6 10-6V6a2 2 0 0 0-2-2zm0 6.236-8 4.8-8-4.8V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z"/>
             </svg>
           </div>
         </div>
 
-        <div class="grid gap-2">
-          <label for="password" class="text-sm text-white/80">Contraseña</label>
-          <div class="relative">
-            <input id="password" name="password" type="password" required autocomplete="current-password"
-              class="w-full rounded-xl bg-white/8 border border-white/15 px-4 py-3 pr-12 outline-none text-white placeholder-white/40
-                     focus:ring-4 focus:ring-brand.gold/30 focus:border-brand.gold/60 transition"
-              placeholder="********" />
-            <button type="button" id="togglePass" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand.gold/40" aria-label="Mostrar u ocultar contraseña">
-              <svg id="eye" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
-              </svg>
+        <div>
+          <label for="password">Contraseña</label>
+          <div class="field">
+            <input id="password" name="password" type="password" class="input" placeholder="********" autocomplete="current-password" required />
+            <button type="button" id="togglePass" class="icon" aria-label="Mostrar u ocultar contraseña" title="Mostrar/Ocultar">
+              <svg id="eye" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
             </button>
           </div>
         </div>
 
-        <div class="flex items-center justify-between text-sm">
-          <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-            <input id="remember" type="checkbox" class="accent-brand.gold/90">
-            <span class="text-white/80">Recordarme</span>
-          </label>
-          <a href="#" class="text-white/70 hover:text-white underline underline-offset-4">¿Olvidaste tu clave?</a>
+        <div class="row">
+          <label class="check"><input id="remember" type="checkbox" /> <span class="muted">Recordarme</span></label>
+          <a href="#" class="muted">¿Olvidaste tu clave?</a>
         </div>
 
-        <div class="grid gap-3 mt-2">
-          <button id="loginBtn" type="submit"
-            class="inline-flex items-center justify-center gap-2 rounded-xl border border-brand.gold/40 bg-gradient-to-b from-brand.gold to-brand.gold2
-                   text-brand.dark font-bold py-3 hover:opacity-95 active:translate-y-px shadow-glow focus:outline-none focus:ring-4 focus:ring-brand.gold/35 transition">
-            <span id="loginIcon" class="inline-block animate-none">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 17l5-5-5-5v10z"/></svg>
+        <div style="display:grid; gap:12px; margin-top:4px">
+          <button id="loginBtn" type="submit" class="btn btn-primary">
+            <span id="loginIcon">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 17l5-5-5-5v10z"/></svg>
             </span>
             <span id="loginText">Ingresar</span>
           </button>
 
-          <button id="signupBtn" type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 text-white font-semibold py-3
-                   hover:bg-white/15 active:translate-y-px focus:outline-none focus:ring-4 focus:ring-white/20 transition">
-            Crear cuenta
-          </button>
+          <button id="signupBtn" type="button" class="btn btn-ghost">Crear cuenta</button>
         </div>
 
-        <p id="msg" class="text-center text-sm text-white/75 min-h-[1.25rem]"></p>
+        <p id="msg" class="msg"></p>
       </form>
 
-      <!-- Footer -->
-      <div class="px-6 sm:px-8 py-5 border-t border-white/10 text-xs text-white/60 flex items-center justify-between">
+      <div class="foot">
         <span>© <span id="year"></span> CRM San Isidro</span>
-        <span class="inline-flex items-center gap-1 opacity-90">
-          <span class="h-2 w-2 rounded-full bg-brand.gold animate-[pulse_2s_ease-in-out_infinite]"></span>
-          <span>Seguro y rápido</span>
-        </span>
+        <span style="display:inline-flex;align-items:center;gap:8px"><span class="dot"></span> Seguro y rápido</span>
       </div>
     </section>
   </main>
 
   <script>
-    // === Supabase client (tus credenciales) ===
+    /* === Supabase client (tus credenciales) === */
     const sb = supabase.createClient(
       "https://ecmjxpnpdgmvnxmbciur.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
     );
 
-    // Año footer
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Si ya hay sesión, al dashboard
     (async () => {
       const { data:{ session }, error } = await sb.auth.getSession();
       if (session) location.href = "./dashboard.html";
       if (error) console.warn(error);
     })();
 
-    // Helpers UI
     const $ = (s, p=document) => p.querySelector(s);
-    const msg  = $("#msg");
     const form = $("#loginForm");
-    const loginBtn  = $("#loginBtn");
+    const msg = $("#msg");
+    const loginBtn = $("#loginBtn");
     const loginText = $("#loginText");
     const loginIcon = $("#loginIcon");
 
-    function setLoading(isLoading, label="Procesando…") {
+    function setLoading(isLoading, label="Procesando…"){
       loginBtn.disabled = isLoading;
-      loginBtn.classList.toggle("opacity-70", isLoading);
       loginText.textContent = isLoading ? label : "Ingresar";
       loginIcon.innerHTML = isLoading
-        ? `<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-             <path d="M12 2a10 10 0 1 0 10 10h-2A8 8 0 1 1 12 4V2z"/>
-           </svg>`
-        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 17l5-5-5-5v10z"/></svg>`;
+        ? `<svg class="spin" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><style>.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10h-2A8 8 0 1 1 12 4V2z"/></svg>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 17l5-5-5-5v10z"/></svg>`;
     }
-
-    function showMessage(text, type="info") {
-      const colors = {
-        info: "text-white/80",
-        ok: "text-green-300",
-        error: "text-red-300"
-      };
-      msg.className = `text-center text-sm ${colors[type]} min-h-[1.25rem]`;
-      msg.textContent = text;
-      if (type === "error") {
-        // sacudida sutil
-        form.classList.add("animate-shake");
-        setTimeout(()=>form.classList.remove("animate-shake"), 600);
-      }
+    function showMessage(text, type="info"){
+      msg.className = "msg " + (type === "ok" ? "ok" : type === "error" ? "error" : "");
+      msg.textContent = text || "";
+      if(type==="error"){ form.classList.remove("shake"); void form.offsetWidth; form.classList.add("shake"); }
     }
 
     // Toggle contraseña
@@ -236,8 +245,8 @@
       const isText = passInput.type === "text";
       passInput.type = isText ? "password" : "text";
       $("#eye").innerHTML = isText
-        ? `<path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>`
-        : `<path d="M2 4.27 3.28 3 21 20.72 19.73 22l-2.6-2.6C15.79 19.74 13.97 20 12 20 7 20 2.73 16.89 1 13c.67-1.5 1.72-2.86 2.98-3.98L2 4.27zM12 7a5 5 0 0 1 4.9 6.09L9.91 6.1A5 5 0 0 1 12 7z"/>`;
+        ? `<path fill="currentColor" d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>`
+        : `<path fill="currentColor" d="M2 4.27 3.28 3 21 20.72 19.73 22l-2.6-2.6C15.79 19.74 13.97 20 12 20 7 20 2.73 16.89 1 13c.67-1.5 1.72-2.86 2.98-3.98L2 4.27zM12 7a5 5 0 0 1 4.9 6.09L9.91 6.1A5 5 0 0 1 12 7z"/>`;
       passInput.focus();
     });
 
@@ -245,66 +254,41 @@
     const remembered = localStorage.getItem("crm_email");
     if (remembered) $("#email").value = remembered;
 
-    // Submit Login
-    form.addEventListener("submit", async (e) => {
+    // Login
+    form.addEventListener("submit", async (e)=>{
       e.preventDefault();
-      showMessage("Ingresando…", "info");
-      setLoading(true, "Ingresando…");
+      showMessage("Ingresando…"); setLoading(true,"Ingresando…");
       const email = $("#email").value.trim();
       const pass  = $("#password").value.trim();
+      if(!email || !pass){ showMessage("Completá email y contraseña.","error"); setLoading(false); return; }
 
-      try {
-        if (!email || !pass) {
-          showMessage("Completá email y contraseña.", "error");
-          setLoading(false);
-          return;
-        }
-        // Guardar email si corresponde
+      try{
         if ($("#remember").checked) localStorage.setItem("crm_email", email);
-
         const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-        if (error) {
-          showMessage("Error: " + (error.message || "No se pudo iniciar sesión."), "error");
-          setLoading(false);
-          return;
-        }
-        showMessage("¡Bienvenido! Redirigiendo…", "ok");
+        if(error){ showMessage("Error: " + (error.message || "No se pudo iniciar sesión."),"error"); setLoading(false); return; }
+        showMessage("¡Bienvenido! Redirigiendo…","ok");
         location.href = "./dashboard.html";
-      } catch (err) {
+      }catch(err){
         console.error(err);
-        showMessage("Error inesperado. Intentá nuevamente.", "error");
-        setLoading(false);
-      }
+        showMessage("Error inesperado. Intentá nuevamente.","error");
+      }finally{ setLoading(false); }
     });
 
     // Signup
-    $("#signupBtn").addEventListener("click", async () => {
-      showMessage("Creando cuenta…", "info");
-      setLoading(true, "Creando…");
+    $("#signupBtn").addEventListener("click", async ()=>{
+      showMessage("Creando cuenta…"); setLoading(true,"Creando…");
       const email = $("#email").value.trim();
       const pass  = $("#password").value.trim();
-      if (!email || !pass) {
-        showMessage("Ingresá email y contraseña para registrarte.", "error");
-        setLoading(false);
-        return;
-      }
-      try {
+      if(!email || !pass){ showMessage("Ingresá email y contraseña para registrarte.","error"); setLoading(false); return; }
+      try{
         const { data, error } = await sb.auth.signUp({ email, password: pass });
-        if (error) {
-          showMessage("Error: " + (error.message || "No se pudo crear la cuenta."), "error");
-          setLoading(false);
-          return;
-        }
+        if(error){ showMessage("Error: " + (error.message || "No se pudo crear la cuenta."),"error"); return; }
         const confirmed = data.user?.email_confirmed_at;
-        showMessage(confirmed
-          ? "Cuenta creada. Ya podés ingresar."
-          : "Cuenta creada. Revisá tu email para confirmar.", "ok");
-      } catch (err) {
+        showMessage(confirmed ? "Cuenta creada. Ya podés ingresar." : "Cuenta creada. Revisá tu email para confirmar.","ok");
+      }catch(err){
         console.error(err);
-        showMessage("Error inesperado. Intentá nuevamente.", "error");
-      } finally {
-        setLoading(false);
-      }
+        showMessage("Error inesperado. Intentá nuevamente.","error");
+      }finally{ setLoading(false); }
     });
   </script>
 </body>
