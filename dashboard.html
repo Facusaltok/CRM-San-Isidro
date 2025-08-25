@@ -5,254 +5,362 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>CRM San Isidro — Dashboard</title>
 
-<!-- Tailwind -->
-<script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
-
 <!-- Alpine -->
 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" crossorigin="anonymous"></script>
 
 <!-- Supabase -->
 <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 
+<!-- Fuente -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
 <style>
-  body{background:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-  .container{max-width:1100px;margin:0 auto;padding:16px}
-  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.06)}
-  .btn{border:1px solid #e5e7eb;border-radius:10px;padding:.55rem .9rem;font-weight:700;background:#fff}
-  .btn-primary{background:#C7A600;border-color:#d1b83a;color:#111827}
-  .input, .select, .textarea{border:1px solid #d1d5db;border-radius:10px;padding:.55rem .9rem;width:100%}
-  .tab{border:1px solid #e5e7eb;border-radius:12px;padding:.55rem .9rem;font-weight:700;background:#fff}
-  .tab.active{background:#111827;color:#fff}
-  [x-cloak]{display:none !important}
-  table{width:100%}
-  th,td{padding:.7rem;border-top:1px solid #eee;font-size:.9rem}
-  thead th{background:#fafafa;text-align:left}
+  /* ===== Tokens & Reset ===== */
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg-1:#0c0c0c; --bg-2:#141414;
+    --text:#f3f4f6; --muted:#cbd5e1; --muted-2:#93a0ae;
+    --gold:#C7A600; --gold-2:#d8b800; --ring:rgba(199,166,0,.35);
+    --glass:rgba(255,255,255,.06); --glass-b:rgba(255,255,255,.12);
+    --danger:#ff6b6b; --ok:#7ddc7a; --radius:18px; --shadow:0 20px 60px rgba(0,0,0,.45);
+  }
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 10% 10%, rgba(199,166,0,.10), transparent 60%),
+      radial-gradient(1000px 500px at 90% 80%, rgba(199,166,0,.10), transparent 60%),
+      linear-gradient(180deg,var(--bg-1),var(--bg-2));
+  }
+  [x-cloak]{display:none!important}
+
+  /* ===== Layout ===== */
+  .container{max-width:1120px;margin:0 auto;padding:20px}
+  .row{display:flex;align-items:center;gap:12px}
+  .space{height:16px}
+  .brand{display:flex;align-items:center;gap:12px;user-select:none}
+  .logo{height:40px;width:40px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold-2));box-shadow:0 0 0 6px rgba(199,166,0,.18),0 18px 40px rgba(0,0,0,.35);display:grid;place-items:center}
+  .logo svg{fill:#0b0b0b}
+  .title{font-weight:800;letter-spacing:.3px}
+  .muted{color:var(--muted-2)}
+
+  /* ===== Cards / Panels ===== */
+  .card{backdrop-filter:blur(18px);background:var(--glass);border:1px solid var(--glass-b);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .card-h{padding:18px 20px;border-bottom:1px solid var(--glass-b)}
+  .card-b{padding:18px 20px}
+  .pill{height:10px;width:10px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
+  @keyframes pulse{0%{opacity:.6}50%{opacity:1}100%{opacity:.6}}
+
+  /* ===== Inputs / Buttons ===== */
+  .input,.select,.textarea{
+    width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--glass-b);
+    background:rgba(255,255,255,.08);color:var(--text);outline:none;
+    transition:border .2s,box-shadow .2s,background .2s;
+  }
+  .input::placeholder,.textarea::placeholder{color:rgba(243,244,246,.5)}
+  .input:focus,.select:focus,.textarea:focus{border-color:var(--gold);box-shadow:0 0 0 6px var(--ring);background:rgba(255,255,255,.12)}
+  .btn{
+    border:1px solid var(--glass-b);background:rgba(255,255,255,.10);color:var(--text);
+    border-radius:14px;padding:12px 14px;font-weight:700;cursor:pointer;
+    transition:transform .06s,opacity .2s,box-shadow .2s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:linear-gradient(180deg,var(--gold),var(--gold-2));color:#0b0b0b;border-color:rgba(199,166,0,.5);box-shadow:0 0 0 6px var(--ring),0 10px 28px rgba(0,0,0,.4)}
+  .btn:disabled{opacity:.7;cursor:not-allowed}
+
+  /* ===== Tabs ===== */
+  .tabs{display:flex;gap:10px;flex-wrap:wrap}
+  .tab{border:1px solid var(--glass-b);border-radius:14px;padding:10px 14px;font-weight:700;background:rgba(255,255,255,.08);cursor:pointer}
+  .tab.active{background:#0f1115;color:#fff;border-color:#222}
+
+  /* ===== Table ===== */
+  .table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--glass-b)}
+  table{width:100%;border-collapse:collapse}
+  thead th{position:sticky;top:0;background:#0f1115;border-bottom:1px solid var(--glass-b);text-align:left;font-size:13px;padding:12px}
+  tbody td{border-top:1px solid var(--glass-b);padding:12px;font-size:14px}
+  tbody tr:hover{background:rgba(255,255,255,.04)}
+
+  /* ===== Modals ===== */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:grid;place-items:center;padding:16px}
+  .modal{background:#0f1115;border:1px solid var(--glass-b);border-radius:18px;max-width:760px;width:100%;box-shadow:var(--shadow)}
+  .modal-h{padding:18px 20px;border-bottom:1px solid var(--glass-b);display:flex;justify-content:space-between;align-items:center}
+  .modal-b{padding:18px 20px;display:grid;gap:12px}
+  .grid2{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:800px){ .grid2{grid-template-columns:1fr 1fr} }
+
+  /* ===== Utils ===== */
+  .right{margin-left:auto}
+  .text-center{text-align:center}
+  .text-danger{color:var(--danger)}
+  .text-ok{color:var(--ok)}
+  .badge{display:inline-flex;align-items:center;gap:8px}
+  .spacer{flex:1}
+  .link{color:#d7dbff;text-decoration:underline;text-underline-offset:3px}
 </style>
 </head>
 <body x-data="app()" x-init="init()" x-cloak>
 
-  <header class="container flex items-center justify-between py-3">
-    <div class="flex items-center gap-2">
-      <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-      <h1 class="text-lg font-extrabold tracking-wide">CRM SAN ISIDRO</h1>
-    </div>
-    <div class="flex items-center gap-2">
-      <button class="btn" @click="refresh()">Actualizar</button>
-      <button class="btn" @click="logout()">Salir</button>
+  <!-- Header -->
+  <header class="container">
+    <div class="card">
+      <div class="card-h row">
+        <div class="brand">
+          <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84 5.34.78-3.86 3.76.91 5.32L12 14.77 6.22 16.7l.91-5.32L3.27 7.62l5.34-.78L12 2z"/></svg></div>
+          <div>
+            <div class="muted" style="font-size:12px;letter-spacing:.26em;text-transform:uppercase">CRM</div>
+            <div class="title">San Isidro</div>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn" @click="refresh()">Actualizar</button>
+        <button class="btn" @click="logout()">Salir</button>
+      </div>
+
+      <div class="card-b">
+        <div class="tabs">
+          <button class="tab" :class="{'active':tab==='accesos'}"  @click="tab='accesos'">Accesos</button>
+          <button class="tab" :class="{'active':tab==='paq'}"      @click="tab='paq'">Paquetería</button>
+          <button class="tab" :class="{'active':tab==='agenda'}"   @click="tab='agenda'">Agenda</button>
+          <button class="tab" :class="{'active':tab==='contable'}" @click="tab='contable'">Contable</button>
+          <button class="tab" :class="{'active':tab==='parte'}"    @click="tab='parte'">Parte diario</button>
+          <span class="right badge muted"><span class="pill"></span> Seguro y rápido</span>
+        </div>
+      </div>
     </div>
   </header>
 
-  <nav class="container flex gap-2 mb-4">
-    <button class="tab" :class="{'active':tab==='accesos'}" @click="tab='accesos'">Accesos</button>
-    <button class="tab" :class="{'active':tab==='paq'}" @click="tab='paq'">Paquetería</button>
-    <button class="tab" :class="{'active':tab==='agenda'}" @click="tab='agenda'">Agenda</button>
-    <button class="tab" :class="{'active':tab==='contable'}" @click="tab='contable'">Contable</button>
-    <button class="tab" :class="{'active':tab==='parte'}" @click="tab='parte'">Parte diario</button>
-  </nav>
+  <!-- Diagnóstico mínimo -->
+  <div class="container muted" id="diagDash" style="font-size:12px"></div>
 
-  <!-- Diagnóstico mínimo (podés ocultarlo si querés) -->
-  <div class="container text-xs text-gray-500" id="diagDash"></div>
-
-  <!-- === Accesos === -->
+  <!-- ===== Accesos ===== -->
   <section class="container" x-show="tab==='accesos'">
-    <div class="card p-4">
-      <div class="flex flex-wrap gap-2 items-center mb-3">
-        <input type="date" class="input w-40" x-model="flt.acc.desde" />
-        <input type="date" class="input w-40" x-model="flt.acc.hasta" />
-        <input type="text" class="input w-72" placeholder="Buscar nombre/DNI/dominio…" x-model="flt.acc.q" />
-        <button class="btn btn-primary" @click="openAcceso()">+ Nuevo</button>
-        <button class="btn" @click="exportarPDF('accesos')">Exportar PDF</button>
-        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
-      </div>
+    <div class="card">
+      <div class="card-b">
+        <div class="row" style="flex-wrap:wrap">
+          <input type="date" class="input" style="max-width:160px" x-model="flt.acc.desde" />
+          <input type="date" class="input" style="max-width:160px" x-model="flt.acc.hasta" />
+          <input type="text" class="input" style="min-width:280px;flex:1" placeholder="Buscar nombre/DNI/dominio…" x-model="flt.acc.q" />
+          <button class="btn btn-primary" @click="openAcceso()">+ Nuevo</button>
+          <button class="btn" @click="exportarPDF('accesos')">Exportar PDF</button>
+          <button class="btn" @click="clearFilters()">Limpiar filtros</button>
+        </div>
 
-      <div class="overflow-x-auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Nombre</th><th>DNI</th><th>Vehículo</th><th>Dominio</th>
-              <th>Motivo</th><th>F.Ing</th><th>H.Ing</th><th>F.Sal</th><th>H.Sal</th><th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr x-show="accesos.length===0"><td colspan="10" class="text-center text-gray-400 py-6">Sin registros</td></tr>
-            <template x-for="r in filteredAccesos()" :key="r.id">
+        <div class="space"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td x-text="r.nombre_apellido"></td>
-                <td x-text="r.dni"></td>
-                <td x-text="r.vehiculo"></td>
-                <td x-text="r.dominio"></td>
-                <td x-text="r.motivo"></td>
-                <td x-text="r.fecha_ingreso"></td>
-                <td x-text="r.hora_ingreso"></td>
-                <td x-text="r.fecha_salida"></td>
-                <td x-text="r.hora_salida"></td>
-                <td><button class="btn" @click="openAcceso(r)">Editar</button></td>
+                <th>Nombre</th><th>DNI</th><th>Vehículo</th><th>Dominio</th>
+                <th>Motivo</th><th>F.Ing</th><th>H.Ing</th><th>F.Sal</th><th>H.Sal</th><th>Acciones</th>
               </tr>
-            </template>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <tr x-show="accesos.length===0"><td colspan="10" class="text-center muted" style="padding:24px">Sin registros</td></tr>
+              <template x-for="r in filteredAccesos()" :key="r.id">
+                <tr>
+                  <td x-text="r.nombre_apellido"></td>
+                  <td x-text="r.dni"></td>
+                  <td x-text="r.vehiculo"></td>
+                  <td x-text="r.dominio"></td>
+                  <td x-text="r.motivo"></td>
+                  <td x-text="r.fecha_ingreso"></td>
+                  <td x-text="r.hora_ingreso"></td>
+                  <td x-text="r.fecha_salida"></td>
+                  <td x-text="r.hora_salida"></td>
+                  <td><button class="btn" @click="openAcceso(r)">Editar</button></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <!-- Modal Acceso -->
-    <div x-show="modal.acceso" class="fixed inset-0 bg-black/30 grid place-items-center p-3">
-      <div class="card p-4 w-full max-w-2xl bg-white">
-        <h3 class="text-lg font-bold mb-3" x-text="formAcceso.id?'Editar acceso':'Nuevo acceso'"></h3>
-        <div class="grid md:grid-cols-2 gap-3">
-          <input class="input" placeholder="Nombre y Apellido *" x-model="formAcceso.nombre_apellido">
-          <input class="input" placeholder="DNI" x-model="formAcceso.dni">
-          <input class="input" placeholder="Vehículo" x-model="formAcceso.vehiculo">
-          <input class="input" placeholder="Dominio" x-model="formAcceso.dominio">
-          <input class="input" type="date" x-model="formAcceso.fecha_ingreso">
-          <input class="input" type="time" x-model="formAcceso.hora_ingreso">
-          <input class="input" type="date" x-model="formAcceso.fecha_salida">
-          <input class="input" type="time" x-model="formAcceso.hora_salida">
-          <input class="input md:col-span-2" placeholder="Motivo" x-model="formAcceso.motivo">
+    <div x-show="modal.acceso" class="overlay" @keydown.escape.window="modal.acceso=false">
+      <div class="modal">
+        <div class="modal-h">
+          <h3 x-text="formAcceso.id?'Editar acceso':'Nuevo acceso'"></h3>
+          <button class="btn" @click="modal.acceso=false">Cerrar</button>
         </div>
-        <div class="flex gap-2 justify-end mt-4">
-          <button class="btn" @click="modal.acceso=false">Cancelar</button>
-          <button class="btn btn-primary" @click="saveAcceso()">Guardar</button>
+        <div class="modal-b">
+          <div class="grid2">
+            <input class="input" placeholder="Nombre y Apellido *" x-model="formAcceso.nombre_apellido">
+            <input class="input" placeholder="DNI" x-model="formAcceso.dni">
+            <input class="input" placeholder="Vehículo" x-model="formAcceso.vehiculo">
+            <input class="input" placeholder="Dominio" x-model="formAcceso.dominio">
+            <input class="input" type="date" x-model="formAcceso.fecha_ingreso">
+            <input class="input" type="time" x-model="formAcceso.hora_ingreso">
+            <input class="input" type="date" x-model="formAcceso.fecha_salida">
+            <input class="input" type="time" x-model="formAcceso.hora_salida">
+            <input class="input" placeholder="Motivo" x-model="formAcceso.motivo" style="grid-column:1 / -1">
+          </div>
+          <div class="row right" style="justify-content:flex-end">
+            <button class="btn" @click="modal.acceso=false">Cancelar</button>
+            <button class="btn btn-primary" @click="saveAcceso()">Guardar</button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- === Paquetería === -->
+  <!-- ===== Paquetería ===== -->
   <section class="container" x-show="tab==='paq'">
-    <div class="card p-4">
-      <div class="flex flex-wrap gap-2 items-center mb-3">
-        <input type="date" class="input w-40" x-model="flt.paq.desde" />
-        <input type="date" class="input w-40" x-model="flt.paq.hasta" />
-        <input type="text" class="input w-72" placeholder="Buscar descripción/observaciones…" x-model="flt.paq.q" />
-        <button class="btn btn-primary" @click="openPaq()">+ Nuevo</button>
-        <button class="btn" @click="exportarPDF('paqueteria')">Exportar PDF</button>
-        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
-      </div>
+    <div class="card">
+      <div class="card-b">
+        <div class="row" style="flex-wrap:wrap">
+          <input type="date" class="input" style="max-width:160px" x-model="flt.paq.desde" />
+          <input type="date" class="input" style="max-width:160px" x-model="flt.paq.hasta" />
+          <input type="text" class="input" style="min-width:280px;flex:1" placeholder="Buscar descripción/observaciones…" x-model="flt.paq.q" />
+          <button class="btn btn-primary" @click="openPaq()">+ Nuevo</button>
+          <button class="btn" @click="exportarPDF('paqueteria')">Exportar PDF</button>
+          <button class="btn" @click="clearFilters()">Limpiar filtros</button>
+        </div>
 
-      <div class="overflow-x-auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Descripción</th><th>F.Rec</th><th>H.Rec</th><th>Recibido por</th><th>Obs</th><th>Entregado a</th><th>F.Ent</th><th>H.Ent</th><th>Estado</th><th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr x-show="paq.length===0"><td colspan="10" class="text-center text-gray-400 py-6">Sin registros</td></tr>
-            <template x-for="r in filteredPaq()" :key="r.id">
+        <div class="space"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td x-text="r.descripcion"></td>
-                <td x-text="r.fecha_recepcion"></td>
-                <td x-text="r.hora_recepcion"></td>
-                <td x-text="empleadoNombre(r.recibido_por)"></td>
-                <td x-text="r.observaciones"></td>
-                <td x-text="r.entregado_a"></td>
-                <td x-text="r.fecha_entrega"></td>
-                <td x-text="r.hora_entrega"></td>
-                <td x-text="r.estado"></td>
-                <td><button class="btn" @click="openPaq(r)">Editar</button></td>
+                <th>Descripción</th><th>F.Rec</th><th>H.Rec</th><th>Recibido por</th><th>Obs</th><th>Entregado a</th><th>F.Ent</th><th>H.Ent</th><th>Estado</th><th>Acciones</th>
               </tr>
-            </template>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <tr x-show="paq.length===0"><td colspan="10" class="text-center muted" style="padding:24px">Sin registros</td></tr>
+              <template x-for="r in filteredPaq()" :key="r.id">
+                <tr>
+                  <td x-text="r.descripcion"></td>
+                  <td x-text="r.fecha_recepcion"></td>
+                  <td x-text="r.hora_recepcion"></td>
+                  <td x-text="empleadoNombre(r.recibido_por)"></td>
+                  <td x-text="r.observaciones"></td>
+                  <td x-text="r.entregado_a"></td>
+                  <td x-text="r.fecha_entrega"></td>
+                  <td x-text="r.hora_entrega"></td>
+                  <td x-text="r.estado"></td>
+                  <td><button class="btn" @click="openPaq(r)">Editar</button></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <!-- Modal Paquetería -->
-    <div x-show="modal.paq" class="fixed inset-0 bg-black/30 grid place-items-center p-3">
-      <div class="card p-4 w-full max-w-2xl bg-white">
-        <h3 class="text-lg font-bold mb-3" x-text="formPaq.id?'Editar paquete':'Nuevo paquete'"></h3>
-        <div class="grid md:grid-cols-2 gap-3">
-          <input class="input md:col-span-2" placeholder="Descripción *" x-model="formPaq.descripcion">
-          <input class="input" type="date" x-model="formPaq.fecha_recepcion">
-          <input class="input" type="time" x-model="formPaq.hora_recepcion">
-          <select class="input" x-model="formPaq.recibido_por">
-            <option value="">— Recibido por —</option>
-            <template x-for="e in empleados" :key="e.id">
-              <option :value="e.id" x-text="e.nombre + ' ' + e.apellido"></option>
-            </template>
-          </select>
-          <input class="input" placeholder="Observaciones" x-model="formPaq.observaciones">
-          <input class="input" placeholder="Entregado a" x-model="formPaq.entregado_a">
-          <input class="input" type="date" x-model="formPaq.fecha_entrega">
-          <input class="input" type="time" x-model="formPaq.hora_entrega">
-          <select class="input" x-model="formPaq.estado">
-            <option value="recibido">recibido</option>
-            <option value="entregado">entregado</option>
-          </select>
+    <div x-show="modal.paq" class="overlay" @keydown.escape.window="modal.paq=false">
+      <div class="modal">
+        <div class="modal-h">
+          <h3 x-text="formPaq.id?'Editar paquete':'Nuevo paquete'"></h3>
+          <button class="btn" @click="modal.paq=false">Cerrar</button>
         </div>
-        <div class="flex gap-2 justify-end mt-4">
-          <button class="btn" @click="modal.paq=false">Cancelar</button>
-          <button class="btn btn-primary" @click="savePaq()">Guardar</button>
+        <div class="modal-b">
+          <div class="grid2">
+            <input class="input" placeholder="Descripción *" x-model="formPaq.descripcion" style="grid-column:1 / -1">
+            <input class="input" type="date" x-model="formPaq.fecha_recepcion">
+            <input class="input" type="time" x-model="formPaq.hora_recepcion">
+            <select class="select" x-model="formPaq.recibido_por">
+              <option value="">— Recibido por —</option>
+              <template x-for="e in empleados" :key="e.id">
+                <option :value="e.id" x-text="e.nombre + ' ' + e.apellido"></option>
+              </template>
+            </select>
+            <input class="input" placeholder="Observaciones" x-model="formPaq.observaciones">
+            <input class="input" placeholder="Entregado a" x-model="formPaq.entregado_a">
+            <input class="input" type="date" x-model="formPaq.fecha_entrega">
+            <input class="input" type="time" x-model="formPaq.hora_entrega">
+            <select class="select" x-model="formPaq.estado">
+              <option value="recibido">recibido</option>
+              <option value="entregado">entregado</option>
+            </select>
+          </div>
+          <div class="row right" style="justify-content:flex-end">
+            <button class="btn" @click="modal.paq=false">Cancelar</button>
+            <button class="btn btn-primary" @click="savePaq()">Guardar</button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- === Agenda === -->
+  <!-- ===== Agenda ===== -->
   <section class="container" x-show="tab==='agenda'">
-    <div class="card p-4">
-      <div class="flex flex-wrap gap-2 items-center mb-3">
-        <input type="date" class="input w-40" x-model="flt.ag.desde" />
-        <input type="date" class="input w-40" x-model="flt.ag.hasta" />
-        <input type="text" class="input w-72" placeholder="Buscar tarea/destinatario…" x-model="flt.ag.q" />
-        <button class="btn btn-primary" @click="openAgenda()">+ Nuevo</button>
-        <button class="btn" @click="exportarPDF('agenda_dom')">Exportar PDF</button>
-        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
-      </div>
+    <div class="card">
+      <div class="card-b">
+        <div class="row" style="flex-wrap:wrap">
+          <input type="date" class="input" style="max-width:160px" x-model="flt.ag.desde" />
+          <input type="date" class="input" style="max-width:160px" x-model="flt.ag.hasta" />
+          <input type="text" class="input" style="min-width:280px;flex:1" placeholder="Buscar tarea/destinatario…" x-model="flt.ag.q" />
+          <button class="btn btn-primary" @click="openAgenda()">+ Nuevo</button>
+          <button class="btn" @click="exportarPDF('agenda_dom')">Exportar PDF</button>
+          <button class="btn" @click="clearFilters()">Limpiar filtros</button>
+        </div>
 
-      <div class="overflow-x-auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Fecha</th><th>Hora</th><th>Tarea</th><th>Destinatario</th><th>Obs</th><th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr x-show="agenda.length===0"><td colspan="6" class="text-center text-gray-400 py-6">Sin registros</td></tr>
-            <template x-for="r in filteredAgenda()" :key="r.id">
+        <div class="space"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td x-text="r.fecha"></td>
-                <td x-text="r.hora"></td>
-                <td x-text="r.tarea"></td>
-                <td x-text="r.destinatario"></td>
-                <td x-text="r.observaciones"></td>
-                <td><button class="btn" @click="openAgenda(r)">Editar</button></td>
+                <th>Fecha</th><th>Hora</th><th>Tarea</th><th>Destinatario</th><th>Obs</th><th>Acciones</th>
               </tr>
-            </template>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <tr x-show="agenda.length===0"><td colspan="6" class="text-center muted" style="padding:24px">Sin registros</td></tr>
+              <template x-for="r in filteredAgenda()" :key="r.id">
+                <tr>
+                  <td x-text="r.fecha"></td>
+                  <td x-text="r.hora"></td>
+                  <td x-text="r.tarea"></td>
+                  <td x-text="r.destinatario"></td>
+                  <td x-text="r.observaciones"></td>
+                  <td><button class="btn" @click="openAgenda(r)">Editar</button></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <!-- Modal Agenda -->
-    <div x-show="modal.agenda" class="fixed inset-0 bg-black/30 grid place-items-center p-3">
-      <div class="card p-4 w-full max-w-2xl bg-white">
-        <h3 class="text-lg font-bold mb-3" x-text="formAgenda.id?'Editar tarea':'Nueva tarea'"></h3>
-        <div class="grid md:grid-cols-2 gap-3">
-          <input class="input" type="date" x-model="formAgenda.fecha">
-          <input class="input" type="time" x-model="formAgenda.hora">
-          <input class="input md:col-span-2" placeholder="Tarea *" x-model="formAgenda.tarea">
-          <input class="input md:col-span-2" placeholder="Destinatario" x-model="formAgenda.destinatario">
-          <input class="input md:col-span-2" placeholder="Observaciones" x-model="formAgenda.observaciones">
+    <div x-show="modal.agenda" class="overlay" @keydown.escape.window="modal.agenda=false">
+      <div class="modal">
+        <div class="modal-h">
+          <h3 x-text="formAgenda.id?'Editar tarea':'Nueva tarea'"></h3>
+          <button class="btn" @click="modal.agenda=false">Cerrar</button>
         </div>
-        <div class="flex gap-2 justify-end mt-4">
-          <button class="btn" @click="modal.agenda=false">Cancelar</button>
-          <button class="btn btn-primary" @click="saveAgenda()">Guardar</button>
+        <div class="modal-b">
+          <div class="grid2">
+            <input class="input" type="date" x-model="formAgenda.fecha">
+            <input class="input" type="time" x-model="formAgenda.hora">
+            <input class="input" placeholder="Tarea *" x-model="formAgenda.tarea" style="grid-column:1 / -1">
+            <input class="input" placeholder="Destinatario" x-model="formAgenda.destinatario" style="grid-column:1 / -1">
+            <input class="input" placeholder="Observaciones" x-model="formAgenda.observaciones" style="grid-column:1 / -1">
+          </div>
+          <div class="row right" style="justify-content:flex-end">
+            <button class="btn" @click="modal.agenda=false">Cancelar</button>
+            <button class="btn btn-primary" @click="saveAgenda()">Guardar</button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Contable / Parte diario: placeholders -->
+  <!-- Contable / Parte diario -->
   <section class="container" x-show="tab==='contable'">
-    <div class="card p-6 text-center text-gray-500">Próximamente</div>
+    <div class="card"><div class="card-b text-center muted">Próximamente</div></div>
   </section>
   <section class="container" x-show="tab==='parte'">
-    <div class="card p-6 text-center text-gray-500">Próximamente</div>
+    <div class="card"><div class="card-b text-center muted">Próximamente</div></div>
   </section>
 
   <script>
-  // === Supabase client (TUS credenciales) ===
+  // === Supabase client (tus credenciales) ===
   const sb = supabase.createClient(
     "https://ecmjxpnpdgmvnxmbciur.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
@@ -262,19 +370,15 @@
   function app(){
     return {
       // estado
-      tab: 'accesos',
-      meId: null,
-      empleados: [], personas: [],
-      accesos: [], paq: [], agenda: [],
-      modal: { acceso:false, paq:false, agenda:false },
-      flt: {
-        acc:{desde:'', hasta:'', q:''},
-        paq:{desde:'', hasta:'', q:''},
-        ag:{desde:'', hasta:'', q:''},
-      },
-      formAcceso: { id:null, nombre_apellido:'', dni:'', vehiculo:'', dominio:'', motivo:'', fecha_ingreso:'', hora_ingreso:'', fecha_salida:'', hora_salida:'', registrado_por:null },
-      formPaq:    { id:null, descripcion:'', fecha_recepcion:'', hora_recepcion:'', recibido_por:'', observaciones:'', entregado_a:'', fecha_entrega:'', hora_entrega:'', estado:'recibido' },
-      formAgenda: { id:null, fecha:'', hora:'', tarea:'', destinatario:'', observaciones:'' },
+      tab:'accesos',
+      meId:null,
+      empleados:[], personas:[],
+      accesos:[], paq:[], agenda:[],
+      modal:{acceso:false, paq:false, agenda:false},
+      flt:{ acc:{desde:'',hasta:'',q:''}, paq:{desde:'',hasta:'',q:''}, ag:{desde:'',hasta:'',q:''} },
+      formAcceso:{ id:null, nombre_apellido:'', dni:'', vehiculo:'', dominio:'', motivo:'', fecha_ingreso:'', hora_ingreso:'', fecha_salida:'', hora_salida:'', registrado_por:null },
+      formPaq:{ id:null, descripcion:'', fecha_recepcion:'', hora_recepcion:'', recibido_por:'', observaciones:'', entregado_a:'', fecha_entrega:'', hora_entrega:'', estado:'recibido' },
+      formAgenda:{ id:null, fecha:'', hora:'', tarea:'', destinatario:'', observaciones:'' },
 
       // ciclo
       async init(){
@@ -283,12 +387,9 @@
         await this.ensureEmpleado();
         await this.refresh();
 
-        const diag = document.getElementById('diagDash');
-        if (diag){
-          diag.innerHTML = `
-            Origen: <code>${location.origin}</code><br>
-            Supabase: <code>https://ecmjxpnpdgmvnxmbciur.supabase.co</code><br>
-          `;
+        const diag=document.getElementById('diagDash');
+        if(diag){
+          diag.innerHTML=`Origen: <code>${location.origin}</code><br>Supabase: <code>https://ecmjxpnpdgmvnxmbciur.supabase.co</code>`;
         }
       },
       async refresh(){
@@ -297,45 +398,40 @@
       async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
       // helpers UI
-      clearFilters(){
-        this.flt = { acc:{desde:'',hasta:'',q:''}, paq:{desde:'',hasta:'',q:''}, ag:{desde:'',hasta:'',q:''} };
-      },
-      empleadoNombre(id){
-        const e = this.empleados.find(x=>x.id===id);
-        return e ? `${e.nombre} ${e.apellido}` : '';
-      },
+      clearFilters(){ this.flt={ acc:{desde:'',hasta:'',q:''}, paq:{desde:'',hasta:'',q:''}, ag:{desde:'',hasta:'',q:''} }; },
+      empleadoNombre(id){ const e=this.empleados.find(x=>x.id===id); return e?`${e.nombre} ${e.apellido}`:''; },
 
       // abrir modales
-      openAcceso(r=null){ this.formAcceso = r ? {...r} : { id:null, nombre_apellido:'', dni:'', vehiculo:'', dominio:'', motivo:'', fecha_ingreso:'', hora_ingreso:'', fecha_salida:'', hora_salida:'', registrado_por:this.meId }; this.modal.acceso = true; },
-      openPaq(r=null){ this.formPaq = r ? {...r} : { id:null, descripcion:'', fecha_recepcion:'', hora_recepcion:'', recibido_por:this.meId||'', observaciones:'', entregado_a:'', fecha_entrega:'', hora_entrega:'', estado:'recibido' }; this.modal.paq = true; },
-      openAgenda(r=null){ this.formAgenda = r ? {...r} : { id:null, fecha:'', hora:'', tarea:'', destinatario:'', observaciones:'' }; this.modal.agenda = true; },
+      openAcceso(r=null){ this.formAcceso = r ? {...r} : { id:null, nombre_apellido:'', dni:'', vehiculo:'', dominio:'', motivo:'', fecha_ingreso:'', hora_ingreso:'', fecha_salida:'', hora_salida:'', registrado_por:this.meId }; this.modal.acceso=true; },
+      openPaq(r=null){ this.formPaq = r ? {...r} : { id:null, descripcion:'', fecha_recepcion:'', hora_recepcion:'', recibido_por:this.meId||'', observaciones:'', entregado_a:'', fecha_entrega:'', hora_entrega:'', estado:'recibido' }; this.modal.paq=true; },
+      openAgenda(r=null){ this.formAgenda = r ? {...r} : { id:null, fecha:'', hora:'', tarea:'', destinatario:'', observaciones:'' }; this.modal.agenda=true; },
 
       // filtros
       filteredAccesos(){
-        const {desde,hasta,q} = this.flt.acc;
+        const {desde,hasta,q}=this.flt.acc;
         return this.accesos.filter(r=>{
-          const okD = (!desde || r.fecha_ingreso>=desde) && (!hasta || r.fecha_ingreso<=hasta);
-          const s = (q||'').toLowerCase();
-          const okQ = !s || (r.nombre_apellido||'').toLowerCase().includes(s) || (r.dni||'').includes(q) || (r.dominio||'').toLowerCase().includes(s);
-          return okD && okQ;
+          const okD=(!desde||r.fecha_ingreso>=desde)&&(!hasta||r.fecha_ingreso<=hasta);
+          const s=(q||'').toLowerCase();
+          const okQ=!s||(r.nombre_apellido||'').toLowerCase().includes(s)||(r.dni||'').includes(q)||(r.dominio||'').toLowerCase().includes(s);
+          return okD&&okQ;
         });
       },
       filteredPaq(){
-        const {desde,hasta,q} = this.flt.paq;
+        const {desde,hasta,q}=this.flt.paq;
         return this.paq.filter(r=>{
-          const okD = (!desde || r.fecha_recepcion>=desde) && (!hasta || r.fecha_recepcion<=hasta);
-          const s = (q||'').toLowerCase();
-          const okQ = !s || (r.descripcion||'').toLowerCase().includes(s) || (r.observaciones||'').toLowerCase().includes(s);
-          return okD && okQ;
+          const okD=(!desde||r.fecha_recepcion>=desde)&&(!hasta||r.fecha_recepcion<=hasta);
+          const s=(q||'').toLowerCase();
+          const okQ=!s||(r.descripcion||'').toLowerCase().includes(s)||(r.observaciones||'').toLowerCase().includes(s);
+          return okD&&okQ;
         });
       },
       filteredAgenda(){
-        const {desde,hasta,q} = this.flt.ag;
+        const {desde,hasta,q}=this.flt.ag;
         return this.agenda.filter(r=>{
-          const okD = (!desde || r.fecha>=desde) && (!hasta || r.fecha<=hasta);
-          const s = (q||'').toLowerCase();
-          const okQ = !s || (r.tarea||'').toLowerCase().includes(s) || (r.destinatario||'').toLowerCase().includes(s);
-          return okD && okQ;
+          const okD=(!desde||r.fecha>=desde)&&(!hasta||r.fecha<=hasta);
+          const s=(q||'').toLowerCase();
+          const okQ=!s||(r.tarea||'').toLowerCase().includes(s)||(r.destinatario||'').toLowerCase().includes(s);
+          return okD&&okQ;
         });
       },
 
@@ -346,36 +442,37 @@
           if(!user) return;
           const full = user.user_metadata?.full_name || user.email || 'Usuario';
           const [nombre, apellido=''] = full.split(/[.\s_]/);
+          // upsert (requiere unique en user_id; si no lo tenés, igual intentamos y seguimos)
           await sb.from('empleados').upsert({ user_id:user.id, nombre:nombre||'Usuario', apellido }, { onConflict:'user_id' });
           const { data } = await sb.from('empleados').select('id').eq('user_id', user.id).single();
-          if (data) this.meId = data.id;
-        }catch(e){ console.error('ensureEmpleado', e); }
+          if(data) this.meId=data.id;
+        }catch(e){ console.warn('ensureEmpleado', e?.message||e); }
       },
-      async loadEmpleados(){ try{ const { data, error } = await sb.from('empleados').select('*').order('created_at',{ascending:false}); if(error) throw error; this.empleados=data||[]; }catch(e){ console.error(e); this.empleados=[]; } },
-      async loadPersonas(){ try{ const { data, error } = await sb.from('personas').select('*').order('ultima_visita',{ascending:false}).limit(5000); if(error) throw error; this.personas=data||[]; }catch(e){ console.error(e); this.personas=[]; } },
+      async loadEmpleados(){ try{ const { data, error } = await sb.from('empleados').select('*').order('created_at',{ascending:false}); if(error) throw error; this.empleados=data||[]; }catch(e){ console.warn(e); this.empleados=[]; } },
+      async loadPersonas(){ try{ const { data, error } = await sb.from('personas').select('*').order('ultima_visita',{ascending:false}).limit(5000); if(error) throw error; this.personas=data||[]; }catch(e){ console.warn(e); this.personas=[]; } },
 
       // data: accesos
-      async loadAccesos(){ try{ const { data, error } = await sb.from('accesos').select('*').order('fecha_ingreso',{ascending:false}); if(error) throw error; this.accesos=data||[]; }catch(e){ console.error(e); this.accesos=[]; } },
+      async loadAccesos(){ try{ const { data, error } = await sb.from('accesos').select('*').order('fecha_ingreso',{ascending:false}); if(error) throw error; this.accesos=data||[]; }catch(e){ console.warn(e); this.accesos=[]; } },
       async saveAcceso(){
         try{
-          const row = { ...this.formAcceso };
-          if (this.meId && !row.registrado_por) row.registrado_por = this.meId;
-          if (row.dominio) row.dominio = row.dominio.toUpperCase();
-
+          const row={...this.formAcceso};
+          if(this.meId && !row.registrado_por) row.registrado_por=this.meId;
+          if(row.dominio) row.dominio=row.dominio.toUpperCase();
           let resp;
-          if (row.id) resp = await sb.from('accesos').update(row).eq('id', row.id).select('id').single();
-          else        resp = await sb.from('accesos').insert(row).select('id').single();
-          if (resp.error) throw resp.error;
+          if(row.id) resp = await sb.from('accesos').update(row).eq('id',row.id).select('id').single();
+          else       resp = await sb.from('accesos').insert(row).select('id').single();
+          if(resp.error) throw resp.error;
 
-          if (row.nombre_apellido || row.dni || row.dominio){
+          // upsert persona (si existe PK compuesta dni,dominio mejor; si no, ignoramos error)
+          if(row.nombre_apellido || row.dni || row.dominio){
             const up = await sb.from('personas').upsert({
               nombre_apellido: row.nombre_apellido || null,
               dni: row.dni || null,
               vehiculo: row.vehiculo || null,
               dominio: row.dominio || null,
               ultima_visita: new Date().toISOString()
-            }, { onConflict: 'dni,dominio' });
-            if (up.error) console.warn('upsert personas:', up.error.message);
+            }, { onConflict:'dni,dominio' });
+            if(up.error) console.warn('upsert personas:', up.error.message);
           }
           this.modal.acceso=false;
           await Promise.all([this.loadAccesos(), this.loadPersonas()]);
@@ -383,16 +480,15 @@
       },
 
       // data: paquetería
-      async loadPaq(){ try{ const { data, error } = await sb.from('paqueteria').select('*').order('fecha_recepcion',{ascending:false}); if(error) throw error; this.paq=data||[]; }catch(e){ console.error(e); this.paq=[]; } },
+      async loadPaq(){ try{ const { data, error } = await sb.from('paqueteria').select('*').order('fecha_recepcion',{ascending:false}); if(error) throw error; this.paq=data||[]; }catch(e){ console.warn(e); this.paq=[]; } },
       async savePaq(){
         try{
-          const r = { ...this.formPaq };
-          if (this.meId && !r.recibido_por) r.recibido_por = this.meId;
-
+          const r={...this.formPaq};
+          if(this.meId && !r.recibido_por) r.recibido_por=this.meId;
           let resp;
-          if (r.id) resp = await sb.from('paqueteria').update(r).eq('id', r.id).select('id').single();
-          else      resp = await sb.from('paqueteria').insert(r).select('id').single();
-          if (resp.error) throw resp.error;
+          if(r.id) resp = await sb.from('paqueteria').update(r).eq('id',r.id).select('id').single();
+          else     resp = await sb.from('paqueteria').insert(r).select('id').single();
+          if(resp.error) throw resp.error;
 
           this.modal.paq=false;
           await this.loadPaq();
@@ -400,46 +496,44 @@
       },
 
       // data: agenda
-      async loadAgenda(){ try{ const { data, error } = await sb.from('agenda_dom').select('*').order('fecha',{ascending:false}); if(error) throw error; this.agenda=data||[]; }catch(e){ console.error(e); this.agenda=[]; } },
+      async loadAgenda(){ try{ const { data, error } = await sb.from('agenda_dom').select('*').order('fecha',{ascending:false}); if(error) throw error; this.agenda=data||[]; }catch(e){ console.warn(e); this.agenda=[]; } },
       async saveAgenda(){
         try{
-          const r = { ...this.formAgenda };
+          const r={...this.formAgenda};
           let resp;
-          if (r.id) resp = await sb.from('agenda_dom').update(r).eq('id', r.id).select('id').single();
-          else      resp = await sb.from('agenda_dom').insert(r).select('id').single();
-          if (resp.error) throw resp.error;
+          if(r.id) resp = await sb.from('agenda_dom').update(r).eq('id',r.id).select('id').single();
+          else     resp = await sb.from('agenda_dom').insert(r).select('id').single();
+          if(resp.error) throw resp.error;
 
           this.modal.agenda=false;
           await this.loadAgenda();
         }catch(e){ alert(e.message || 'No se pudo guardar agenda'); }
       },
 
-      // Exportar PDF (carga on-demand de jsPDF para evitar "Script error")
+      // Exportar PDF (carga on-demand para evitar errores de CDN bloqueado)
       async exportarPDF(tabla){
-        // Cargar jsPDF/autotable si no existen
-        if (!window.jspdf){
+        if(!window.jspdf){
           await Promise.all([
-            new Promise(r => { const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'; s.crossOrigin='anonymous'; s.onload=r; document.head.appendChild(s) }),
-            new Promise(r => { const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js'; s.crossOrigin='anonymous'; s.onload=r; document.head.appendChild(s) })
+            new Promise(r=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';s.crossOrigin='anonymous';s.onload=r;document.head.appendChild(s)}),
+            new Promise(r=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js';s.crossOrigin='anonymous';s.onload=r;document.head.appendChild(s)})
           ]);
         }
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc=new jsPDF();
 
         let headers=[], rows=[];
-        if (tabla==='accesos'){
-          headers = [['Nombre','DNI','Vehículo','Dominio','Motivo','F.Ing','H.Ing','F.Sal','H.Sal']];
-          rows = this.filteredAccesos().map(r=>[r.nombre_apellido||'', r.dni||'', r.vehiculo||'', r.dominio||'', r.motivo||'', r.fecha_ingreso||'', r.hora_ingreso||'', r.fecha_salida||'', r.hora_salida||'']);
-        } else if (tabla==='paqueteria'){
-          headers = [['Descripción','F.Rec','H.Rec','Recibido por','Obs','Entregado a','F.Ent','H.Ent','Estado']];
-          rows = this.filteredPaq().map(r=>[r.descripcion||'', r.fecha_recepcion||'', r.hora_recepcion||'', this.empleadoNombre(r.recibido_por)||'', r.observaciones||'', r.entregado_a||'', r.fecha_entrega||'', r.hora_entrega||'', r.estado||'']);
-        } else {
-          headers = [['Fecha','Hora','Tarea','Destinatario','Obs']];
-          rows = this.filteredAgenda().map(r=>[r.fecha||'', r.hora||'', r.tarea||'', r.destinatario||'', r.observaciones||'']);
+        if(tabla==='accesos'){
+          headers=[['Nombre','DNI','Vehículo','Dominio','Motivo','F.Ing','H.Ing','F.Sal','H.Sal']];
+          rows=this.filteredAccesos().map(r=>[r.nombre_apellido||'',r.dni||'',r.vehiculo||'',r.dominio||'',r.motivo||'',r.fecha_ingreso||'',r.hora_ingreso||'',r.fecha_salida||'',r.hora_salida||'']);
+        }else if(tabla==='paqueteria'){
+          headers=[['Descripción','F.Rec','H.Rec','Recibido por','Obs','Entregado a','F.Ent','H.Ent','Estado']];
+          rows=this.filteredPaq().map(r=>[r.descripcion||'',r.fecha_recepcion||'',r.hora_recepcion||'',this.empleadoNombre(r.recibido_por)||'',r.observaciones||'',r.entregado_a||'',r.fecha_entrega||'',r.hora_entrega||'',r.estado||'']);
+        }else{
+          headers=[['Fecha','Hora','Tarea','Destinatario','Obs']];
+          rows=this.filteredAgenda().map(r=>[r.fecha||'',r.hora||'',r.tarea||'',r.destinatario||'',r.observaciones||'']);
         }
-
-        doc.text(`Reporte ${tabla}`, 14, 14);
-        doc.autoTable({ head: headers, body: rows, startY: 20 });
+        doc.text(`Reporte ${tabla}`,14,14);
+        doc.autoTable({head:headers,body:rows,startY:20});
         doc.save(`reporte_${tabla}.pdf`);
       },
     }
@@ -448,10 +542,8 @@
 
   <!-- Logger básico de errores JS al diagnóstico -->
   <script>
-    const logBox = document.getElementById('diagDash');
-    window.addEventListener('error', e=>{
-      if(logBox) logBox.innerHTML += `<div>JS error: ${e?.message||e}</div>`;
-    });
+    const logBox=document.getElementById('diagDash');
+    window.addEventListener('error', e=>{ if(logBox) logBox.innerHTML += `<div>JS error: ${e?.message||e}</div>`; });
   </script>
 </body>
 </html>
