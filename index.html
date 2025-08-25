@@ -5,79 +5,306 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CRM San Isidro — Ingreso</title>
 
+  <!-- Fuente -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              gold: '#C7A600',
+              gold2: '#d8b800',
+              dark: '#0b0b0b'
+            }
+          },
+          boxShadow: {
+            glow: '0 0 0 3px rgba(199,166,0,.25), 0 12px 40px rgba(0,0,0,.25)'
+          },
+          borderRadius: {
+            '2.5xl': '20px'
+          },
+          keyframes: {
+            float: { '0%,100%': { transform:'translateY(0px)' }, '50%': { transform:'translateY(-12px)'} },
+            blob: {
+              '0%':   { transform:'translate(0,0) scale(1)' },
+              '33%':  { transform:'translate(10%, -5%) scale(1.05)' },
+              '66%':  { transform:'translate(-8%, 6%) scale(0.98)' },
+              '100%': { transform:'translate(0,0) scale(1)' },
+            },
+            shake: {
+              '10%, 90%': { transform: 'translateX(-1px)' },
+              '20%, 80%': { transform: 'translateX(2px)'  },
+              '30%, 50%, 70%': { transform: 'translateX(-4px)' },
+              '40%, 60%': { transform: 'translateX(4px)' }
+            }
+          },
+          animation: {
+            float: 'float 6s ease-in-out infinite',
+            blob: 'blob 18s ease-in-out infinite',
+            shake: 'shake .6s cubic-bezier(.36,.07,.19,.97) both'
+          }
+        }
+      }
+    }
+  </script>
 
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 
   <style>
-    body{ background:#f7f7f7; min-height:100dvh; display:grid; place-items:center; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial }
-    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.06); width:100%; max-width:480px; padding:28px }
-    .btn{ display:inline-flex; align-items:center; justify-content:center; border-radius:10px; padding:.8rem 1.2rem; font-weight:700; border:1px solid #e5e7eb }
-    .btn-primary{ background:#C7A600; color:#1a1a1a; border-color:#d1b83a }
-    .input{ width:100%; border:1px solid #d1d5db; border-radius:10px; padding:.7rem 1rem; background:#fff }
-    .muted{ color:#6b7280; font-size:.9rem }
+    :root { color-scheme: light dark; }
+    html,body { height: 100%; }
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", Helvetica, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(199,166,0,.10), transparent 60%),
+        radial-gradient(1000px 500px at 90% 80%, rgba(199,166,0,.10), transparent 60%),
+        linear-gradient(180deg, #0c0c0c 0%, #141414 100%);
+    }
+    /* Textura sutil */
+    body::after{
+      content:""; position:fixed; inset:0; pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg opacity='0.15' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3Cpattern id='d' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='1' cy='1' r='1' fill='%23ffffff'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23d)'/%3E%3C/svg%3E");
+      mix-blend-mode: soft-light;
+    }
   </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4 text-slate-100">
 
-  <div class="card">
-    <div class="text-center mb-6">
-      <div class="inline-block w-3 h-3 rounded-full bg-yellow-500 align-middle mr-2"></div>
-      <h1 class="text-xl font-extrabold tracking-wide">CRM SAN ISIDRO</h1>
-    </div>
-
-    <form id="loginForm" class="grid gap-3">
-      <label class="grid gap-1">
-        <span class="muted">Email</span>
-        <input id="email" type="email" class="input" placeholder="tu@correo.com" required />
-      </label>
-      <label class="grid gap-1">
-        <span class="muted">Contraseña</span>
-        <input id="password" type="password" class="input" placeholder="********" required />
-      </label>
-
-      <button id="loginBtn" class="btn btn-primary mt-2" type="submit">Ingresar</button>
-      <button id="signupBtn" class="btn" type="button">Crear cuenta</button>
-      <p id="msg" class="text-center text-sm text-gray-500 mt-1"></p>
-    </form>
+  <!-- Fondo decorativo -->
+  <div aria-hidden="true" class="pointer-events-none fixed inset-0 overflow-hidden">
+    <div class="absolute -top-24 -left-24 w-[36rem] h-[36rem] rounded-full blur-3xl opacity-30 bg-brand.gold animate-blob"></div>
+    <div class="absolute -bottom-20 -right-24 w-[30rem] h-[30rem] rounded-full blur-3xl opacity-20 bg-yellow-400 animate-blob" style="animation-delay: -6s"></div>
+    <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[22rem] h-[22rem] rounded-full blur-3xl opacity-10 bg-white/60 animate-blob" style="animation-delay: -12s"></div>
   </div>
 
+  <!-- Contenedor -->
+  <main class="relative w-full max-w-[480px]">
+    <!-- Marca -->
+    <header class="mb-5 text-center select-none">
+      <div class="inline-flex items-center gap-3">
+        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-brand.gold to-brand.gold2 ring-4 ring-brand.gold/20 shadow-glow flex items-center justify-center">
+          <!-- Ícono minimal (estrella/escudo) -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#0b0b0b" aria-hidden="true">
+            <path d="M12 2l2.39 4.84 5.34.78-3.86 3.76.91 5.32L12 14.77 6.22 16.7l.91-5.32L3.27 7.62l5.34-.78L12 2z"/>
+          </svg>
+        </div>
+        <div class="text-left">
+          <p class="text-xs tracking-widest text-white/70">CRM</p>
+          <h1 class="text-xl font-extrabold tracking-wide">San Isidro</h1>
+        </div>
+      </div>
+    </header>
+
+    <!-- Card -->
+    <section
+      class="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2.5xl shadow-2xl shadow-black/30 overflow-hidden">
+      <!-- Head -->
+      <div class="p-6 sm:p-8 border-b border-white/10">
+        <h2 class="text-lg font-bold">Ingreso</h2>
+        <p class="text-sm text-white/70 mt-1">Accedé a tu panel para gestionar clientes, citas y reportes.</p>
+      </div>
+
+      <!-- Form -->
+      <form id="loginForm" class="p-6 sm:p-8 grid gap-5">
+        <div class="grid gap-2">
+          <label for="email" class="text-sm text-white/80">Email</label>
+          <div class="relative">
+            <input id="email" name="email" type="email" required autocomplete="email"
+              class="w-full rounded-xl bg-white/8 border border-white/15 px-4 py-3 outline-none text-white placeholder-white/40
+                     focus:ring-4 focus:ring-brand.gold/30 focus:border-brand.gold/60 transition"
+              placeholder="tu@correo.com" />
+            <svg class="absolute right-3 top-1/2 -translate-y-1/2 opacity-60" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M20 4H4a2 2 0 0 0-2 2v1l10 6 10-6V6a2 2 0 0 0-2-2zm0 6.236-8 4.8-8-4.8V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid gap-2">
+          <label for="password" class="text-sm text-white/80">Contraseña</label>
+          <div class="relative">
+            <input id="password" name="password" type="password" required autocomplete="current-password"
+              class="w-full rounded-xl bg-white/8 border border-white/15 px-4 py-3 pr-12 outline-none text-white placeholder-white/40
+                     focus:ring-4 focus:ring-brand.gold/30 focus:border-brand.gold/60 transition"
+              placeholder="********" />
+            <button type="button" id="togglePass" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand.gold/40" aria-label="Mostrar u ocultar contraseña">
+              <svg id="eye" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-sm">
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input id="remember" type="checkbox" class="accent-brand.gold/90">
+            <span class="text-white/80">Recordarme</span>
+          </label>
+          <a href="#" class="text-white/70 hover:text-white underline underline-offset-4">¿Olvidaste tu clave?</a>
+        </div>
+
+        <div class="grid gap-3 mt-2">
+          <button id="loginBtn" type="submit"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border border-brand.gold/40 bg-gradient-to-b from-brand.gold to-brand.gold2
+                   text-brand.dark font-bold py-3 hover:opacity-95 active:translate-y-px shadow-glow focus:outline-none focus:ring-4 focus:ring-brand.gold/35 transition">
+            <span id="loginIcon" class="inline-block animate-none">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 17l5-5-5-5v10z"/></svg>
+            </span>
+            <span id="loginText">Ingresar</span>
+          </button>
+
+          <button id="signupBtn" type="button"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 text-white font-semibold py-3
+                   hover:bg-white/15 active:translate-y-px focus:outline-none focus:ring-4 focus:ring-white/20 transition">
+            Crear cuenta
+          </button>
+        </div>
+
+        <p id="msg" class="text-center text-sm text-white/75 min-h-[1.25rem]"></p>
+      </form>
+
+      <!-- Footer -->
+      <div class="px-6 sm:px-8 py-5 border-t border-white/10 text-xs text-white/60 flex items-center justify-between">
+        <span>© <span id="year"></span> CRM San Isidro</span>
+        <span class="inline-flex items-center gap-1 opacity-90">
+          <span class="h-2 w-2 rounded-full bg-brand.gold animate-[pulse_2s_ease-in-out_infinite]"></span>
+          <span>Seguro y rápido</span>
+        </span>
+      </div>
+    </section>
+  </main>
+
   <script>
-    // === Supabase client (TUS credenciales) ===
+    // === Supabase client (tus credenciales) ===
     const sb = supabase.createClient(
       "https://ecmjxpnpdgmvnxmbciur.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
     );
 
+    // Año footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+
     // Si ya hay sesión, al dashboard
     (async () => {
-      const { data:{ session } } = await sb.auth.getSession();
+      const { data:{ session }, error } = await sb.auth.getSession();
       if (session) location.href = "./dashboard.html";
+      if (error) console.warn(error);
     })();
 
-    const form = document.getElementById("loginForm");
-    const msg  = document.getElementById("msg");
+    // Helpers UI
+    const $ = (s, p=document) => p.querySelector(s);
+    const msg  = $("#msg");
+    const form = $("#loginForm");
+    const loginBtn  = $("#loginBtn");
+    const loginText = $("#loginText");
+    const loginIcon = $("#loginIcon");
 
-    form.addEventListener("submit", async (e)=>{
-      e.preventDefault();
-      msg.textContent = "Ingresando…";
-      const email = document.getElementById("email").value.trim();
-      const pass  = document.getElementById("password").value.trim();
-      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if (error){ msg.textContent = "Error: " + error.message; return; }
-      location.href = "./dashboard.html";
+    function setLoading(isLoading, label="Procesando…") {
+      loginBtn.disabled = isLoading;
+      loginBtn.classList.toggle("opacity-70", isLoading);
+      loginText.textContent = isLoading ? label : "Ingresar";
+      loginIcon.innerHTML = isLoading
+        ? `<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+             <path d="M12 2a10 10 0 1 0 10 10h-2A8 8 0 1 1 12 4V2z"/>
+           </svg>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 17l5-5-5-5v10z"/></svg>`;
+    }
+
+    function showMessage(text, type="info") {
+      const colors = {
+        info: "text-white/80",
+        ok: "text-green-300",
+        error: "text-red-300"
+      };
+      msg.className = `text-center text-sm ${colors[type]} min-h-[1.25rem]`;
+      msg.textContent = text;
+      if (type === "error") {
+        // sacudida sutil
+        form.classList.add("animate-shake");
+        setTimeout(()=>form.classList.remove("animate-shake"), 600);
+      }
+    }
+
+    // Toggle contraseña
+    const passInput = $("#password");
+    $("#togglePass").addEventListener("click", () => {
+      const isText = passInput.type === "text";
+      passInput.type = isText ? "password" : "text";
+      $("#eye").innerHTML = isText
+        ? `<path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>`
+        : `<path d="M2 4.27 3.28 3 21 20.72 19.73 22l-2.6-2.6C15.79 19.74 13.97 20 12 20 7 20 2.73 16.89 1 13c.67-1.5 1.72-2.86 2.98-3.98L2 4.27zM12 7a5 5 0 0 1 4.9 6.09L9.91 6.1A5 5 0 0 1 12 7z"/>`;
+      passInput.focus();
     });
 
-    document.getElementById("signupBtn").addEventListener("click", async ()=>{
-      msg.textContent = "Creando cuenta…";
-      const email = document.getElementById("email").value.trim();
-      const pass  = document.getElementById("password").value.trim();
-      if(!email || !pass){ msg.textContent = "Ingresá email y contraseña"; return; }
-      const { data, error } = await sb.auth.signUp({ email, password: pass });
-      if (error){ msg.textContent = "Error: " + error.message; return; }
-      msg.textContent = data.user?.email_confirmed_at ? "Cuenta creada. Ya podés ingresar." : "Cuenta creada. Revisá tu email para confirmar.";
+    // Autorrellenar si "Recordarme"
+    const remembered = localStorage.getItem("crm_email");
+    if (remembered) $("#email").value = remembered;
+
+    // Submit Login
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showMessage("Ingresando…", "info");
+      setLoading(true, "Ingresando…");
+      const email = $("#email").value.trim();
+      const pass  = $("#password").value.trim();
+
+      try {
+        if (!email || !pass) {
+          showMessage("Completá email y contraseña.", "error");
+          setLoading(false);
+          return;
+        }
+        // Guardar email si corresponde
+        if ($("#remember").checked) localStorage.setItem("crm_email", email);
+
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) {
+          showMessage("Error: " + (error.message || "No se pudo iniciar sesión."), "error");
+          setLoading(false);
+          return;
+        }
+        showMessage("¡Bienvenido! Redirigiendo…", "ok");
+        location.href = "./dashboard.html";
+      } catch (err) {
+        console.error(err);
+        showMessage("Error inesperado. Intentá nuevamente.", "error");
+        setLoading(false);
+      }
+    });
+
+    // Signup
+    $("#signupBtn").addEventListener("click", async () => {
+      showMessage("Creando cuenta…", "info");
+      setLoading(true, "Creando…");
+      const email = $("#email").value.trim();
+      const pass  = $("#password").value.trim();
+      if (!email || !pass) {
+        showMessage("Ingresá email y contraseña para registrarte.", "error");
+        setLoading(false);
+        return;
+      }
+      try {
+        const { data, error } = await sb.auth.signUp({ email, password: pass });
+        if (error) {
+          showMessage("Error: " + (error.message || "No se pudo crear la cuenta."), "error");
+          setLoading(false);
+          return;
+        }
+        const confirmed = data.user?.email_confirmed_at;
+        showMessage(confirmed
+          ? "Cuenta creada. Ya podés ingresar."
+          : "Cuenta creada. Revisá tu email para confirmar.", "ok");
+      } catch (err) {
+        console.error(err);
+        showMessage("Error inesperado. Intentá nuevamente.", "error");
+      } finally {
+        setLoading(false);
+      }
     });
   </script>
 </body>
