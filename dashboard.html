@@ -6,20 +6,19 @@
 <title>CRM San Isidro — Dashboard</title>
 
 <!-- Tailwind -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = { theme:{ extend:{ colors:{ brand:"#C7A600", textmut:"#6b7280", border:"#e5e7eb" }, boxShadow:{ card:"0 10px 24px rgba(0,0,0,.06)"} } } }
-</script>
+<script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
 
 <!-- Alpine -->
-<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" crossorigin="anonymous"></script>
 
 <!-- Supabase -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 
-<!-- jsPDF -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js"></script>
+<!-- jsPDF (desactivado temporalmente; lo cargamos on-demand al exportar) -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js" crossorigin="anonymous">
+
+</script>
 
 <style>
   body{background:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
