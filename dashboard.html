@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRM San Isidro — Dashboard</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme:{ extend:{ colors:{ brand:"#C7A600", textmut:"#6b7280", border:"#e5e7eb" }, boxShadow:{ card:"0 10px 24px rgba(0,0,0,.06)"} } } }
+</script>
+
+<!-- Alpine -->
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<!-- Supabase -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<!-- jsPDF -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  body{background:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.06)}
+  .btn{border:1px solid #e5e7eb;border-radius:12px;padding:.6rem .9rem;font-weight:700}
+  .btn-primary{background:linear-gradient(90deg,#C7A600,#E5C558);color:#2b2500;border-color:#dabb00}
+  .input,select,textarea{border:1px solid #d1d5db;border-radius:.7rem;padding:.55rem .75rem;width:100%}
+  .input:focus,select:focus,textarea:focus{outline:none;border-color:#C7A600;box-shadow:0 0 0 3px rgba(199,166,0,.2)}
+  [x-cloak]{display:none!important}
+</style>
+
+<script>
+  window.sb = supabase.createClient(
+    "https://upprsqwloohuzxpwobiu.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJzcXdsb29odXp4cHdvYml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3MjQ3MjYsImV4cCI6MjA3MTMwMDcyNn0.dk0KHCrrCBLZUVM4FRbYfBMqbMuCGqpSh-6fkVKdCag"
+  );
+</script>
+</head>
+
+<body x-data="app()" x-init="init()">
+
+<!-- Header -->
+<header class="sticky top-0 z-30 bg-white border-b">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,#C7A600,#E5C558)"></div>
+      <h1 class="font-extrabold">CRM SAN ISIDRO</h1>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn" @click="refresh()">⟳ Actualizar</button>
+      <button class="btn" @click="logout()">Salir</button>
+    </div>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav class="bg-white border-b">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
+    <button class="btn" :class="{'btn-primary':tab==='accesos'}"    @click="tab='accesos'">Accesos</button>
+    <button class="btn" :class="{'btn-primary':tab==='paqueteria'}" @click="tab='paqueteria'">Paquetería</button>
+    <button class="btn" :class="{'btn-primary':tab==='agenda'}"     @click="tab='agenda'">Agenda</button>
+    <button class="btn" :class="{'btn-primary':tab==='contable'}"   @click="tab='contable'">Contable</button>
+    <button class="btn" :class="{'btn-primary':tab==='parte'}"      @click="tab='parte'">Parte diario</button>
+  </div>
+</nav>
+<div id="diagDash" class="max-w-7xl mx-auto mt-2 text-xs text-slate-500"></div>
+
+<!-- Content -->
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+  <!-- ==== ACCESOS ==== -->
+  <section x-show="tab==='accesos'" x-cloak>
+    <div class="card p-5">
+      <div class="flex flex-wrap gap-2 items-end">
+        <input class="input w-40" type="date" x-model="flt.acc.desde">
+        <input class="input w-40" type="date" x-model="flt.acc.hasta">
+        <input class="input w-60" placeholder="Buscar nombre/DNI/dominio…" x-model="flt.acc.q">
+        <button class="btn btn-primary" @click="openAcceso()">+ Nuevo</button>
+        <button class="btn" @click="exportPDF('accesos')">Exportar PDF</button>
+        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
+      </div>
+
+      <div class="overflow-x-auto mt-4">
+        <table class="min-w-full text-sm">
+          <thead><tr class="border-b">
+            <th class="py-2 px-2">Nombre</th><th class="py-2 px-2">DNI</th><th class="py-2 px-2">Vehículo</th>
+            <th class="py-2 px-2">Dominio</th><th class="py-2 px-2">Motivo</th>
+            <th class="py-2 px-2">F.Ing</th><th class="py-2 px-2">H.Ing</th>
+            <th class="py-2 px-2">F.Sal</th><th class="py-2 px-2">H.Sal</th>
+            <th class="py-2 px-2">Acciones</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="r in accesosFiltrados()" :key="r.id">
+              <tr class="border-b hover:bg-slate-50">
+                <td class="py-2 px-2" x-text="r.nombre_apellido"></td>
+                <td class="py-2 px-2" x-text="r.dni||'—'"></td>
+                <td class="py-2 px-2" x-text="r.vehiculo||'—'"></td>
+                <td class="py-2 px-2" x-text="r.dominio||'—'"></td>
+                <td class="py-2 px-2" x-text="r.motivo||'—'"></td>
+                <td class="py-2 px-2" x-text="r.fecha_ingreso||'—'"></td>
+                <td class="py-2 px-2" x-text="r.hora_ingreso||'—'"></td>
+                <td class="py-2 px-2" x-text="r.fecha_salida||'—'"></td>
+                <td class="py-2 px-2" x-text="r.hora_salida||'—'"></td>
+                <td class="py-2 px-2">
+                  <button class="btn" @click="openAcceso(r)">Editar</button>
+                  <button class="btn" @click="delAcceso(r.id)">Eliminar</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="accesos.length===0"><td colspan="10" class="py-6 text-center text-textmut">Sin registros</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Acceso -->
+  <div x-show="modal.acceso" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" x-transition.opacity>
+    <div class="card w-full max-w-2xl p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="formAcceso.id?'Editar acceso':'Nuevo acceso'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input class="input" placeholder="Nombre y Apellido" x-model="formAcceso.nombre_apellido" @input="buscarSugerencias()">
+        <input class="input" placeholder="DNI" x-model="formAcceso.dni" @blur="autocompletar()">
+        <input class="input md:col-span-2" placeholder="Vehículo (marca/modelo)" x-model="formAcceso.vehiculo">
+        <input class="input" placeholder="Dominio" x-model="formAcceso.dominio" @blur="autocompletar()">
+        <input class="input md:col-span-2" placeholder="Motivo / Observaciones" x-model="formAcceso.motivo">
+        <input class="input" type="date" x-model="formAcceso.fecha_ingreso">
+        <input class="input" type="time" x-model="formAcceso.hora_ingreso">
+        <input class="input" type="date" x-model="formAcceso.fecha_salida">
+        <input class="input" type="time" x-model="formAcceso.hora_salida">
+      </div>
+
+      <div class="mt-2" x-show="sugerencias.length">
+        <div class="text-xs text-textmut mb-1">Coincidencias:</div>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="p in sugerencias" :key="p.id">
+            <button class="btn" @click="aplicarPersona(p)" x-text="p.nombre_apellido + (p.dominio?' • '+p.dominio:'')"></button>
+          </template>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.acceso=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveAcceso()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== PAQUETERÍA ==== -->
+  <section x-show="tab==='paqueteria'" x-cloak>
+    <div class="card p-5">
+      <div class="flex flex-wrap gap-2 items-end">
+        <input class="input w-40" type="date" x-model="flt.paq.desde">
+        <input class="input w-40" type="date" x-model="flt.paq.hasta">
+        <input class="input w-60" placeholder="Buscar descripción/entregado a…" x-model="flt.paq.q">
+        <button class="btn btn-primary" @click="openPaq()">+ Nuevo</button>
+        <button class="btn" @click="exportPDF('paqueteria')">Exportar PDF</button>
+        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
+      </div>
+
+      <div class="overflow-x-auto mt-4">
+        <table class="min-w-full text-sm">
+          <thead><tr class="border-b">
+            <th class="py-2 px-2">Descripción</th><th class="py-2 px-2">F.Rec</th><th class="py-2 px-2">H.Rec</th>
+            <th class="py-2 px-2">Recibido por</th><th class="py-2 px-2">Observaciones</th>
+            <th class="py-2 px-2">Entregado a</th><th class="py-2 px-2">F.Ent</th><th class="py-2 px-2">H.Ent</th>
+            <th class="py-2 px-2">Acciones</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="p in paqFiltrada()" :key="p.id">
+              <tr class="border-b hover:bg-slate-50">
+                <td class="py-2 px-2" x-text="p.descripcion"></td>
+                <td class="py-2 px-2" x-text="p.fecha_recepcion"></td>
+                <td class="py-2 px-2" x-text="p.hora_recepcion"></td>
+                <td class="py-2 px-2" x-text="empleadoNombre(p.recibido_por)"></td>
+                <td class="py-2 px-2" x-text="p.observaciones||'—'"></td>
+                <td class="py-2 px-2" x-text="p.entregado_a||'—'"></td>
+                <td class="py-2 px-2" x-text="p.fecha_entrega||'—'"></td>
+                <td class="py-2 px-2" x-text="p.hora_entrega||'—'"></td>
+                <td class="py-2 px-2">
+                  <button class="btn" @click="openPaq(p)">Editar</button>
+                  <button class="btn" @click="delPaq(p.id)">Eliminar</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="paq.length===0"><td colspan="9" class="py-6 text-center text-textmut">Sin registros</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Paq -->
+  <div x-show="modal.paq" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" x-transition.opacity>
+    <div class="card w-full max-w-2xl p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="formPaq.id?'Editar paquete':'Nuevo paquete'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input class="input md:col-span-2" placeholder="Descripción" x-model="formPaq.descripcion">
+        <input class="input" type="date" x-model="formPaq.fecha_recepcion">
+        <input class="input" type="time" x-model="formPaq.hora_recepcion">
+        <select class="input" x-model="formPaq.recibido_por">
+          <option value="">Recibido por…</option>
+          <template x-for="e in empleados" :key="e.id">
+            <option :value="e.id" x-text="e.nombre + ' ' + e.apellido"></option>
+          </template>
+        </select>
+        <input class="input md:col-span-2" placeholder="Observaciones" x-model="formPaq.observaciones">
+        <input class="input" placeholder="Entregado a" x-model="formPaq.entregado_a">
+        <input class="input" type="date" x-model="formPaq.fecha_entrega">
+        <input class="input" type="time" x-model="formPaq.hora_entrega">
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.paq=false">Cancelar</button>
+        <button class="btn btn-primary" @click="savePaq()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== AGENDA ==== -->
+  <section x-show="tab==='agenda'" x-cloak>
+    <div class="card p-5">
+      <div class="flex flex-wrap gap-2 items-end">
+        <input class="input w-40" type="date" x-model="flt.ag.desde">
+        <input class="input w-40" type="date" x-model="flt.ag.hasta">
+        <select class="input w-40" x-model="flt.ag.dest">
+          <option value="">Todos</option><option>Amalia</option><option>Valentino</option><option>Otros</option>
+        </select>
+        <button class="btn btn-primary" @click="openAgenda()">+ Nuevo</button>
+        <button class="btn" @click="exportPDF('agenda')">Exportar PDF</button>
+        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
+      </div>
+
+      <div class="overflow-x-auto mt-4">
+        <table class="min-w-full text-sm">
+          <thead><tr class="border-b">
+            <th class="py-2 px-2">Fecha</th><th class="py-2 px-2">Hora</th><th class="py-2 px-2">Para</th>
+            <th class="py-2 px-2">Tarea</th><th class="py-2 px-2">Hecho</th><th class="py-2 px-2">Acciones</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="a in agendaFiltrada()" :key="a.id">
+              <tr class="border-b hover:bg-slate-50">
+                <td class="py-2 px-2" x-text="a.fecha"></td>
+                <td class="py-2 px-2" x-text="a.hora||'—'"></td>
+                <td class="py-2 px-2" x-text="a.destinatario"></td>
+                <td class="py-2 px-2" x-text="a.tarea"></td>
+                <td class="py-2 px-2"><input type="checkbox" :checked="a.done" @change="toggleAgenda(a)"></td>
+                <td class="py-2 px-2">
+                  <button class="btn" @click="openAgenda(a)">Editar</button>
+                  <button class="btn" @click="delAgenda(a.id)">Eliminar</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="agenda.length===0"><td colspan="6" class="py-6 text-center text-textmut">Sin registros</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Agenda -->
+  <div x-show="modal.agenda" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" x-transition.opacity>
+    <div class="card w-full max-w-xl p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="formAgenda.id?'Editar tarea':'Nueva tarea'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input class="input" type="date" x-model="formAgenda.fecha">
+        <input class="input" type="time" x-model="formAgenda.hora">
+        <select class="input" x-model="formAgenda.destinatario"><option>Amalia</option><option>Valentino</option><option>Otros</option></select>
+        <input class="input md:col-span-2" placeholder="Tarea" x-model="formAgenda.tarea">
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.agenda=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveAgenda()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== CONTABLE ==== -->
+  <section x-show="tab==='contable'" x-cloak>
+    <div class="card p-5">
+      <div class="flex flex-wrap gap-2 items-end">
+        <input class="input w-40" type="date" x-model="flt.mov.desde">
+        <input class="input w-40" type="date" x-model="flt.mov.hasta">
+        <select class="input w-40" x-model="flt.mov.tipo"><option value="">Todos</option><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select>
+        <button class="btn btn-primary" @click="openMov()">+ Nuevo</button>
+        <button class="btn" @click="exportPDF('contable')">Exportar PDF</button>
+        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
+      </div>
+
+      <div class="overflow-x-auto mt-4">
+        <table class="min-w-full text-sm">
+          <thead><tr class="border-b">
+            <th class="py-2 px-2">Fecha</th><th class="py-2 px-2">Tipo</th><th class="py-2 px-2">Importe</th>
+            <th class="py-2 px-2">Descripción</th><th class="py-2 px-2">Categoría</th><th class="py-2 px-2">Ticket</th><th class="py-2 px-2">Acciones</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="m in movFiltrados()" :key="m.id">
+              <tr class="border-b hover:bg-slate-50">
+                <td class="py-2 px-2" x-text="m.fecha"></td>
+                <td class="py-2 px-2" x-text="m.tipo"></td>
+                <td class="py-2 px-2" x-text="fmtARS(m.importe)"></td>
+                <td class="py-2 px-2" x-text="m.descripcion||'—'"></td>
+                <td class="py-2 px-2" x-text="m.categoria||'—'"></td>
+                <td class="py-2 px-2">
+                  <a x-show="m.ticket_url" :href="m.ticket_url" class="text-blue-600 underline" target="_blank">Ver</a>
+                  <span x-show="!m.ticket_url">—</span>
+                </td>
+                <td class="py-2 px-2">
+                  <button class="btn" @click="openMov(m)">Editar</button>
+                  <button class="btn" @click="delMov(m.id)">Eliminar</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="movs.length===0"><td colspan="7" class="py-6 text-center text-textmut">Sin registros</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cierre -->
+      <div class="card p-4 mt-4">
+        <div class="flex flex-wrap gap-2 items-end">
+          <select class="input w-40" x-model="cierre.mes"><template x-for="(m,i) in meses" :key="i"><option :value="i+1" x-text="m"></option></template></select>
+          <input class="input w-32" type="number" x-model.number="cierre.anio" placeholder="Año">
+          <button class="btn" @click="calcCierre()">Calcular</button>
+          <button class="btn" x-show="cierreCalc" @click="exportCierre()">PDF</button>
+        </div>
+        <div class="mt-3" x-show="cierreCalc">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="card p-3"><div class="text-xs text-textmut">Apertura</div><div class="font-extrabold" x-text="fmtARS(cierreCalc.apertura)"></div></div>
+            <div class="card p-3"><div class="text-xs text-textmut">Ingresado</div><div class="font-extrabold" x-text="fmtARS(cierreCalc.ingresos)"></div></div>
+            <div class="card p-3"><div class="text-xs text-textmut">Gastado</div><div class="font-extrabold" x-text="fmtARS(cierreCalc.gastos)"></div></div>
+            <div class="card p-3"><div class="text-xs text-textmut">Saldo</div><div class="font-extrabold" x-text="fmtARS(cierreCalc.saldo)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Movimiento -->
+  <div x-show="modal.mov" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" x-transition.opacity>
+    <div class="card w-full max-w-xl p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="formMov.id?'Editar movimiento':'Nuevo movimiento'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <select class="input" x-model="formMov.tipo"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select>
+        <input class="input" type="date" x-model="formMov.fecha">
+        <input class="input" type="number" step="0.01" placeholder="Importe" x-model.number="formMov.importe">
+        <input class="input" placeholder="Descripción" x-model="formMov.descripcion">
+        <select class="input" x-model="formMov.categoria"><option>Caja Chica</option><option>Eventuales</option><option>Apertura</option></select>
+        <div class="md:col-span-2">
+          <label class="text-sm block mb-1">Ticket (imagen)</label>
+          <input class="input" type="file" accept="image/*" @change="onTicketChange">
+          <div class="text-xs text-textmut mt-1" x-text="formMov.ticket_url ? 'Cargado ✔' : 'Sin archivo'"></div>
+        </div>
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.mov=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveMov()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== PARTE DIARIO ==== -->
+  <section x-show="tab==='parte'" x-cloak>
+    <div class="card p-5">
+      <div class="flex items-end gap-2">
+        <input class="input w-44" type="date" x-model="parte.fecha">
+        <button class="btn" @click="seedParte()">Cargar plantilla</button>
+        <button class="btn btn-primary" @click="copyParte()">Copiar</button>
+        <a class="btn" :href="waLink()" target="_blank">WhatsApp</a>
+      </div>
+      <textarea class="input h-96 mt-4" x-model="parte.texto" placeholder="Editá el parte aquí…"></textarea>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const sb = window.sb;
+const $pdf = window.jspdf;
+
+function app(){
+return {
+  meId:null,tab:'accesos',
+  empleados:[],
+  personas:[],
+  accesos:[], paq:[], agenda:[], movs:[],
+  modal:{acceso:false,paq:false,agenda:false,mov:false},
+  // filtros (vacíos por defecto para mostrar TODO)
+  flt:{ acc:{desde:'',hasta:'',q:''}, paq:{desde:'',hasta:'',q:''}, ag:{desde:'',hasta:'',dest:''}, mov:{desde:'',hasta:'',tipo:''} },
+  // formularios
+  formAcceso:{ id:null, nombre_apellido:'', dni:'', vehiculo:'', dominio:'', motivo:'', fecha_ingreso:'', hora_ingreso:'', fecha_salida:'', hora_salida:'' },
+  formPaq:{ id:null, descripcion:'', fecha_recepcion:'', hora_recepcion:'', recibido_por:null, observaciones:'', entregado_a:'', fecha_entrega:'', hora_entrega:'' },
+  formAgenda:{ id:null, fecha:'', hora:'', destinatario:'Amalia', tarea:'', done:false },
+  formMov:{ id:null, tipo:'gasto', fecha:'', importe:0, descripcion:'', categoria:'Caja Chica', ticket_file:null, ticket_url:'' },
+  sugerencias:[],
+  meses:["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+  cierre:{ mes:new Date().getMonth()+1, anio:new Date().getFullYear() }, cierreCalc:null,
+  parte:{ fecha:new Date().toISOString().slice(0,10), texto:'' },
+
+  fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
+  empleadoNombre(id){ const e=this.empleados.find(x=>x.id===id); return e? (e.nombre+' '+e.apellido):'—' },
+
+  async init(){
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ location.href='./index.html'; return; }
+    await this.ensureEmpleado();
+
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ location.href='./index.html'; return; }
+    await this.refresh();
+  },
+  async ensureEmpleado(){
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    if(!user) return;
+    const full = (user.user_metadata && user.user_metadata.full_name) ? user.user_metadata.full_name : (user.email || '');
+    const parts = full.split(/[.\s_]/);
+    const nombre = parts[0] || 'Usuario';
+    const apellido = parts[1] || '';
+    await sb.from('empleados').upsert({ user_id: user.id, nombre, apellido }, { onConflict: 'user_id' });
+    const { data, error } = await sb.from('empleados').select('id').eq('user_id', user.id).single();
+    if(!error && data) this.meId = data.id;
+  }catch(e){ __logDiag('ensureEmpleado error: ' + (e?.message||e)); }
+},async refresh(){
+    await Promise.all([this.loadEmpleados(), this.loadPersonas(), this.loadAccesos(), this.loadPaq(), this.loadAgenda(), this.loadMovs()]);
+  },
+  async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
+  clearFilters(){
+    this.flt = {
+      acc:{desde:'',hasta:'',q:''},
+      paq:{desde:'',hasta:'',q:''},
+      ag:{desde:'',hasta:'',dest:''},
+      mov:{desde:'',hasta:'',tipo:''}
+    };
+  },
+
+  // ===== LOADS (ordenado por fechas propias) =====
+  async loadEmpleados(){ try{ const { data } = await sb.from('empleados').select('id,nombre,apellido'); this.empleados = data||[]; }catch{ this.empleados=[]; } },
+  async loadPersonas(){ try{ const { data } = await sb.from('personas').select('*').order('ultima_visita',{ascending:false}).limit(5000); this.personas=data||[]; }catch{ this.personas=[]; } },
+  async loadAccesos(){ try{ const { data } = await sb.from('accesos').select('*').order('fecha_ingreso',{ascending:false}).order('hora_ingreso',{ascending:false}); this.accesos=data||[]; }catch{ this.accesos=[]; } },
+  async loadPaq(){ try{ const { data } = await sb.from('paqueteria').select('*').order('fecha_recepcion',{ascending:false}).order('hora_recepcion',{ascending:false}); this.paq=data||[]; }catch{ this.paq=[]; } },
+  async loadAgenda(){ try{ const { data } = await sb.from('agenda_dom').select('*').order('fecha',{ascending:false}).order('hora',{ascending:false}); this.agenda=data||[]; }catch{ this.agenda=[]; } },
+  async loadMovs(){ try{ const { data } = await sb.from('movimientos').select('*').order('fecha',{ascending:false}); this.movs=data||[]; }catch{ this.movs=[]; } },
+
+  // ===== Accesos =====
+  accesosFiltrados(){
+    const f=this.flt.acc;
+    return this.accesos.filter(r=>{
+      const fi = r.fecha_ingreso || '';
+      const fs = r.fecha_salida || '';
+      let ok = true;
+      if (f.desde) ok = ok && ((fi && fi >= f.desde) || (fs && fs >= f.desde));
+      if (f.hasta) ok = ok && ((fi && fi <= f.hasta) || (fs && fs <= f.hasta));
+      if (f.q){
+        const q=f.q.toLowerCase();
+        ok = ok && [r.nombre_apellido||'', r.dni||'', r.dominio||''].join(' ').toLowerCase().includes(q);
+      }
+      return ok;
+    });
+  },
+  openAcceso(r){
+    this.formAcceso = r ? JSON.parse(JSON.stringify(r)) :
+      { id:null, nombre_apellido:'', dni:'', vehiculo:'', dominio:'', motivo:'', fecha_ingreso:new Date().toISOString().slice(0,10), hora_ingreso:new Date().toTimeString().slice(0,5), fecha_salida:'', hora_salida:'' };
+    this.sugerencias=[]; this.modal.acceso=true;
+  },
+  buscarSugerencias(){
+    const n=(this.formAcceso.nombre_apellido||'').toLowerCase();
+    if(n.length<2){ this.sugerencias=[]; return; }
+    this.sugerencias = this.personas.filter(p=>(p.nombre_apellido||'').toLowerCase().includes(n)).slice(0,5);
+  },
+  autocompletar(){
+    const dni=(this.formAcceso.dni||'').trim();
+    const dom=(this.formAcceso.dominio||'').trim().toUpperCase();
+    let p=null;
+    if(dom) p=this.personas.find(x=>(x.dominio||'').toUpperCase()===dom);
+    if(!p && dni) p=this.personas.find(x=>(x.dni||'')===dni);
+    if(p) this.aplicarPersona(p);
+  },
+  aplicarPersona(p){
+    this.formAcceso.nombre_apellido=p.nombre_apellido||'';
+    this.formAcceso.dni=p.dni||'';
+    this.formAcceso.vehiculo=p.vehiculo||'';
+    this.formAcceso.dominio=p.dominio||'';
+    this.sugerencias=[];
+  },
+  async saveAcceso()
+    try{
+      const row = { ...this.formAcceso }; if(!row.registrado_por && this.meId) row.registrado_por = this.meId;
+      if (row.dominio) row.dominio = row.dominio.toUpperCase();
+      let resp;
+      if (row.id){
+        resp = await sb.from('accesos').update(row).eq('id', row.id).select('id').single();
+      }else{
+        resp = await sb.from('accesos').insert(row).select('id').single();
+      }
+      if (resp.error){
+        __logDiag('saveAcceso error: ' + resp.error.message);
+        throw resp.error;
+      }
+      if (row.nombre_apellido || row.dni || row.dominio){
+        const up = await sb.from('personas').upsert({
+          nombre_apellido: row.nombre_apellido || null,
+          dni: row.dni || null,
+          vehiculo: row.vehiculo || null,
+          dominio: row.dominio || null,
+          ultima_visita: new Date().toISOString()
+        }, { onConflict: 'dni,dominio' });
+        if (up.error) __logDiag('upsert personas warn: ' + up.error.message);
+      }
+      this.modal.acceso = false;
+      await Promise.all([this.loadAccesos(), this.loadPersonas()]);
+    }catch(e){
+      alert(e.message || 'No se pudo guardar acceso');
+    }
+
+}, { onConflict:'dni,dominio' });
+      }
+      this.modal.acceso=false;
+      await Promise.all([this.loadAccesos(), this.loadPersonas()]);
+    }catch(e){ alert(e.message||'No se pudo guardar'); }
+  },
+  async delAcceso(id){ if(!confirm('¿Eliminar?'))return; try{ await sb.from('accesos').delete().eq('id',id); await this.loadAccesos(); }catch(e){ alert(e.message); } },
+
+  // ===== Paquetería =====
+  paqFiltrada(){
+    const f=this.flt.paq;
+    return this.paq.filter(p=>{
+      const fr = p.fecha_recepcion || '';
+      let ok=true;
+      if (f.desde) ok = ok && (fr && fr >= f.desde);
+      if (f.hasta) ok = ok && (fr && fr <= f.hasta);
+      if (f.q){
+        const q=f.q.toLowerCase();
+        ok = ok && ((p.descripcion||'').toLowerCase().includes(q) || (p.entregado_a||'').toLowerCase().includes(q));
+      }
+      return ok;
+    });
+  },
+  openPaq(p){
+    this.formPaq = p ? JSON.parse(JSON.stringify(p)) :
+      { id:null, descripcion:'', fecha_recepcion:new Date().toISOString().slice(0,10), hora_recepcion:new Date().toTimeString().slice(0,5), recibido_por:null, observaciones:'', entregado_a:'', fecha_entrega:'', hora_entrega:'' };
+    this.modal.paq=true;
+  },
+  async savePaq()
+    try{
+      const r = { ...this.formPaq }; if(!r.recibido_por && this.meId) r.recibido_por = this.meId;
+      let resp;
+      if (r.id){
+        resp = await sb.from('paqueteria').update(r).eq('id', r.id).select('id').single();
+      }else{
+        resp = await sb.from('paqueteria').insert(r).select('id').single();
+      }
+      if (resp.error){
+        __logDiag('savePaq error: ' + resp.error.message);
+        throw resp.error;
+      }
+      this.modal.paq = false;
+      await this.loadPaq();
+    }catch(e){
+      alert(e.message || 'No se pudo guardar paquetería');
+    }
+
+},
+  async delPaq(id){ if(!confirm('¿Eliminar?'))return; try{ await sb.from('paqueteria').delete().eq('id',id); await this.loadPaq(); }catch(e){ alert(e.message); } },
+
+  // ===== Agenda =====
+  agendaFiltrada(){
+    const f=this.flt.ag;
+    return this.agenda.filter(a=>{
+      const fa = a.fecha || '';
+      let ok=true;
+      if (f.desde) ok=ok && (fa && fa >= f.desde);
+      if (f.hasta) ok=ok && (fa && fa <= f.hasta);
+      if (f.dest)  ok=ok && a.destinatario===f.dest;
+      return ok;
+    });
+  },
+  openAgenda(a){
+    this.formAgenda = a ? JSON.parse(JSON.stringify(a)) :
+      { id:null, fecha:new Date().toISOString().slice(0,10), hora:'', destinatario:'Amalia', tarea:'', done:false };
+    this.modal.agenda=true;
+  },
+  async saveAgenda()
+    try{
+      const r = { ...this.formAgenda };
+      let resp;
+      if (r.id){
+        resp = await sb.from('agenda_dom').update(r).eq('id', r.id).select('id').single();
+      }else{
+        resp = await sb.from('agenda_dom').insert(r).select('id').single();
+      }
+      if (resp.error){
+        __logDiag('saveAgenda error: ' + resp.error.message);
+        throw resp.error;
+      }
+      this.modal.agenda = false;
+      await this.loadAgenda();
+    }catch(e){
+      alert(e.message || 'No se pudo guardar agenda');
+    }
+
+},
+  async delAgenda(id){ if(!confirm('¿Eliminar?'))return; try{ await sb.from('agenda_dom').delete().eq('id',id); await this.loadAgenda(); }catch(e){ alert(e.message); } },
+  async toggleAgenda(a){ try{ await sb.from('agenda_dom').update({done:!a.done}).eq('id',a.id); a.done=!a.done; }catch(e){ alert(e.message); } },
+
+  // ===== Contable =====
+  movFiltrados(){
+    const f=this.flt.mov;
+    return this.movs.filter(m=>{
+      const fm = m.fecha || '';
+      let ok=true;
+      if (f.desde) ok=ok && (fm && fm >= f.desde);
+      if (f.hasta) ok=ok && (fm && fm <= f.hasta);
+      if (f.tipo)  ok=ok && m.tipo===f.tipo;
+      return ok;
+    });
+  },
+  onTicketChange(ev){ this.formMov.ticket_file = ev.target.files?.[0] || null; },
+  openMov(m){
+    this.formMov = m ? JSON.parse(JSON.stringify(m)) :
+      { id:null, tipo:'gasto', fecha:new Date().toISOString().slice(0,10), importe:0, descripcion:'', categoria:'Caja Chica', ticket_file:null, ticket_url:'' };
+    this.modal.mov=true;
+  },
+  async saveMov(){
+    try{
+      let url=this.formMov.ticket_url||null;
+      if(this.formMov.ticket_file){
+        const f=this.formMov.ticket_file, ext=(f.name.split('.').pop()||'jpg').toLowerCase();
+        const path=`${(await sb.auth.getUser()).data.user.id}/${Date.now()}.${ext}`;
+        const up=await sb.storage.from('tickets').upload(path,f,{upsert:true,contentType:f.type||'image/jpeg'});
+        if(up.error) throw up.error;
+        url = sb.storage.from('tickets').getPublicUrl(path).data.publicUrl;
+      }
+      const row={ tipo:this.formMov.tipo, fecha:this.formMov.fecha, importe:+this.formMov.importe||0, descripcion:this.formMov.descripcion||null, categoria:this.formMov.categoria||null, ticket_url:url };
+      if(this.formMov.id) await sb.from('movimientos').update(row).eq('id',this.formMov.id);
+      else await sb.from('movimientos').insert(row);
+      this.modal.mov=false; await this.loadMovs();
+    }catch(e){ alert(e.message||'No se pudo guardar'); }
+  },
+  async delMov(id){ if(!confirm('¿Eliminar?'))return; try{ await sb.from('movimientos').delete().eq('id',id); await this.loadMovs(); }catch(e){ alert(e.message); } },
+  calcCierre(){
+    const y=this.cierre.anio|0, m=this.cierre.mes|0;
+    const d0=new Date(y,m-1,1).toISOString().slice(0,10);
+    const d1=new Date(y,m,0).toISOString().slice(0,10);
+    const mm=this.movs.filter(x=>x.fecha>=d0 && x.fecha<=d1);
+    const apertura=(mm.find(x=>x.tipo==='ingreso' && x.categoria==='Apertura')?.importe)||0;
+    const ingresos=mm.filter(x=>x.tipo==='ingreso' && x.categoria!=='Apertura').reduce((a,b)=>a+(+b.importe||0),0);
+    const gastos=mm.filter(x=>x.tipo==='gasto').reduce((a,b)=>a+(+b.importe||0),0);
+    this.cierreCalc={ apertura:+apertura||0, ingresos:+ingresos||0, gastos:+gastos||0, saldo:(+apertura||0)+(+ingresos||0)-(+gastos||0) };
+  },
+  exportCierre(){
+    if(!$pdf?.jsPDF || !this.cierreCalc){ alert('PDF no disponible'); return; }
+    const doc=new $pdf.jsPDF();
+    doc.setFontSize(14); doc.text(`Cierre ${this.meses[this.cierre.mes-1]} ${this.cierre.anio}`,14,16);
+    doc.setFontSize(11);
+    doc.text(`Apertura: ${this.fmtARS(this.cierreCalc.apertura)}`,14,26);
+    doc.text(`Ingresado: ${this.fmtARS(this.cierreCalc.ingresos)}`,14,33);
+    doc.text(`Gastado: ${this.fmtARS(this.cierreCalc.gastos)}`,14,40);
+    doc.text(`Saldo: ${this.fmtARS(this.cierreCalc.saldo)}`,14,47);
+    doc.save(`cierre_${this.cierre.anio}_${String(this.cierre.mes).padStart(2,'0')}.pdf`);
+  },
+
+  // ===== Export genérico =====
+  exportPDF(seccion){
+    if(!$pdf?.jsPDF){ alert('PDF no disponible'); return; }
+    const doc=new $pdf.jsPDF(); let cols=[], rows=[];
+    if(seccion==='accesos'){ cols=['Nombre','DNI','Vehículo','Dominio','Motivo','F.Ing','H.Ing','F.Sal','H.Sal']; rows=this.accesosFiltrados().map(r=>[r.nombre_apellido,r.dni||'',r.vehiculo||'',r.dominio||'',r.motivo||'',r.fecha_ingreso||'',r.hora_ingreso||'',r.fecha_salida||'',r.hora_salida||'']); }
+    if(seccion==='paqueteria'){ cols=['Descripción','F.Rec','H.Rec','Recibido por','Obs','Entregado a','F.Ent','H.Ent']; rows=this.paqFiltrada().map(p=>[p.descripcion,p.fecha_recepcion,p.hora_recepcion,this.empleadoNombre(p.recibido_por),p.observaciones||'',p.entregado_a||'',p.fecha_entrega||'',p.hora_entrega||'']); }
+    if(seccion==='agenda'){ cols=['Fecha','Hora','Para','Tarea','OK']; rows=this.agendaFiltrada().map(a=>[a.fecha,a.hora||'',a.destinatario,a.tarea,a.done?'Sí':'No']); }
+    if(seccion==='contable'){ cols=['Fecha','Tipo','Importe','Descripción','Categoría']; rows=this.movFiltrados().map(m=>[m.fecha,m.tipo,this.fmtARS(m.importe),m.descripcion||'',m.categoria||'']); }
+    doc.setFontSize(14); doc.text(seccion.toUpperCase(),14,16);
+    doc.autoTable({ head:[cols], body:rows, startY:22 });
+    doc.save(`${seccion}_${new Date().toISOString().slice(0,10)}.pdf`);
+  },
+
+  // ===== Parte =====
+  seedParte(){
+    const ff=new Date(this.parte.fecha).toLocaleDateString('es-AR');
+    this.parte.texto=`SERVICIO ${ff}
+07:00 A 19:00
+
+CABINA:
+- …
+
+AMT:
+- …
+
+PUESTO HUDSON:
+- -///-
+
+*CAJA CHICA: ${this.fmtARS(this.movs.filter(m=>m.categoria==='Caja Chica'&&m.tipo==='ingreso').reduce((a,b)=>a+(+b.importe||0),0)-this.movs.filter(m=>m.categoria==='Caja Chica'&&m.tipo==='gasto').reduce((a,b)=>a+(+b.importe||0),0))}*
+
+EMPLEADAS DOMESTICAS:
+- …
+
+NIÑERA:
+- …
+
+SISTEMA DE CAMARAS: SIN NOVEDAD
+CERCO ELECTRICO: SIN NOVEDAD
+PORTONES: SIN NOVEDAD
+
+*AGENDA ${ff}*
+- …`;
+  },
+  copyParte(){ navigator.clipboard.writeText(this.parte.texto||''); alert('Parte copiado'); },
+  waLink(){ return 'https://wa.me/?text=' + encodeURIComponent(this.parte.texto||''); }
+}
+}
+</script>
+<script>
+(function(){
+  const box = document.getElementById('diagDash');
+  function log(m){ if(box) box.innerHTML += `<div>${m}</div>`; }
+
+  const sbUrl = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
+  log(`Origen: <code>${location.origin}</code>`);
+  log(`Supabase: <code>${sbUrl}</code>`);
+
+  window.addEventListener('error', (e)=>{
+    log('JS error: ' + (e?.message||e));
+  });
+
+  (async()=>{
+    try{
+      const { data:{ session }, error } = await sb.auth.getSession();
+      if (error) log('getSession error: ' + error.message);
+      log('Sesion: ' + (session ? 'OK' : 'NO'));
+
+      if (session){
+        const r1 = await sb.from('accesos').select('id', { count: 'exact', head: true });
+        log('accesos count visible: ' + (r1?.count ?? 'n/a') + (r1?.error ? ' (err: '+r1.error.message+')' : ''));
+        const r2 = await sb.from('paqueteria').select('id', { count: 'exact', head: true });
+        log('paqueteria count visible: ' + (r2?.count ?? 'n/a') + (r2?.error ? ' (err: '+r2.error.message+')' : ''));
+        const r3 = await sb.from('agenda_dom').select('id', { count: 'exact', head: true });
+        log('agenda_dom count visible: ' + (r3?.count ?? 'n/a') + (r3?.error ? ' (err: '+r3.error.message+')' : ''));
+      }
+    }catch(e){
+      log('Diag exception: ' + (e?.message||e));
+    }
+  })();
+})();
+</script>
+<script>
+  window.__logDiag = function(msg){
+    try{
+      const el = document.getElementById('diagDash');
+      if (el) el.innerHTML += `<div>${msg}</div>`;
+      console.log('[diag]', msg);
+    }catch(_){}
+  };
+</script>
+</body>
+</html>
