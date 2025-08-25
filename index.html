@@ -1,91 +1,84 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CRM San Isidro — Ingreso</title>
 
   <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: "#C7A600",
-            brand2: "#E5C558"
-          }
-        }
-      }
-    }
-  </script>
+  <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
 
   <!-- Supabase -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 
   <style>
-    body { background:#fff; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial }
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.06)}
-    .btn{border:1px solid #e5e7eb;border-radius:12px;padding:.6rem .9rem;font-weight:700;width:100%}
-    .btn-primary{background:linear-gradient(90deg,#C7A600,#E5C558);color:#2b2500;border-color:#dabb00}
-    .input{border:1px solid #d1d5db;border-radius:.7rem;padding:.55rem .75rem;width:100%}
-    .input:focus{outline:none;border-color:#C7A600;box-shadow:0 0 0 3px rgba(199,166,0,.2)}
+    body{ background:#f7f7f7; min-height:100dvh; display:grid; place-items:center; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.06); width:100%; max-width:480px; padding:28px }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; border-radius:10px; padding:.8rem 1.2rem; font-weight:700; border:1px solid #e5e7eb }
+    .btn-primary{ background:#C7A600; color:#1a1a1a; border-color:#d1b83a }
+    .input{ width:100%; border:1px solid #d1d5db; border-radius:10px; padding:.7rem 1rem; background:#fff }
+    .muted{ color:#6b7280; font-size:.9rem }
   </style>
-
-  <script>
-    window.sb = supabase.createClient(
-    "https://ecmjxpnpdgmvnxmbciur.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
-    );
-  </script>
 </head>
+<body>
 
-<body class="flex items-center justify-center h-screen">
-
-  <div class="card w-full max-w-md p-8">
-    <div class="flex items-center justify-center gap-2 mb-6">
-      <div class="w-4 h-4 rounded-full" style="background:linear-gradient(90deg,#C7A600,#E5C558)"></div>
-      <h1 class="text-xl font-extrabold">CRM SAN ISIDRO</h1>
+  <div class="card">
+    <div class="text-center mb-6">
+      <div class="inline-block w-3 h-3 rounded-full bg-yellow-500 align-middle mr-2"></div>
+      <h1 class="text-xl font-extrabold tracking-wide">CRM SAN ISIDRO</h1>
     </div>
 
-    <form id="loginForm" class="space-y-4">
-      <div>
-        <label class="block text-sm font-semibold mb-1">Email</label>
-        <input type="email" id="email" class="input" required>
-      </div>
-      <div>
-        <label class="block text-sm font-semibold mb-1">Contraseña</label>
-        <input type="password" id="password" class="input" required>
-      </div>
-      <button type="submit" class="btn btn-primary">Ingresar</button>
-    </form>
+    <form id="loginForm" class="grid gap-3">
+      <label class="grid gap-1">
+        <span class="muted">Email</span>
+        <input id="email" type="email" class="input" placeholder="tu@correo.com" required />
+      </label>
+      <label class="grid gap-1">
+        <span class="muted">Contraseña</span>
+        <input id="password" type="password" class="input" placeholder="********" required />
+      </label>
 
-    <p class="text-center text-sm text-gray-500 mt-4" id="msg"></p>
+      <button id="loginBtn" class="btn btn-primary mt-2" type="submit">Ingresar</button>
+      <button id="signupBtn" class="btn" type="button">Crear cuenta</button>
+      <p id="msg" class="text-center text-sm text-gray-500 mt-1"></p>
+    </form>
   </div>
 
-<script>
-  const sb = window.sb;
+  <script>
+    // === Supabase client (TUS credenciales) ===
+    const sb = supabase.createClient(
+      "https://ecmjxpnpdgmvnxmbciur.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
+    );
 
-  document.getElementById("loginForm").addEventListener("submit", async (e)=>{
-    e.preventDefault();
-    const email=document.getElementById("email").value.trim();
-    const pass=document.getElementById("password").value.trim();
-    const msg=document.getElementById("msg");
+    // Si ya hay sesión, al dashboard
+    (async () => {
+      const { data:{ session } } = await sb.auth.getSession();
+      if (session) location.href = "./dashboard.html";
+    })();
 
-    msg.textContent="Validando…";
+    const form = document.getElementById("loginForm");
+    const msg  = document.getElementById("msg");
 
-    const { data, error } = await sb.auth.signInWithPassword({ email, password:pass });
-    if(error){
-      msg.textContent="Error: "+error.message;
-    }else{
-      location.href="./dashboard.html";
-    }
-  });
+    form.addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      msg.textContent = "Ingresando…";
+      const email = document.getElementById("email").value.trim();
+      const pass  = document.getElementById("password").value.trim();
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error){ msg.textContent = "Error: " + error.message; return; }
+      location.href = "./dashboard.html";
+    });
 
-  // Si ya hay sesión activa, redirige
-  sb.auth.getSession().then(({data})=>{
-    if(data.session) location.href="./dashboard.html";
-  });
-</script>
+    document.getElementById("signupBtn").addEventListener("click", async ()=>{
+      msg.textContent = "Creando cuenta…";
+      const email = document.getElementById("email").value.trim();
+      const pass  = document.getElementById("password").value.trim();
+      if(!email || !pass){ msg.textContent = "Ingresá email y contraseña"; return; }
+      const { data, error } = await sb.auth.signUp({ email, password: pass });
+      if (error){ msg.textContent = "Error: " + error.message; return; }
+      msg.textContent = data.user?.email_confirmed_at ? "Cuenta creada. Ya podés ingresar." : "Cuenta creada. Revisá tu email para confirmar.";
+    });
+  </script>
 </body>
 </html>
