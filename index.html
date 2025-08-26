@@ -33,7 +33,7 @@
       top: 40%; 
       width: 120vmax; 
       height: 200px;
-      background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent);
+      background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent); 
       transform: rotate(-6deg); 
       animation: shimmer 10s linear infinite; 
       z-index: 0; 
@@ -147,6 +147,7 @@ function togglePasswordVisibility(button) {
 // Verificar si el usuario ya tiene una sesión activa
 async function checkExistingSession() {
   try {
+    console.log("Verificando sesión existente...");
     const { data, error } = await supabase.auth.getSession();
     
     if (error) {
@@ -154,11 +155,16 @@ async function checkExistingSession() {
       return;
     }
     
+    console.log("Datos de sesión:", data);
+    
     if (data?.session) {
+      console.log("Sesión activa encontrada, redirigiendo al dashboard...");
       window.location.href = "./dashboard.html";
+    } else {
+      console.log("No hay sesión activa");
     }
   } catch (err) {
-    console.error("Error inesperado:", err);
+    console.error("Error inesperado al verificar sesión:", err);
   }
 }
 
@@ -181,17 +187,25 @@ async function handleLogin(event) {
   messageEl.textContent = "";
   
   try {
+    console.log("Intentando iniciar sesión con:", email);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
+      console.error("Error de autenticación:", error);
       messageEl.textContent = `Error: ${error.message}`;
       submitBtn.disabled = false;
       submitBtn.textContent = "Entrar";
       return;
     }
     
-    // Redirigir al dashboard
-    window.location.href = "./dashboard.html";
+    console.log("Inicio de sesión exitoso:", data);
+    
+    // Esperar un momento antes de redirigir para asegurar que la sesión se guarde
+    setTimeout(() => {
+      console.log("Redirigiendo al dashboard...");
+      window.location.href = "./dashboard.html";
+    }, 500);
+    
   } catch (err) {
     console.error("Error inesperado:", err);
     messageEl.textContent = "Ocurrió un error inesperado. Inténtalo de nuevo.";
@@ -202,6 +216,7 @@ async function handleLogin(event) {
 
 // Inicializar
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("Página de login cargada");
   checkExistingSession();
   loginForm.addEventListener("submit", handleLogin);
 });
