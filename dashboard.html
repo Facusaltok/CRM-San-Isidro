@@ -74,9 +74,11 @@
             <label class="label">Buscar</label>
             <input id="q" type="text" placeholder="Texto libre" class="input">
           </div>
+
           <button id="newBtn" class="btn btn-gold">+ Nuevo</button>
           <button id="filterBtn" class="btn">Filtrar</button>
           <button id="clearBtn" class="btn">Limpiar</button>
+          <button id="showAllBtn" class="btn">Mostrar todo</button>
         </div>
 
         <div id="contableKpis" class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 hidden">
@@ -92,6 +94,10 @@
           </table>
           <p id="empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
           <p id="err" class="text-center text-red-500 py-2"></p>
+        </div>
+
+        <div class="flex justify-center mt-4">
+          <button id="loadMoreBtn" class="btn hidden">Cargar más</button>
         </div>
       </section>
     </main>
@@ -123,7 +129,7 @@ const sb = supabase.createClient(
  * 'direct'  -> envía a número (WHATSAPP_PHONE solo dígitos, ej 54911xxxxxxx)
  */
 const WHATSAPP_MODE  = 'chooser';
-const WHATSAPP_PHONE = '54911XXXXXXXX'; // solo dígitos si usás 'direct'
+const WHATSAPP_PHONE = '54911XXXXXXXX';
 
 const tabs = {
   accesos: {
@@ -242,12 +248,20 @@ const wrapAsignado = byId("wrapAsignado"), selAsignado = byId("asignado");
 const contKpis = byId("contableKpis");
 let current = "accesos", editingId = null;
 
+/* Paginación */
+const PAGE_SIZE = 200;
+let page = 0;
+let lastBatchCount = 0;
+function resetPaging(){ page = 0; lastBatchCount = 0; byId('loadMoreBtn')?.classList.add('hidden'); }
+function canLoadMore(){ return lastBatchCount === PAGE_SIZE; }
+
 (async () => {
   const { data } = await sb.auth.getSession();
   if (!data?.session) { location.replace("./index.html"); return; }
-  const today = new Date().toISOString().slice(0,10);
-  byId("fDesde").value = today; byId("fHasta").value = today;
-  buildHead(); toggleExtras(); await load();
+  // sin fechas por defecto => trae todo
+  byId("fDesde").value = "";
+  byId("fHasta").value = "";
+  buildHead(); toggleExtras(); resetPaging(); await load();
 })();
 
 document.querySelectorAll("[data-tab]").forEach(b=>{
@@ -255,18 +269,30 @@ document.querySelectorAll("[data-tab]").forEach(b=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     b.classList.add("active");
     current = b.dataset.tab; editingId=null;
-    buildHead(); toggleExtras(); await load();
+    buildHead(); toggleExtras(); resetPaging(); await load(true);
   });
 });
 document.querySelectorAll('[data-quick]').forEach(btn=>{
-  btn.addEventListener('click', ()=>{ selAsignado.value = btn.dataset.quick; load(); });
+  btn.addEventListener('click', ()=>{ selAsignado.value = btn.dataset.quick; resetPaging(); load(true); });
 });
 byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
-byId("refreshBtn").addEventListener("click", load);
-byId("filterBtn").addEventListener("click", load);
+
+byId("refreshBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
+byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
 byId("exportBtn").addEventListener("click", exportPDF);
 byId("exportCsvBtn").addEventListener("click", exportCSV);
-byId("clearBtn").addEventListener("click", ()=>{ byId("fDesde").value=""; byId("fHasta").value=""; selAsignado.value="Todos"; byId("q").value=""; load(); });
+byId("clearBtn").addEventListener("click", async ()=>{
+  byId("fDesde").value=""; byId("fHasta").value=""; selAsignado.value="Todos"; byId("q").value="";
+  resetPaging(); await load(true);
+});
+byId("showAllBtn").addEventListener("click", async ()=>{
+  byId("fDesde").value=""; byId("fHasta").value="";
+  selAsignado.value="Todos"; byId("q").value="";
+  resetPaging(); await load(true);
+});
+byId("loadMoreBtn").addEventListener("click", async ()=>{
+  page += 1; await load(false);
+});
 
 const modal = byId("modal"), form = byId("form"), hint = byId("hint");
 byId("newBtn").addEventListener("click", () => openModal());
@@ -300,21 +326,37 @@ window.deleteRow = async function(id){
   if (!confirm(`¿Eliminar este registro de ${name}? Esta acción no se puede deshacer.`)) return;
   const { error } = await sb.from(tabs[current].table).delete().eq('id', id);
   if (error){ alert("Eliminar: " + error.message); return; }
-  await load();
+  await load(true);
 };
 
-async function load(){
-  rows.innerHTML=""; empty.classList.add("hidden"); errEl.textContent="";
+async function load(clearBefore = true){
+  if (clearBefore) { rows.innerHTML=""; resetPaging(); }
+  empty.classList.add("hidden"); errEl.textContent="";
+
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
-  let q = sb.from(tabs[current].table).select("*").order("created_at",{ascending:false});
+  let q = sb.from(tabs[current].table).select("*", { count: "exact", head: false }).order("created_at",{ascending:false});
+
   const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
   if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
+
+  const from = page * PAGE_SIZE;
+  const to   = from + PAGE_SIZE - 1;
+  q = q.range(from, to);
+
   const { data, error } = await q;
-  if (error){ errEl.textContent = error.message; return; }
+  if (error){ errEl.textContent = error.message; byId('loadMoreBtn').classList.add('hidden'); return; }
+
   const list = filterLocal(data||[]);
-  if (!list.length){ empty.classList.remove("hidden"); if(current==="contable") updateKpis([]); return; }
+  lastBatchCount = list.length;
+
+  if (clearBefore && !list.length){
+    empty.classList.remove("hidden");
+    if(current==="contable") updateKpis([]);
+    byId('loadMoreBtn').classList.add('hidden');
+    return;
+  }
 
   for (const r of list){
     const arr = tabs[current].row(r);
@@ -324,7 +366,10 @@ async function load(){
     }).join("");
     rows.insertAdjacentHTML("beforeend", `<tr>${t}</tr>`);
   }
-  if (current==="contable") updateKpis(list);
+
+  if (current==="contable" && clearBefore) updateKpis(list);
+
+  byId('loadMoreBtn').classList.toggle('hidden', !canLoadMore());
 }
 function updateKpis(list){
   let ing=0,egr=0; for(const r of list){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
@@ -389,8 +434,8 @@ async function save(ev){
   ]);
 
   for (const f of def.fields){
-    if (f.k === "file") continue;               // contable: evitar columna inexistente
-    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue; // parte: campos virtuales
+    if (f.k === "file") continue;
+    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue;
     const el = byId(`f_${f.k}`); if (!el) continue;
     let v = el.value;
     if (f.t==="number" && v!=="") v = Number(v);
@@ -399,7 +444,6 @@ async function save(ev){
     payload[f.k] = v;
   }
 
-  // Transformaciones PARTE
   if (current==="parte"){
     payload.choferes = [byId('f_c1').value,byId('f_c2').value,byId('f_c3').value,byId('f_c4').value].filter(x=>x && x.trim());
     payload.novedades_vehiculos = clean({
@@ -418,7 +462,6 @@ async function save(ev){
     payload.elementos_asignados = (val('f_elementos')||"").split('\n').map(s=>s.trim()).filter(Boolean);
   }
 
-  // Upload comprobante (Contable)
   if (current==="contable"){
     const fi = byId("f_file");
     if (fi && fi.files && fi.files.length){
@@ -436,7 +479,6 @@ async function save(ev){
   } else { resp = await sb.from(def.table).insert(payload); }
   if (resp.error){ alert("Guardar: " + resp.error.message); return; }
 
-  // Abrir WhatsApp con el mensaje (chooser/direct)
   if (current==="parte"){
     const { data: row } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if (row?.id){
@@ -448,7 +490,7 @@ async function save(ev){
           const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
           window.open(url, '_blank');
         } else {
-          const url = `https://api.whatsapp.com/send?text=${msg}`; // elegís grupo/contacto
+          const url = `https://api.whatsapp.com/send?text=${msg}`;
           window.open(url, '_blank');
         }
       }
@@ -457,7 +499,7 @@ async function save(ev){
 
   editingId = null;
   modal.classList.add("hidden");
-  await load();
+  await load(true);
 }
 
 function exportPDF(){
