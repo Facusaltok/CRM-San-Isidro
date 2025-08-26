@@ -7,42 +7,27 @@
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <!-- Fondo blanco + animación dorada -->
   <style>
     :root{ color-scheme: light; }
-    body{
-      background:#fff;
-      position:relative;
-      overflow-x:hidden;
-    }
+    body{ background:#fff; position:relative; overflow-x:hidden; }
     .gold-glow{
       pointer-events:none; position:fixed; inset:-20% -20% auto auto;
       width:70vmax; height:70vmax; border-radius:50%;
       background: radial-gradient(closest-side, rgba(245, 158, 11, .12), transparent 70%);
-      animation: floatGlow 16s ease-in-out infinite alternate;
-      filter: blur(12px);
-      z-index:0;
+      animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0;
     }
     .gold-ribbon{
       pointer-events:none; position:fixed; left:-10%; top:40%;
       width:120vmax; height:200px;
       background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent);
-      transform: rotate(-6deg);
-      animation: shimmer 10s linear infinite;
-      z-index:0;
+      transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0;
     }
-    @keyframes floatGlow{
-      from{ transform: translate(0,0) scale(1); }
-      to  { transform: translate(-6%,4%) scale(1.05); }
-    }
-    @keyframes shimmer{
-      0%{ background-position:-200% 0; }
-      100%{ background-position:200% 0; }
-    }
+    @keyframes floatGlow{ from{transform:translate(0,0) scale(1)} to{transform:translate(-6%,4%) scale(1.05)} }
+    @keyframes shimmer{ 0%{background-position:-200% 0} 100%{background-position:200% 0} }
     .app-layer{ position:relative; z-index:1; }
   </style>
 </head>
@@ -61,7 +46,7 @@
         </div>
       </div>
 
-      <form id="loginForm" class="space-y-4">
+      <form id="loginForm" class="space-y-4" x-data="{show:false}">
         <div>
           <label class="block mb-1 text-sm text-slate-600">Email</label>
           <input id="email" type="email" required
@@ -69,8 +54,11 @@
         </div>
         <div>
           <label class="block mb-1 text-sm text-slate-600">Contraseña</label>
-          <input id="password" type="password" required
-            class="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+          <div class="relative">
+            <input id="password" :type="show ? 'text':'password'" required
+              class="w-full px-3 py-2 pr-24 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+            <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-amber-700" onclick="this.previousElementSibling.type = this.previousElementSibling.type==='password'?'text':'password'; this.textContent=this.textContent==='Ver'?'Ocultar':'Ver'">Ver</button>
+          </div>
         </div>
         <button id="submitBtn" type="submit"
           class="w-full py-2 rounded-lg bg-amber-400 text-slate-900 font-medium hover:brightness-110">
@@ -84,7 +72,6 @@
   </div>
 
   <script>
-    // Supabase (tu proyecto nuevo)
     const sb = supabase.createClient(
       "https://ecmjxpnpdgmvnxmbciur.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
