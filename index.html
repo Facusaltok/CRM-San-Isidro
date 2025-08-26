@@ -7,219 +7,67 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
-    :root { color-scheme: light; }
-    body { 
-      background: #fff; 
-      position: relative; 
-      overflow-x: hidden; 
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    .gold-glow { 
-      pointer-events: none; 
-      position: fixed; 
-      inset: -20% -20% auto auto; 
-      width: 70vmax; 
-      height: 70vmax; 
-      border-radius: 50%;
+    :root{ color-scheme: light; }
+    body{ background:#fff; position:relative; overflow-x:hidden; }
+    .gold-glow{ pointer-events:none; position:fixed; inset:-20% -20% auto auto; width:70vmax; height:70vmax; border-radius:50%;
       background: radial-gradient(closest-side, rgba(245,158,11,.12), transparent 70%);
-      animation: floatGlow 16s ease-in-out infinite alternate; 
-      filter: blur(12px); 
-      z-index: 0; 
-    }
-    .gold-ribbon { 
-      pointer-events: none; 
-      position: fixed; 
-      left: -10%; 
-      top: 40%; 
-      width: 120vmax; 
-      height: 200px;
-      background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent); 
-      transform: rotate(-6deg); 
-      animation: shimmer 10s linear infinite; 
-      z-index: 0; 
-    }
-    @keyframes floatGlow { 
-      from { transform: translate(0,0) scale(1) } 
-      to { transform: translate(-6%,4%) scale(1.05) } 
-    }
-    @keyframes shimmer { 
-      0% { background-position: -200% 0 } 
-      100% { background-position: 200% 0 } 
-    }
-    .app-layer { 
-      position: relative; 
-      z-index: 1; 
-    }
-    .form-input {
-      transition: all 0.2s ease;
-    }
-    .form-input:focus {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
+      animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0; }
+    .gold-ribbon{ pointer-events:none; position:fixed; left:-10%; top:40%; width:120vmax; height:200px;
+      background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent);
+      transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0; }
+    @keyframes floatGlow{ from{transform:translate(0,0) scale(1)} to{transform:translate(-6%,4%) scale(1.05)} }
+    @keyframes shimmer{ 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+    .app-layer{ position:relative; z-index:1; }
   </style>
 </head>
 <body class="min-h-screen text-slate-800">
-  <div class="gold-glow"></div>
-  <div class="gold-ribbon"></div>
-  
+  <div class="gold-glow"></div><div class="gold-ribbon"></div>
   <div class="app-layer min-h-screen flex items-center justify-center p-6">
-    <div class="w-full max-w-md p-8 rounded-2xl bg-white shadow-2xl border border-slate-200 transition-all duration-300 hover:shadow-3xl">
+    <div class="w-full max-w-md p-8 rounded-2xl bg-white shadow-2xl border border-slate-200">
       <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-amber-400 text-slate-900 font-extrabold flex items-center justify-center shadow-md">CRM</div>
-        <div>
-          <h1 class="text-2xl font-semibold leading-tight">San Isidro</h1>
-          <p class="text-xs text-slate-500">Acceso seguro</p>
-        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-400 text-slate-900 font-extrabold flex items-center justify-center">CRM</div>
+        <div><h1 class="text-2xl font-semibold leading-tight">San Isidro</h1>
+          <p class="text-xs text-slate-500">Acceso seguro</p></div>
       </div>
-      
-      <form id="loginForm" class="space-y-5">
+      <form id="loginForm" class="space-y-4">
         <div>
-          <label for="email" class="block mb-1 text-sm font-medium text-slate-600">Email</label>
-          <input 
-            id="email" 
-            type="email" 
-            required 
-            placeholder="correo@ejemplo.com"
-            class="form-input w-full px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400"
-          />
+          <label class="block mb-1 text-sm text-slate-600">Email</label>
+          <input id="email" type="email" required class="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
         </div>
-        
         <div>
-          <label for="password" class="block mb-1 text-sm font-medium text-slate-600">Contraseña</label>
+          <label class="block mb-1 text-sm text-slate-600">Contraseña</label>
           <div class="relative">
-            <input 
-              id="password" 
-              type="password" 
-              required 
-              placeholder="••••••••"
-              class="form-input w-full px-3 py-2 pr-24 rounded-lg bg-white border border-slate-300 outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400"
-            />
-            <button 
-              type="button" 
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-medium text-amber-700 hover:text-amber-800 transition-colors"
-              onclick="togglePasswordVisibility(this)"
-            >
-              Ver
-            </button>
+            <input id="password" type="password" required class="w-full px-3 py-2 pr-24 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+            <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-amber-700"
+              onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password';
+                       this.textContent=this.textContent==='Ver'?'Ocultar':'Ver'">Ver</button>
           </div>
         </div>
-        
-        <button 
-          id="submitBtn" 
-          type="submit" 
-          class="w-full py-3 rounded-lg bg-amber-400 text-slate-900 font-medium hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
-        >
-          Entrar
-        </button>
-        
-        <div id="msg" class="mt-2 text-sm text-red-500 min-h-[20px]"></div>
+        <button id="submitBtn" type="submit" class="w-full py-2 rounded-lg bg-amber-400 text-slate-900 font-medium hover:brightness-110">Entrar</button>
+        <p id="msg" class="mt-2 text-sm text-red-500"></p>
       </form>
-      
-      <div class="mt-8 pt-4 border-t border-slate-100 text-center">
-        <p class="text-xs text-slate-400">© CRM San Isidro</p>
-      </div>
+      <p class="mt-6 text-center text-xs text-slate-400">© CRM San Isidro</p>
     </div>
   </div>
-
 <script>
-// Configuración de Supabase
-const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// Elementos del DOM
-const loginForm = document.getElementById("loginForm");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const submitBtn = document.getElementById("submitBtn");
-const messageEl = document.getElementById("msg");
-
-// Función para alternar visibilidad de contraseña
-function togglePasswordVisibility(button) {
-  const passwordField = button.previousElementSibling;
-  const isVisible = passwordField.type === "text";
-  
-  passwordField.type = isVisible ? "password" : "text";
-  button.textContent = isVisible ? "Ver" : "Ocultar";
-}
-
-// Verificar si el usuario ya tiene una sesión activa
-async function checkExistingSession() {
-  try {
-    console.log("Verificando sesión existente...");
-    const { data, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error("Error al verificar sesión:", error.message);
-      return;
-    }
-    
-    console.log("Datos de sesión:", data);
-    
-    if (data?.session) {
-      console.log("Sesión activa encontrada, redirigiendo al dashboard...");
-      window.location.href = "./dashboard.html";
-    } else {
-      console.log("No hay sesión activa");
-    }
-  } catch (err) {
-    console.error("Error inesperado al verificar sesión:", err);
-  }
-}
-
-// Manejar envío del formulario
-async function handleLogin(event) {
-  event.preventDefault();
-  
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
-  
-  // Validación básica
-  if (!email || !password) {
-    messageEl.textContent = "Por favor completa todos los campos";
-    return;
-  }
-  
-  // Deshabilitar botón y mostrar estado de carga
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Ingresando...";
-  messageEl.textContent = "";
-  
-  try {
-    console.log("Intentando iniciar sesión con:", email);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-      console.error("Error de autenticación:", error);
-      messageEl.textContent = `Error: ${error.message}`;
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Entrar";
-      return;
-    }
-    
-    console.log("Inicio de sesión exitoso:", data);
-    
-    // Esperar un momento antes de redirigir para asegurar que la sesión se guarde
-    setTimeout(() => {
-      console.log("Redirigiendo al dashboard...");
-      window.location.href = "./dashboard.html";
-    }, 500);
-    
-  } catch (err) {
-    console.error("Error inesperado:", err);
-    messageEl.textContent = "Ocurrió un error inesperado. Inténtalo de nuevo.";
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Entrar";
-  }
-}
-
-// Inicializar
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("Página de login cargada");
-  checkExistingSession();
-  loginForm.addEventListener("submit", handleLogin);
+const sb = supabase.createClient(
+  "https://ecmjxpnpdgmvnxmbciur.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
+);
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (data?.session) location.href = "./dashboard.html";
+})();
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = emailEl.value.trim(), password = passEl.value;
+  const btn = submitBtn, msg = document.getElementById("msg");
+  btn.disabled = true; btn.textContent = "Ingresando...";
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error){ msg.textContent = "Error: " + error.message; btn.disabled=false; btn.textContent="Entrar"; return; }
+  location.href = "./dashboard.html";
 });
+const emailEl = document.getElementById("email"), passEl = document.getElementById("password"), submitBtn = document.getElementById("submitBtn");
 </script>
 </body>
 </html>
