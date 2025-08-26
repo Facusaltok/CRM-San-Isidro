@@ -1,8 +1,12 @@
--- ====== Extensiones ======
+-- =========================
+-- CRM San Isidro – Esquema completo (idempotente)
+-- =========================
+
+-- Extensiones necesarias
 create extension if not exists "uuid-ossp";
 create extension if not exists pgcrypto;
 
--- updated_at automático
+-- Helper: updated_at automático
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
 begin
@@ -10,15 +14,22 @@ begin
   return new;
 end$$;
 
--- ====== TABLAS ======
+-- Helper: verificación de propietario (RLS)
+create or replace function public.is_owner(uid uuid)
+returns boolean language sql stable as $$
+  select uid = auth.uid()
+$$;
 
+-- =============== TABLAS ===============
+
+-- Personas (genérica, por si la usás más adelante)
 create table if not exists public.personas (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid,
-  nombre   text,
-  dni      text,
-  telefono text,
-  email    text,
+  nombre     text,
+  dni        text,
+  telefono   text,
+  email      text,
   created_at timestamp not null default now(),
   updated_at timestamp not null default now()
 );
@@ -26,6 +37,7 @@ drop trigger if exists t_personas_updated on public.personas;
 create trigger t_personas_updated before update on public.personas
 for each row execute function public.set_updated_at();
 
+-- Accesos (registro de ingresos/egresos)
 create table if not exists public.accesos (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid,
@@ -45,6 +57,7 @@ drop trigger if exists t_accesos_updated on public.accesos;
 create trigger t_accesos_updated before update on public.accesos
 for each row execute function public.set_updated_at();
 
+-- Paquetería
 create table if not exists public.paqueteria (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid,
@@ -54,26 +67,29 @@ create table if not exists public.paqueteria (
   estado   text,
   fecha    date,
   hora     time,
-  -- nuevos
-  entregado_a   text,
-  fecha_entrega date,
-  hora_entrega  time,
   notas    text,
   created_at timestamp not null default now(),
   updated_at timestamp not null default now()
 );
+-- columnas nuevas (idempotente)
+alter table public.paqueteria
+  add column if not exists entregado_a   text,
+  add column if not exists fecha_entrega date,
+  add column if not exists hora_entrega  time;
+
 drop trigger if exists t_paqueteria_updated on public.paqueteria;
 create trigger t_paqueteria_updated before update on public.paqueteria
 for each row execute function public.set_updated_at();
 
+-- Contable (movimientos)
 create table if not exists public.movimientos (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid,
-  tipo     text,
+  tipo     text,               -- 'Ingreso' | 'Egreso'
   concepto text,
   monto    numeric(14,2),
   fecha    date,
-  url      text,
+  url      text,               -- link público al comprobante (Storage)
   created_at timestamp not null default now(),
   updated_at timestamp not null default now()
 );
@@ -81,12 +97,11 @@ drop trigger if exists t_movimientos_updated on public.movimientos;
 create trigger t_movimientos_updated before update on public.movimientos
 for each row execute function public.set_updated_at();
 
+-- Agenda simplificada (un solo campo 'tarea')
 create table if not exists public.agenda_dom (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid,
   asignado_a text check (asignado_a in ('Amalia','Valentino','Otros')) default 'Otros',
-  -- simplificado
-  tarea    text,
   fecha    date,
   hora     time,
   estado   text,
@@ -94,10 +109,15 @@ create table if not exists public.agenda_dom (
   created_at timestamp not null default now(),
   updated_at timestamp not null default now()
 );
+-- columna requerida por el frontend
+alter table public.agenda_dom
+  add column if not exists tarea text;
+
 drop trigger if exists t_agenda_dom_updated on public.agenda_dom;
 create trigger t_agenda_dom_updated before update on public.agenda_dom
 for each row execute function public.set_updated_at();
 
+-- Parte diario
 create table if not exists public.parte_diario (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid,
@@ -116,8 +136,8 @@ create table if not exists public.parte_diario (
   invitados           jsonb,
   profesionales       jsonb,
   elementos_asignados text[],
-  otros text,
-  agenda_texto text,
+  otros         text,
+  agenda_texto  text,
   created_at timestamp not null default now(),
   updated_at timestamp not null default now()
 );
@@ -125,31 +145,27 @@ drop trigger if exists t_parte_diario_updated on public.parte_diario;
 create trigger t_parte_diario_updated before update on public.parte_diario
 for each row execute function public.set_updated_at();
 
--- ====== ÍNDICES ======
+-- =============== ÍNDICES ===============
 create index if not exists idx_personas_user   on public.personas(user_id);
 create index if not exists idx_accesos_user    on public.accesos(user_id);
 create index if not exists idx_paq_user        on public.paqueteria(user_id);
 create index if not exists idx_mov_user        on public.movimientos(user_id);
 create index if not exists idx_agenda_user     on public.agenda_dom(user_id);
 create index if not exists idx_parte_user      on public.parte_diario(user_id);
+
 create index if not exists idx_acc_fechas      on public.accesos(f_ing, f_sal);
 create index if not exists idx_paq_fecha       on public.paqueteria(fecha);
 create index if not exists idx_mov_fecha       on public.movimientos(fecha);
 create index if not exists idx_agenda_fecha    on public.agenda_dom(fecha);
 create index if not exists idx_pd_fecha        on public.parte_diario(fecha);
 
--- ====== RLS ======
+-- =============== RLS (Row Level Security) ===============
 alter table public.personas     enable row level security;
 alter table public.accesos      enable row level security;
 alter table public.paqueteria   enable row level security;
 alter table public.movimientos  enable row level security;
 alter table public.agenda_dom   enable row level security;
 alter table public.parte_diario enable row level security;
-
-create or replace function public.is_owner(uid uuid)
-returns boolean language sql stable as $$
-  select uid = auth.uid()
-$$;
 
 -- Personas
 drop policy if exists sel_personas on public.personas;
@@ -211,7 +227,7 @@ create policy upd_parte_diario on public.parte_diario for update to authenticate
 drop policy if exists del_parte_diario on public.parte_diario;
 create policy del_parte_diario on public.parte_diario for delete to authenticated using (is_owner(user_id));
 
--- ====== FUNCIÓN + VISTA WHATSAPP ======
+-- =============== FUNCIÓN + VISTA (Mensaje WhatsApp) ===============
 drop view if exists public.parte_diario_whatsapp;
 drop function if exists public.fn_parte_diario_mensaje(uuid);
 
@@ -232,6 +248,7 @@ begin
   if r.cabina is not null        then msg := msg||'CABINA:'||E'\n'||r.cabina||E'\n\n'; end if;
   if r.amt is not null           then msg := msg||'AMT:'||E'\n'||r.amt||E'\n\n'; end if;
   if r.puesto_hudson is not null then msg := msg||'PUESTO HUDSON:'||E'\n'||r.puesto_hudson||E'\n\n'; end if;
+
   if r.caja_chica is not null    then msg := msg||'*CAJA CHICA: $ '||trim(to_char(r.caja_chica,'999G999G990D00'))||'.-*'||E'\n\n'; end if;
   if r.choferes is not null      then msg := msg||'CHOFERES:'||E'\n- '||array_to_string(r.choferes, E'\n- ')||E'\n\n'; end if;
 
@@ -274,5 +291,5 @@ from public.parte_diario;
 
 alter view public.parte_diario_whatsapp owner to postgres;
 
--- ====== Recargar esquema API ======
+-- =============== REFRESCAR ESQUEMA API ===============
 notify pgrst, 'reload schema';
