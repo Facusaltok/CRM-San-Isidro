@@ -118,11 +118,11 @@ const sb = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
 );
 
-/** CONFIG WHATSAPP
- * Modo 'direct'  -> envía a número (WHATSAPP_PHONE solo dígitos, ej 54911xxxxxxx)
- * Modo 'chooser' -> abre WhatsApp con el mensaje listo y elegís el grupo (recomendado para grupos)
+/** WhatsApp
+ * 'chooser' -> abre con el mensaje y elegís el grupo/contacto.
+ * 'direct'  -> envía a número (WHATSAPP_PHONE solo dígitos, ej 54911xxxxxxx)
  */
-const WHATSAPP_MODE  = 'chooser';     // 'chooser' | 'direct'
+const WHATSAPP_MODE  = 'chooser';
 const WHATSAPP_PHONE = '54911XXXXXXXX'; // solo dígitos si usás 'direct'
 
 const tabs = {
@@ -218,14 +218,14 @@ const tabs = {
       {k:"fam5", l:"Familia #5", t:"text"},
       {k:"empleadas", l:"Empleadas domésticas (una por línea)", t:"textarea"},
       {k:"niniera",   l:"Niñera", t:"text"},
-      {k:"tec_camaras", l:"Sistemas de cámaras", t:"text"},
-      {k:"tec_cerco",   l:"Cerco eléctrico", t:"text"},
-      {k:"tec_portones",l:"Portones (detalle)", t:"text"},
-      {k:"prof_jardinero", l:"Jardinero", t:"text"},
-      {k:"prof_piletero",  l:"Piletero", t:"text"},
-      {k:"prof_paisajistas", l:"Paisajistas", t:"text"},
-      {k:"prof_fumigador",   l:"Fumigador", t:"text"},
-      {k:"prof_floristas",   l:"Floristas", t:"text"},
+      {k:"tec_camaras",  l:"Sistemas de cámaras", t:"text"},
+      {k:"tec_cerco",    l:"Cerco eléctrico", t:"text"},
+      {k:"tec_portones", l:"Portones (detalle)", t:"text"},
+      {k:"prof_jardinero",  l:"Jardinero", t:"text"},
+      {k:"prof_piletero",   l:"Piletero", t:"text"},
+      {k:"prof_paisajistas",l:"Paisajistas", t:"text"},
+      {k:"prof_fumigador",  l:"Fumigador", t:"text"},
+      {k:"prof_floristas",  l:"Floristas", t:"text"},
       {k:"amigos_sra",      l:"Amigos de la Sra. (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
       {k:"amigos_isabella", l:"Amigos de Isabella (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
       {k:"amigos_angie",    l:"Amigos de Angie (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
@@ -448,7 +448,7 @@ async function save(ev){
           const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
           window.open(url, '_blank');
         } else {
-          const url = `https://api.whatsapp.com/send?text=${msg}`; // elegir grupo/contacto
+          const url = `https://api.whatsapp.com/send?text=${msg}`; // elegís grupo/contacto
           window.open(url, '_blank');
         }
       }
