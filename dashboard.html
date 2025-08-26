@@ -5,11 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>CRM — Dashboard</title>
 
-<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- Supabase -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<!-- jsPDF + AutoTable -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 
@@ -17,11 +14,9 @@
   :root{ color-scheme: light; }
   body{ background:#fff; position:relative; overflow-x:hidden; }
   .gold-glow{ pointer-events:none; position:fixed; inset:-20% -20% auto auto; width:70vmax; height:70vmax; border-radius:50%;
-    background: radial-gradient(closest-side, rgba(245,158,11,.12), transparent 70%);
-    animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0; }
+    background: radial-gradient(closest-side, rgba(245,158,11,.12), transparent 70%); animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0; }
   .gold-ribbon{ pointer-events:none; position:fixed; left:-10%; top:40%; width:120vmax; height:200px;
-    background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent);
-    transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0; }
+    background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent); transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0; }
   @keyframes floatGlow{ from{ transform: translate(0,0) scale(1) } to{ transform: translate(-6%,4%) scale(1.05) } }
   @keyframes shimmer{ 0%{ background-position:-200% 0 } 100%{ background-position:200% 0 } }
   .app-layer{ position:relative; z-index:1; }
@@ -33,7 +28,6 @@
   .modal-body{max-height:75vh; overflow:auto;}
   .btn{padding:.5rem .9rem;border-radius:.7rem;border:1px solid rgb(203 213 225);background:#fff}
   .btn-gold{background:#f59e0b;color:#111827;border-color:#f59e0b}
-  .field{display:block;margin-bottom:.5rem}
   .label{display:block;font-size:.75rem;color:#475569;margin-bottom:.25rem}
   .input{width:100%;padding:.5rem .75rem;border:1px solid #cbd5e1;border-radius:.5rem;outline:none}
 </style>
@@ -55,6 +49,7 @@
       <div class="flex items-center gap-2">
         <button id="refreshBtn" class="btn">Actualizar</button>
         <button id="exportBtn"  class="btn btn-gold">Exportar PDF</button>
+        <button id="exportCsvBtn" class="btn">Exportar CSV</button>
         <button id="logoutBtn"  class="btn">Salir</button>
       </div>
     </header>
@@ -79,7 +74,6 @@
             <input id="fHasta" type="date" class="input">
           </div>
 
-          <!-- Filtro asignado solo en Agenda -->
           <div id="wrapAsignado" class="hidden">
             <label class="label">Asignado a</label>
             <div class="flex gap-1 items-center">
@@ -102,7 +96,6 @@
           <button id="clearBtn"  class="btn">Limpiar</button>
         </div>
 
-        <!-- KPIs contables -->
         <div id="contableKpis" class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 hidden">
           <div class="kpi"><div class="text-xs text-slate-500">Ingresos</div><div id="k_ing" class="text-lg font-semibold">—</div></div>
           <div class="kpi"><div class="text-xs text-slate-500">Egresos</div><div id="k_egr" class="text-lg font-semibold">—</div></div>
@@ -141,15 +134,13 @@
   </div>
 
 <script>
-  // Supabase
   const sb = supabase.createClient(
     "https://ecmjxpnpdgmvnxmbciur.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
   );
 
-  const WHATSAPP_PHONE = "54911XXXXXXXX";
+  const WHATSAPP_PHONE = "54911XXXXXXXX"; // <<< poner número destino
 
-  // Config tabs EXACTAS al esquema
   const tabs = {
     accesos: {
       table: "accesos",
@@ -220,42 +211,34 @@
         {k:"cabina",      l:"CABINA", t:"textarea"},
         {k:"amt",         l:"AMT", t:"textarea"},
         {k:"puesto_hudson", l:"PUESTO HUDSON", t:"textarea"},
-        // Choferes C-1..C-4
         {k:"c1", l:"Chofer C-1", t:"text"},
         {k:"c2", l:"Chofer C-2", t:"text"},
         {k:"c3", l:"Chofer C-3", t:"text"},
         {k:"c4", l:"Chofer C-4", t:"text"},
-        // Novedades vehículos (claves fijas del ejemplo)
         {k:"v_trailblazer", l:"Trailblazer", t:"text"},
         {k:"v_amarok",      l:"Amarok", t:"text"},
         {k:"v_sw4",         l:"SW4", t:"text"},
         {k:"v_corolla",     l:"Toyota Corolla", t:"text"},
         {k:"v_q5",          l:"Q5", t:"text"},
         {k:"v_q7",          l:"Q7", t:"text"},
-        // Familia 1..5
         {k:"fam1", l:"Familia #1", t:"text"},
         {k:"fam2", l:"Familia #2", t:"text"},
         {k:"fam3", l:"Familia #3", t:"text"},
         {k:"fam4", l:"Familia #4", t:"text"},
         {k:"fam5", l:"Familia #5", t:"text"},
-        // Personal doméstico
         {k:"empleadas", l:"Empleadas domésticas (una por línea)", t:"textarea"},
         {k:"niniera",   l:"Niñera", t:"text"},
-        // Sistemas técnicos
         {k:"tec_camaras", l:"Sistemas de cámaras", t:"text"},
         {k:"tec_cerco",   l:"Cerco eléctrico", t:"text"},
         {k:"tec_portones",l:"Portones (detalle)", t:"text"},
-        // Profesionales
         {k:"prof_jardinero", l:"Jardinero", t:"text"},
         {k:"prof_piletero",  l:"Piletero", t:"text"},
         {k:"prof_paisajistas", l:"Paisajistas", t:"text"},
         {k:"prof_fumigador",   l:"Fumigador", t:"text"},
         {k:"prof_floristas",   l:"Floristas", t:"text"},
-        // Invitados (texto libre por grupo)
         {k:"amigos_sra",      l:"Amigos de la Sra. (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
         {k:"amigos_isabella", l:"Amigos de Isabella (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
         {k:"amigos_angie",    l:"Amigos de Angie (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
-        // Elementos asignados
         {k:"elementos", l:"Elementos asignados (una línea por ítem)", t:"textarea"},
         {k:"otros",     l:"OTROS", t:"textarea"},
         {k:"agenda_texto", l:"AGENDA (texto)", t:"textarea"},
@@ -264,7 +247,6 @@
     }
   };
 
-  // Helpers UI
   const thead = byId("thead"), rows = byId("rows"), empty = byId("empty"), errEl = byId("err");
   const wrapAsignado = byId("wrapAsignado"), selAsignado = byId("asignado");
   const contKpis = byId("contableKpis");
@@ -278,7 +260,6 @@
     buildHead(); toggleExtras(); await load();
   })();
 
-  // Tabs
   document.querySelectorAll("[data-tab]").forEach(b=>{
     b.addEventListener("click", async ()=>{
       document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
@@ -288,19 +269,17 @@
     });
   });
 
-  // Atajos Agenda
   document.querySelectorAll('[data-quick]').forEach(btn=>{
     btn.addEventListener('click', ()=>{ selAsignado.value = btn.dataset.quick; load(); });
   });
 
-  // Botones
   byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
   byId("refreshBtn").addEventListener("click", load);
   byId("filterBtn").addEventListener("click", load);
   byId("exportBtn").addEventListener("click", exportPDF);
+  byId("exportCsvBtn").addEventListener("click", exportCSV);
   byId("clearBtn").addEventListener("click", ()=>{ byId("fDesde").value=""; byId("fHasta").value=""; selAsignado.value="Todos"; byId("q").value=""; load(); });
 
-  // Modal
   const modal = byId("modal"), form = byId("form"), hint = byId("hint");
   byId("newBtn").addEventListener("click", () => openModal());
   byId("closeModal").addEventListener("click", ()=>modal.classList.add("hidden"));
@@ -315,13 +294,28 @@
     const q = byId("q").value.trim().toLowerCase(); if (!q) return list;
     return list.filter(r => JSON.stringify(r).toLowerCase().includes(q));
   }
-  function actions(id){ return `<button class="chip" onclick="editRow('${id}')">Editar</button>`; }
+  function actions(id){
+    return `
+      <div class="flex gap-2">
+        <button class="chip" onclick="editRow('${id}')">Editar</button>
+        <button class="chip" style="border-color:#ef4444;color:#991b1b" onclick="deleteRow('${id}')">Eliminar</button>
+      </div>`;
+  }
+
   window.editRow = async function(id){
     editingId = id;
     const { data, error } = await sb.from(tabs[current].table).select("*").eq("id", id).single();
     if (error){ alert(error.message); return; }
     openModal(data);
   }
+
+  window.deleteRow = async function(id){
+    const name = nice(current);
+    if (!confirm(`¿Eliminar este registro de ${name}? Esta acción no se puede deshacer.`)) return;
+    const { error } = await sb.from(tabs[current].table).delete().eq('id', id);
+    if (error){ alert("Eliminar: " + error.message); return; }
+    await load();
+  };
 
   async function load(){
     rows.innerHTML=""; empty.classList.add("hidden"); errEl.textContent="";
@@ -338,8 +332,13 @@
     if (error){ errEl.textContent = error.message; return; }
     const list = filterLocal(data||[]);
     if (!list.length){ empty.classList.remove("hidden"); if(current==="contable") updateKpis([]); return; }
+
     for (const r of list){
-      const t = tabs[current].row(r).map(v=>`<td class="py-2 pr-4 border-b border-slate-100 align-top">${esc(v??"")}</td>`).join("");
+      const arr = tabs[current].row(r);
+      const t = arr.map((v,i)=> {
+        const raw = i === arr.length - 1; // última columna: acciones
+        return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${raw ? (v ?? "") : esc(v ?? "")}</td>`;
+      }).join("");
       rows.insertAdjacentHTML("beforeend", `<tr>${t}</tr>`);
     }
     if (current==="contable") updateKpis(list);
@@ -359,8 +358,7 @@
       form.insertAdjacentHTML("beforeend", fieldHTML(f, data? data[f.k] : null));
     }
     if (current==="parte"){
-      hint.innerHTML = 'Formulario largo, desplazable. Se arma el mensaje para WhatsApp desde la vista <code>parte_diario_whatsapp</code>.';
-      // Prefijo fecha hoy si es nuevo
+      hint.innerHTML = 'Formulario largo, desplazable. El mensaje de WhatsApp sale de la vista <code>parte_diario_whatsapp</code>.';
       if (!editingId) { const d = byId("f_fecha"); if (d) d.value = new Date().toISOString().slice(0,10); }
     }
     modal.classList.remove("hidden");
@@ -383,7 +381,6 @@
     const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
     const def = tabs[current]; let payload = { user_id: uid };
 
-    // Recolectar campos
     for (const f of def.fields){
       const el = byId(`f_${f.k}`); if (!el) continue;
       let v = el.value;
@@ -393,13 +390,9 @@
       payload[f.k] = v;
     }
 
-    // Armado especial Parte Diario → arrays / json
     if (current==="parte"){
-      // choferes array
       payload.choferes = [byId('f_c1').value,byId('f_c2').value,byId('f_c3').value,byId('f_c4').value].filter(x=>x && x.trim());
-
-      // novedades_vehiculos
-      payload.novedades_vehiculos = objClean({
+      payload.novedades_vehiculos = clean({
         "Trailblazer": byId('f_v_trailblazer').value || null,
         "Amarok": byId('f_v_amarok').value || null,
         "SW4": byId('f_v_sw4').value || null,
@@ -407,44 +400,14 @@
         "Q5": byId('f_v_q5').value || null,
         "Q7": byId('f_v_q7').value || null,
       });
-
-      // familia_en_quinta
-      payload.familia_en_quinta = objClean({ "1":byId('f_fam1').value||null, "2":byId('f_fam2').value||null, "3":byId('f_fam3').value||null, "4":byId('f_fam4').value||null, "5":byId('f_fam5').value||null });
-
-      // personal_domestico
-      payload.personal_domestico = objClean({
-        "empleadas": (byId('f_empleadas').value||"").split('\n').map(s=>s.trim()).filter(Boolean),
-        "niniera": byId('f_niniera').value||null
-      });
-
-      // sistemas_tecnicos
-      payload.sistemas_tecnicos = objClean({
-        "camaras": byId('f_tec_camaras').value||null,
-        "cerco": byId('f_tec_cerco').value||null,
-        "portones": byId('f_tec_portones').value||null
-      });
-
-      // profesionales
-      payload.profesionales = objClean({
-        "jardinero": byId('f_prof_jardinero').value||null,
-        "piletero": byId('f_prof_piletero').value||null,
-        "paisajistas": byId('f_prof_paisajistas').value||null,
-        "fumigador": byId('f_prof_fumigador').value||null,
-        "floristas": byId('f_prof_floristas').value||null
-      });
-
-      // invitados
-      payload.invitados = objClean({
-        "amigos_sra": byId('f_amigos_sra').value||null,
-        "amigos_isabella": byId('f_amigos_isabella').value||null,
-        "amigos_angie": byId('f_amigos_angie').value||null
-      });
-
-      // elementos asignados
+      payload.familia_en_quinta = clean({ "1":byId('f_fam1').value||null, "2":byId('f_fam2').value||null, "3":byId('f_fam3').value||null, "4":byId('f_fam4').value||null, "5":byId('f_fam5').value||null });
+      payload.personal_domestico = clean({ "empleadas": (byId('f_empleadas').value||"").split('\n').map(s=>s.trim()).filter(Boolean), "niniera": byId('f_niniera').value||null });
+      payload.sistemas_tecnicos = clean({ "camaras": byId('f_tec_camaras').value||null, "cerco": byId('f_tec_cerco').value||null, "portones": byId('f_tec_portones').value||null });
+      payload.profesionales = clean({ "jardinero": byId('f_prof_jardinero').value||null, "piletero": byId('f_prof_piletero').value||null, "paisajistas": byId('f_prof_paisajistas').value||null, "fumigador": byId('f_prof_fumigador').value||null, "floristas": byId('f_prof_floristas').value||null });
+      payload.invitados = clean({ "amigos_sra": byId('f_amigos_sra').value||null, "amigos_isabella": byId('f_amigos_isabella').value||null, "amigos_angie": byId('f_amigos_angie').value||null });
       payload.elementos_asignados = (byId('f_elementos').value||"").split('\n').map(s=>s.trim()).filter(Boolean);
     }
 
-    // Upload comprobante (contable)
     if (current==="contable"){
       const fi = byId("f_file");
       if (fi && fi.files && fi.files.length){
@@ -465,9 +428,7 @@
     }
     if (resp.error){ alert("Guardar: " + resp.error.message); return; }
 
-    // Parte → abrir WhatsApp con mensaje listo
     if (current==="parte"){
-      // Tomo el id más reciente del usuario para hoy
       const { data: row } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
       if (row?.id){
         const { data, error } = await sb.from('parte_diario_whatsapp').select('mensaje').eq('id', row.id).single();
@@ -483,7 +444,6 @@
     await load();
   }
 
-  // Exportar a PDF
   function exportPDF(){
     const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", agenda:"Agenda", parte:"Parte Diario"};
     const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
@@ -495,12 +455,34 @@
     doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
   }
 
-  // Helpers
+  function exportCSV(){
+    const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0, -1);
+    const rowsData = [...document.querySelectorAll('#rows tr')].map(tr =>
+      [...tr.children].slice(0, -1).map(td => td.innerText.replaceAll("\n"," ").trim())
+    );
+    if (!rowsData.length){ alert("No hay datos para exportar."); return; }
+    const escCSV = (v) => {
+      const s = String(v ?? "");
+      return /[",\n;]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
+    };
+    const csv = [head.map(escCSV).join(";")]
+      .concat(rowsData.map(r => r.map(escCSV).join(";")))
+      .join("\n");
+
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const map = {accesos:"Accesos", paqueteria:"Paqueteria", contable:"Contable", agenda:"Agenda", parte:"Parte_Diario"};
+    a.href = url; a.download = `${map[current]}_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function byId(id){ return document.getElementById(id); }
   function esc(v){ return (""+v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
   function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); }
   function nice(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
-  function objClean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
+  function clean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
 </script>
 </body>
 </html>
