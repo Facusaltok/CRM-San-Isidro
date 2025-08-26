@@ -54,6 +54,10 @@ create table if not exists public.paqueteria (
   estado   text,
   fecha    date,
   hora     time,
+  -- nuevos
+  entregado_a   text,
+  fecha_entrega date,
+  hora_entrega  time,
   notas    text,
   created_at timestamp not null default now(),
   updated_at timestamp not null default now()
@@ -81,9 +85,8 @@ create table if not exists public.agenda_dom (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid,
   asignado_a text check (asignado_a in ('Amalia','Valentino','Otros')) default 'Otros',
-  cliente  text,
-  servicio text,
-  segmento text,
+  -- simplificado
+  tarea    text,
   fecha    date,
   hora     time,
   estado   text,
