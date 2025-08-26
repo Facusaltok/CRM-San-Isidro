@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>CRM — Dashboard</title>
 
+<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Supabase -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<!-- jsPDF + AutoTable -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 
@@ -14,9 +17,11 @@
   :root{ color-scheme: light; }
   body{ background:#fff; position:relative; overflow-x:hidden; }
   .gold-glow{ pointer-events:none; position:fixed; inset:-20% -20% auto auto; width:70vmax; height:70vmax; border-radius:50%;
-    background: radial-gradient(closest-side, rgba(245,158,11,.12), transparent 70%); animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0; }
+    background: radial-gradient(closest-side, rgba(245,158,11,.12), transparent 70%);
+    animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0; }
   .gold-ribbon{ pointer-events:none; position:fixed; left:-10%; top:40%; width:120vmax; height:200px;
-    background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent); transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0; }
+    background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent);
+    transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0; }
   @keyframes floatGlow{ from{ transform: translate(0,0) scale(1) } to{ transform: translate(-6%,4%) scale(1.05) } }
   @keyframes shimmer{ 0%{ background-position:-200% 0 } 100%{ background-position:200% 0 } }
   .app-layer{ position:relative; z-index:1; }
@@ -26,6 +31,11 @@
   .kpi{border:1px solid rgb(226 232 240);border-radius:14px;background:#fff;padding:12px}
   .table-wrap{max-height:65vh; overflow:auto;}
   .modal-body{max-height:75vh; overflow:auto;}
+  .btn{padding:.5rem .9rem;border-radius:.7rem;border:1px solid rgb(203 213 225);background:#fff}
+  .btn-gold{background:#f59e0b;color:#111827;border-color:#f59e0b}
+  .field{display:block;margin-bottom:.5rem}
+  .label{display:block;font-size:.75rem;color:#475569;margin-bottom:.25rem}
+  .input{width:100%;padding:.5rem .75rem;border:1px solid #cbd5e1;border-radius:.5rem;outline:none}
 </style>
 </head>
 
@@ -43,9 +53,9 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button id="refreshBtn" class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Actualizar</button>
-        <button id="exportBtn"  class="px-3 py-2 rounded-lg bg-amber-400 text-slate-900 font-medium">Exportar PDF</button>
-        <button id="logoutBtn"  class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Salir</button>
+        <button id="refreshBtn" class="btn">Actualizar</button>
+        <button id="exportBtn"  class="btn btn-gold">Exportar PDF</button>
+        <button id="logoutBtn"  class="btn">Salir</button>
       </div>
     </header>
 
@@ -61,19 +71,19 @@
       <section class="rounded-2xl bg-white border border-slate-200 shadow-2xl p-4">
         <div class="flex items-end gap-3 flex-wrap">
           <div>
-            <label class="block text-xs mb-1 text-slate-600">Desde</label>
-            <input id="fDesde" type="date" class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+            <label class="label">Desde</label>
+            <input id="fDesde" type="date" class="input">
           </div>
           <div>
-            <label class="block text-xs mb-1 text-slate-600">Hasta</label>
-            <input id="fHasta" type="date" class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+            <label class="label">Hasta</label>
+            <input id="fHasta" type="date" class="input">
           </div>
 
-          <!-- Filtro asignado solo para Agenda -->
+          <!-- Filtro asignado solo en Agenda -->
           <div id="wrapAsignado" class="hidden">
-            <label class="block text-xs mb-1 text-slate-600">Asignado a</label>
-            <div class="flex gap-1">
-              <select id="asignado" class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+            <label class="label">Asignado a</label>
+            <div class="flex gap-1 items-center">
+              <select id="asignado" class="input" style="width:auto">
                 <option>Todos</option><option>Amalia</option><option>Valentino</option><option>Otros</option>
               </select>
               <button class="chip" data-quick="Amalia">Amalia</button>
@@ -82,14 +92,14 @@
             </div>
           </div>
 
-          <div class="flex-1">
-            <label class="block text-xs mb-1 text-slate-600">Buscar</label>
-            <input id="q" type="text" placeholder="Texto libre"
-              class="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+          <div class="flex-1 min-w-[220px]">
+            <label class="label">Buscar</label>
+            <input id="q" type="text" placeholder="Texto libre" class="input">
           </div>
-          <button id="newBtn"   class="px-3 py-2 rounded-lg bg-amber-400 text-slate-900 font-medium">+ Nuevo</button>
-          <button id="filterBtn" class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Filtrar</button>
-          <button id="clearBtn"  class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Limpiar</button>
+
+          <button id="newBtn"   class="btn btn-gold">+ Nuevo</button>
+          <button id="filterBtn" class="btn">Filtrar</button>
+          <button id="clearBtn"  class="btn">Limpiar</button>
         </div>
 
         <!-- KPIs contables -->
@@ -112,16 +122,18 @@
 
     <!-- Modal -->
     <div id="modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center p-4">
-      <div class="w-full max-w-3xl rounded-2xl bg-white border border-slate-200 p-4">
+      <div class="w-full max-w-4xl rounded-2xl bg-white border border-slate-200 p-4">
         <div class="flex items-center justify-between mb-3">
           <h3 id="modalTitle" class="text-lg font-semibold">Nuevo</h3>
-          <button id="closeModal" class="px-2 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Cerrar</button>
+          <div class="flex gap-2">
+            <button id="closeModal" class="btn">Cerrar</button>
+          </div>
         </div>
         <form id="form" class="grid md:grid-cols-2 gap-3 modal-body"></form>
         <div class="mt-4 flex justify-between items-center gap-2">
           <div id="hint" class="text-xs text-slate-500"></div>
           <div class="flex gap-2">
-            <button id="saveBtn" class="px-3 py-2 rounded-lg bg-amber-400 text-slate-900 font-medium">Guardar</button>
+            <button id="saveBtn" class="btn btn-gold">Guardar</button>
           </div>
         </div>
       </div>
@@ -129,102 +141,150 @@
   </div>
 
 <script>
+  // Supabase
   const sb = supabase.createClient(
     "https://ecmjxpnpdgmvnxmbciur.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
   );
 
-  // *** AJUSTADO A TUS TABLAS ORIGINALES ***
+  const WHATSAPP_PHONE = "54911XXXXXXXX";
+
+  // Config tabs EXACTAS al esquema
   const tabs = {
     accesos: {
       table: "accesos",
-      head: ["Fecha","Persona","Tipo","Obs."],
+      head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal",""],
       fields: [
-        {k:"persona", l:"Persona", t:"text", r:true},
-        {k:"tipo",    l:"Tipo", t:"select", p:["entrada","salida"], r:true},
-        {k:"fecha",   l:"Fecha", t:"datetime-local"},
-        {k:"observaciones", l:"Observaciones", t:"textarea"},
+        {k:"nombre",   l:"Persona",   t:"text", r:true},
+        {k:"dni",      l:"DNI",       t:"text"},
+        {k:"vehiculo", l:"Vehículo",  t:"text"},
+        {k:"dominio",  l:"Dominio",   t:"text"},
+        {k:"motivo",   l:"Motivo",    t:"text"},
+        {k:"f_ing",    l:"Fecha ingreso", t:"date"},
+        {k:"h_ing",    l:"Hora ingreso",  t:"time"},
+        {k:"f_sal",    l:"Fecha salida",  t:"date"},
+        {k:"h_sal",    l:"Hora salida",   t:"time"},
       ],
-      row: r => [fmtDate(r.fecha), r.persona || r.persona_id || "-", r.tipo, r.observaciones || ""],
-      searchKeys: ["persona","tipo","observaciones"]
+      row: r => [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo,r.f_ing,r.h_ing,r.f_sal,r.h_sal, actions(r.id)]
     },
     paqueteria: {
       table: "paqueteria",
-      head: ["Fecha","Proveedor","Tracking","Estado","Obs."],
+      head: ["Receptor","Empresa","Remito","Estado","Fecha","Hora","Notas",""],
       fields: [
-        {k:"proveedor", l:"Proveedor", t:"text", r:true},
-        {k:"tracking",  l:"Tracking", t:"text"},
-        {k:"estado",    l:"Estado", t:"select", p:["pendiente","en_camino","entregado","incidencia"]},
-        {k:"fecha",     l:"Fecha", t:"datetime-local"},
-        {k:"observaciones", l:"Observaciones", t:"textarea"},
+        {k:"receptor", l:"Receptor", t:"text", r:true},
+        {k:"empresa",  l:"Empresa",  t:"text"},
+        {k:"remito",   l:"Remito/Ref", t:"text"},
+        {k:"estado",   l:"Estado",   t:"select", p:["pendiente","en_camino","entregado","incidencia"]},
+        {k:"fecha",    l:"Fecha",    t:"date"},
+        {k:"hora",     l:"Hora",     t:"time"},
+        {k:"notas",    l:"Notas",    t:"textarea"},
       ],
-      row: r => [fmtDate(r.fecha), r.proveedor, r.tracking, r.estado, r.observaciones || ""],
-      searchKeys: ["proveedor","tracking","estado","observaciones"]
+      row: r => [r.receptor,r.empresa,r.remito,r.estado,r.fecha,r.hora,r.notas||"", actions(r.id)]
     },
     contable: {
-      table: "movimientos",        // si tu tabla contable se llama distinto, cambialo aquí
-      head: ["Fecha","Tipo","Concepto","Monto"],
+      table: "movimientos",
+      head: ["Tipo","Concepto","Monto","Fecha","Comprobante",""],
       fields: [
-        {k:"fecha",    l:"Fecha", t:"date", r:true},
-        {k:"tipo",     l:"Tipo",  t:"select", p:["Ingreso","Egreso"], r:true},
+        {k:"tipo",     l:"Tipo",     t:"select", p:["Ingreso","Egreso"], r:true},
         {k:"concepto", l:"Concepto", t:"text", r:true},
         {k:"monto",    l:"Monto (ARS)", t:"number", r:true},
+        {k:"fecha",    l:"Fecha",    t:"date"},
+        {k:"file",     l:"Comprobante (imagen)", t:"file"},
       ],
-      row: r => [r.fecha, r.tipo, r.concepto, formatMoney(r.monto)],
-      searchKeys: ["tipo","concepto"]
+      row: r => [r.tipo,r.concepto,formatMoney(r.monto),r.fecha, r.url ? `<a class="underline text-amber-700" target="_blank" href="${r.url}">Ver</a>`:"—", actions(r.id)],
+      kpis: true
     },
     agenda: {
-      table: "agenda",             // *** sin campos de autos ***
-      head: ["Asignado","Cliente","Servicio","Fecha","Hora","Estado","Notas"],
+      table: "agenda_dom",
+      head: ["Asignado","Cliente","Servicio","Fecha","Hora","Estado","Notas",""],
       fields: [
         {k:"asignado_a", l:"Asignado a", t:"select", p:["Amalia","Valentino","Otros"], r:true},
         {k:"cliente",    l:"Cliente", t:"text", r:true},
         {k:"servicio",   l:"Servicio", t:"text", r:true},
-        {k:"fecha",      l:"Fecha", t:"date", r:true},
-        {k:"hora",       l:"Hora",  t:"time"},
-        {k:"estado",     l:"Estado", t:"select", p:["pendiente","confirmado","completado","cancelado"], r:true},
-        {k:"notas",      l:"Notas", t:"textarea"},
+        {k:"fecha",      l:"Fecha",   t:"date", r:true},
+        {k:"hora",       l:"Hora",    t:"time"},
+        {k:"estado",     l:"Estado",  t:"select", p:["pendiente","confirmado","completado","cancelado"], r:true},
+        {k:"notas",      l:"Notas",   t:"textarea"},
       ],
-      row: r => [r.asignado_a, r.cliente, r.servicio, r.fecha, r.hora || "--:--", r.estado, r.notas || ""],
-      searchKeys: ["asignado_a","cliente","servicio","estado","notas"]
+      row: r => [r.asignado_a,r.cliente,r.servicio,r.fecha,r.hora||"--:--",r.estado,r.notas||"", actions(r.id)],
+      agendaFilter: true
     },
     parte: {
       table: "parte_diario",
-      head: ["Fecha","Inicio","Fin","Caja chica","Resumen"],
+      head: ["Fecha","Inicio","Fin","Caja chica","Resumen",""],
       fields: [
         {k:"fecha",       l:"Fecha", t:"date", r:true},
         {k:"hora_inicio", l:"Hora inicio", t:"time"},
         {k:"hora_fin",    l:"Hora fin", t:"time"},
         {k:"caja_chica",  l:"Caja chica (ARS)", t:"number"},
-        {k:"agenda_texto",l:"Agenda (texto)", t:"textarea"},
-        {k:"otros",       l:"Otros (texto)", t:"textarea"},
+        {k:"cabina",      l:"CABINA", t:"textarea"},
+        {k:"amt",         l:"AMT", t:"textarea"},
+        {k:"puesto_hudson", l:"PUESTO HUDSON", t:"textarea"},
+        // Choferes C-1..C-4
+        {k:"c1", l:"Chofer C-1", t:"text"},
+        {k:"c2", l:"Chofer C-2", t:"text"},
+        {k:"c3", l:"Chofer C-3", t:"text"},
+        {k:"c4", l:"Chofer C-4", t:"text"},
+        // Novedades vehículos (claves fijas del ejemplo)
+        {k:"v_trailblazer", l:"Trailblazer", t:"text"},
+        {k:"v_amarok",      l:"Amarok", t:"text"},
+        {k:"v_sw4",         l:"SW4", t:"text"},
+        {k:"v_corolla",     l:"Toyota Corolla", t:"text"},
+        {k:"v_q5",          l:"Q5", t:"text"},
+        {k:"v_q7",          l:"Q7", t:"text"},
+        // Familia 1..5
+        {k:"fam1", l:"Familia #1", t:"text"},
+        {k:"fam2", l:"Familia #2", t:"text"},
+        {k:"fam3", l:"Familia #3", t:"text"},
+        {k:"fam4", l:"Familia #4", t:"text"},
+        {k:"fam5", l:"Familia #5", t:"text"},
+        // Personal doméstico
+        {k:"empleadas", l:"Empleadas domésticas (una por línea)", t:"textarea"},
+        {k:"niniera",   l:"Niñera", t:"text"},
+        // Sistemas técnicos
+        {k:"tec_camaras", l:"Sistemas de cámaras", t:"text"},
+        {k:"tec_cerco",   l:"Cerco eléctrico", t:"text"},
+        {k:"tec_portones",l:"Portones (detalle)", t:"text"},
+        // Profesionales
+        {k:"prof_jardinero", l:"Jardinero", t:"text"},
+        {k:"prof_piletero",  l:"Piletero", t:"text"},
+        {k:"prof_paisajistas", l:"Paisajistas", t:"text"},
+        {k:"prof_fumigador",   l:"Fumigador", t:"text"},
+        {k:"prof_floristas",   l:"Floristas", t:"text"},
+        // Invitados (texto libre por grupo)
+        {k:"amigos_sra",      l:"Amigos de la Sra. (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+        {k:"amigos_isabella", l:"Amigos de Isabella (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+        {k:"amigos_angie",    l:"Amigos de Angie (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+        // Elementos asignados
+        {k:"elementos", l:"Elementos asignados (una línea por ítem)", t:"textarea"},
+        {k:"otros",     l:"OTROS", t:"textarea"},
+        {k:"agenda_texto", l:"AGENDA (texto)", t:"textarea"},
       ],
-      row: r => [r.fecha, r.hora_inicio || "--:--", r.hora_fin || "--:--", formatMoney(r.caja_chica), (r.agenda_texto || r.otros || "").toString().slice(0,60)+"…"],
-      searchKeys: ["agenda_texto","otros"]
+      row: r => [r.fecha, r.hora_inicio||"--:--", r.hora_fin||"--:--", formatMoney(r.caja_chica), (r.cabina||r.otros||"").toString().slice(0,60)+"…", actions(r.id)]
     }
   };
 
-  // Estado general
-  let current = "accesos";
+  // Helpers UI
   const thead = byId("thead"), rows = byId("rows"), empty = byId("empty"), errEl = byId("err");
   const wrapAsignado = byId("wrapAsignado"), selAsignado = byId("asignado");
   const contKpis = byId("contableKpis");
+  let current = "accesos", editingId = null;
 
   (async () => {
     const { data } = await sb.auth.getSession();
     if (!data?.session) { location.replace("./index.html"); return; }
     const today = new Date().toISOString().slice(0,10);
     byId("fDesde").value = today; byId("fHasta").value = today;
-    buildHead(); toggleAgendaFilter(); await load();
+    buildHead(); toggleExtras(); await load();
   })();
 
-  // Navegación
+  // Tabs
   document.querySelectorAll("[data-tab]").forEach(b=>{
     b.addEventListener("click", async ()=>{
       document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
       b.classList.add("active");
-      current = b.dataset.tab;
-      buildHead(); toggleAgendaFilter(); await load();
+      current = b.dataset.tab; editingId=null;
+      buildHead(); toggleExtras(); await load();
     });
   });
 
@@ -242,34 +302,42 @@
 
   // Modal
   const modal = byId("modal"), form = byId("form"), hint = byId("hint");
-  byId("newBtn").addEventListener("click", openModal);
+  byId("newBtn").addEventListener("click", () => openModal());
   byId("closeModal").addEventListener("click", ()=>modal.classList.add("hidden"));
   byId("saveBtn").addEventListener("click", save);
 
-  function toggleAgendaFilter(){ wrapAsignado.classList.toggle("hidden", current!=="agenda"); contKpis.classList.toggle("hidden", current!=="contable"); }
+  function toggleExtras(){
+    wrapAsignado.classList.toggle("hidden", tabs[current].agendaFilter!==true);
+    contKpis.classList.toggle("hidden", tabs[current].kpis!==true);
+  }
   function buildHead(){ thead.innerHTML = `<tr class="border-b border-slate-200">${tabs[current].head.map(h=>`<th class="text-left py-2 pr-4">${h}</th>`).join("")}</tr>`; }
   function filterLocal(list){
     const q = byId("q").value.trim().toLowerCase(); if (!q) return list;
-    const keys = tabs[current].searchKeys||[]; return list.filter(r => keys.some(k => (`${r[k]||""}`).toLowerCase().includes(q)));
+    return list.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+  }
+  function actions(id){ return `<button class="chip" onclick="editRow('${id}')">Editar</button>`; }
+  window.editRow = async function(id){
+    editingId = id;
+    const { data, error } = await sb.from(tabs[current].table).select("*").eq("id", id).single();
+    if (error){ alert(error.message); return; }
+    openModal(data);
   }
 
   async function load(){
     rows.innerHTML=""; empty.classList.add("hidden"); errEl.textContent="";
     const desde = byId("fDesde").value, hasta = byId("fHasta").value;
     let q = sb.from(tabs[current].table).select("*").order("created_at",{ascending:false});
-
-    const dateCol = current==="accesos" ? "fecha" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
+    const dateCol = current==="accesos" ? "f_ing" :
+                    current==="paqueteria" ? "fecha" :
+                    current==="contable" ? "fecha" :
+                    current==="agenda" ? "fecha" : "fecha";
     if (desde) q = q.gte(dateCol, desde);
     if (hasta) q = q.lte(dateCol, hasta);
-
     if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
-
     const { data, error } = await q;
     if (error){ errEl.textContent = error.message; return; }
     const list = filterLocal(data||[]);
     if (!list.length){ empty.classList.remove("hidden"); if(current==="contable") updateKpis([]); return; }
-
-    // Pintar
     for (const r of list){
       const t = tabs[current].row(r).map(v=>`<td class="py-2 pr-4 border-b border-slate-100 align-top">${esc(v??"")}</td>`).join("");
       rows.insertAdjacentHTML("beforeend", `<tr>${t}</tr>`);
@@ -284,52 +352,142 @@
     byId('k_saldo').textContent = formatMoney(ing-egr);
   }
 
-  function openModal(){
-    byId("modalTitle").textContent = `Nuevo — ${capitalize(current)}`;
+  function openModal(data=null){
+    byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + nice(current);
     form.innerHTML=""; hint.innerHTML="";
-    for (const f of tabs[current].fields) form.insertAdjacentHTML("beforeend", fieldHTML(f));
-    if (current==="parte"){ hint.textContent = 'Podés pegar aquí la agenda del día. El formulario es desplazable.'; prefillAgendaToday(); byId("f_fecha").value = new Date().toISOString().slice(0,10); }
+    for (const f of tabs[current].fields){
+      form.insertAdjacentHTML("beforeend", fieldHTML(f, data? data[f.k] : null));
+    }
+    if (current==="parte"){
+      hint.innerHTML = 'Formulario largo, desplazable. Se arma el mensaje para WhatsApp desde la vista <code>parte_diario_whatsapp</code>.';
+      // Prefijo fecha hoy si es nuevo
+      if (!editingId) { const d = byId("f_fecha"); if (d) d.value = new Date().toISOString().slice(0,10); }
+    }
     modal.classList.remove("hidden");
   }
 
-  async function prefillAgendaToday(){
-    const h = new Date(); const today = h.toISOString().slice(0,10);
-    const { data, error } = await sb.from('agenda').select('asignado_a,cliente,servicio,hora,estado').eq('fecha', today).order('hora',{ascending:true});
-    if (error) return;
-    const g = {Amalia:[],Valentino:[],Otros:[]};
-    for(const r of (data||[])){ (g[r.asignado_a]||g.Otros).push(r); }
-    const fmt = (arr)=>arr.map(x=>`• ${x.hora||'--:--'} ${x.cliente} — ${x.servicio} (${x.estado||'pendiente'})`).join('\n')||'—';
-    const text = ['AMALIA',fmt(g.Amalia),'','VALENTINO',fmt(g.Valentino),'','OTROS',fmt(g.Otros)].join('\n');
-    const ta = byId('f_agenda_texto'); if (ta) ta.value = text;
-  }
-
-  function fieldHTML(f){
-    const base = `class="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300"`;
-    if (f.t==="select")   return `<div><label class="block text-xs mb-1 text-slate-600">${f.l}${f.r?" *":""}</label><select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option>${x}</option>`).join("")}</select></div>`;
-    if (f.t==="textarea") return `<div class="md:col-span-2"><label class="block text-xs mb-1 text-slate-600">${f.l}${f.r?" *":""}</label><textarea id="f_${f.k}" rows="4" ${base}></textarea></div>`;
-    return `<div><label class="block text-xs mb-1 text-slate-600">${f.l}${f.r?" *":""}</label><input id="f_${f.k}" type="${f.t||'text'}" ${base}></div>`;
+  function fieldHTML(f, value){
+    const base = `class="input"`;
+    const v = value ?? "";
+    if (f.t==="select")
+      return `<div><label class="label">${f.l}${f.r?" *":""}</label>
+              <select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select></div>`;
+    if (f.t==="textarea")
+      return `<div class="md:col-span-2"><label class="label">${f.l}${f.r?" *":""}</label>
+              <textarea id="f_${f.k}" rows="3" ${base}>${v??""}</textarea></div>`;
+    return `<div><label class="label">${f.l}${f.r?" *":""}</label><input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base}></div>`;
   }
 
   async function save(ev){
     ev?.preventDefault?.();
     const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
     const def = tabs[current]; let payload = { user_id: uid };
+
+    // Recolectar campos
     for (const f of def.fields){
-      const el = byId(`f_${f.k}`); let v = el ? el.value : null;
-      if (f.t==="number" && v!=="") v = Number(v); if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
-      if (v==="") v = null; payload[f.k] = v;
+      const el = byId(`f_${f.k}`); if (!el) continue;
+      let v = el.value;
+      if (f.t==="number" && v!=="") v = Number(v);
+      if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
+      if (v==="") v = null;
+      payload[f.k] = v;
     }
-    const { error } = await sb.from(def.table).insert(payload);
-    if (error){ alert("Guardar: " + error.message); return; }
-    byId("modal").classList.add("hidden");
+
+    // Armado especial Parte Diario → arrays / json
+    if (current==="parte"){
+      // choferes array
+      payload.choferes = [byId('f_c1').value,byId('f_c2').value,byId('f_c3').value,byId('f_c4').value].filter(x=>x && x.trim());
+
+      // novedades_vehiculos
+      payload.novedades_vehiculos = objClean({
+        "Trailblazer": byId('f_v_trailblazer').value || null,
+        "Amarok": byId('f_v_amarok').value || null,
+        "SW4": byId('f_v_sw4').value || null,
+        "Toyota Corolla": byId('f_v_corolla').value || null,
+        "Q5": byId('f_v_q5').value || null,
+        "Q7": byId('f_v_q7').value || null,
+      });
+
+      // familia_en_quinta
+      payload.familia_en_quinta = objClean({ "1":byId('f_fam1').value||null, "2":byId('f_fam2').value||null, "3":byId('f_fam3').value||null, "4":byId('f_fam4').value||null, "5":byId('f_fam5').value||null });
+
+      // personal_domestico
+      payload.personal_domestico = objClean({
+        "empleadas": (byId('f_empleadas').value||"").split('\n').map(s=>s.trim()).filter(Boolean),
+        "niniera": byId('f_niniera').value||null
+      });
+
+      // sistemas_tecnicos
+      payload.sistemas_tecnicos = objClean({
+        "camaras": byId('f_tec_camaras').value||null,
+        "cerco": byId('f_tec_cerco').value||null,
+        "portones": byId('f_tec_portones').value||null
+      });
+
+      // profesionales
+      payload.profesionales = objClean({
+        "jardinero": byId('f_prof_jardinero').value||null,
+        "piletero": byId('f_prof_piletero').value||null,
+        "paisajistas": byId('f_prof_paisajistas').value||null,
+        "fumigador": byId('f_prof_fumigador').value||null,
+        "floristas": byId('f_prof_floristas').value||null
+      });
+
+      // invitados
+      payload.invitados = objClean({
+        "amigos_sra": byId('f_amigos_sra').value||null,
+        "amigos_isabella": byId('f_amigos_isabella').value||null,
+        "amigos_angie": byId('f_amigos_angie').value||null
+      });
+
+      // elementos asignados
+      payload.elementos_asignados = (byId('f_elementos').value||"").split('\n').map(s=>s.trim()).filter(Boolean);
+    }
+
+    // Upload comprobante (contable)
+    if (current==="contable"){
+      const fi = byId("f_file");
+      if (fi && fi.files && fi.files.length){
+        const file = fi.files[0];
+        const path = `${uid}/${Date.now()}_${file.name}`;
+        const up = await sb.storage.from("tickets").upload(path, file, { upsert: false });
+        if (up.error){ alert("Upload: " + up.error.message); return; }
+        const { data: pub } = sb.storage.from("tickets").getPublicUrl(path);
+        payload.url = pub?.publicUrl || null;
+      }
+    }
+
+    let resp;
+    if (editingId){
+      resp = await sb.from(def.table).update(payload).eq('id', editingId);
+    }else{
+      resp = await sb.from(def.table).insert(payload);
+    }
+    if (resp.error){ alert("Guardar: " + resp.error.message); return; }
+
+    // Parte → abrir WhatsApp con mensaje listo
+    if (current==="parte"){
+      // Tomo el id más reciente del usuario para hoy
+      const { data: row } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+      if (row?.id){
+        const { data, error } = await sb.from('parte_diario_whatsapp').select('mensaje').eq('id', row.id).single();
+        if (!error){
+          const url = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(data.mensaje || '')}`;
+          window.open(url, '_blank');
+        }
+      }
+    }
+
+    editingId = null;
+    modal.classList.add("hidden");
     await load();
   }
 
-  // Exportar PDF
+  // Exportar a PDF
   function exportPDF(){
     const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", agenda:"Agenda", parte:"Parte Diario"};
-    const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim());
-    const body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].map(td => td.innerText));
+    const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
+    const body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
     if (!body.length){ alert("No hay datos para exportar."); return; }
     const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
     const title = `CRM — ${map[current]}`; doc.setFontSize(14); doc.text(title, 40, 40);
@@ -341,11 +499,8 @@
   function byId(id){ return document.getElementById(id); }
   function esc(v){ return (""+v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
   function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); }
-  function fmtDate(v){ if(!v) return ""; try{ return new Date(v).toLocaleString(); } catch{ return v; } }
-  function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
-
-  // Eventos varios
-  document.getElementById("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
+  function nice(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+  function objClean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
 </script>
 </body>
 </html>
