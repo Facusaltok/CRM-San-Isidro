@@ -7,45 +7,35 @@
 
 <!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
-
 <!-- Supabase -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<!-- jsPDF + AutoTable (PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-/F1yV..." crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js" integrity="sha512-2mC..." crossorigin="anonymous"></script>
 
 <!-- Fondo blanco + animación dorada -->
 <style>
   :root{ color-scheme: light; }
-  body{
-    background:#fff;
-    position:relative;
-    overflow-x:hidden;
-  }
+  body{ background:#fff; position:relative; overflow-x:hidden; }
   .gold-glow{
     pointer-events:none; position:fixed; inset:-20% -20% auto auto;
     width:70vmax; height:70vmax; border-radius:50%;
     background: radial-gradient(closest-side, rgba(245, 158, 11, .12), transparent 70%);
-    animation: floatGlow 16s ease-in-out infinite alternate;
-    filter: blur(12px);
-    z-index:0;
+    animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0;
   }
   .gold-ribbon{
     pointer-events:none; position:fixed; left:-10%; top:40%;
     width:120vmax; height:200px;
     background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent);
-    transform: rotate(-6deg);
-    animation: shimmer 10s linear infinite;
-    z-index:0;
+    transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0;
   }
-  @keyframes floatGlow{
-    from{ transform: translate(0,0) scale(1); }
-    to  { transform: translate(-6%,4%) scale(1.05); }
-  }
-  @keyframes shimmer{
-    0%{ background-position:-200% 0; }
-    100%{ background-position:200% 0; }
-  }
+  @keyframes floatGlow{ from{ transform: translate(0,0) scale(1) } to{ transform: translate(-6%,4%) scale(1.05) } }
+  @keyframes shimmer{ 0%{ background-position:-200% 0 } 100%{ background-position:200% 0 } }
   .app-layer{ position:relative; z-index:1; }
   .tab{padding:.5rem .9rem;border-radius:.7rem;border:1px solid rgb(203 213 225);background:#f8fafc;color:#0f172a}
   .tab.active{background:#f59e0b;color:#111827;border-color:#f59e0b}
+  .chip{border:1px solid rgb(203 213 225);border-radius:999px;padding:.15rem .6rem;font-size:.75rem}
+  .kpi{border:1px solid rgb(226 232 240);border-radius:14px;background:#fff;padding:12px}
 </style>
 </head>
 
@@ -64,7 +54,8 @@
       </div>
       <div class="flex items-center gap-2">
         <button id="refreshBtn" class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Actualizar</button>
-        <button id="logoutBtn" class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Salir</button>
+        <button id="exportBtn"  class="px-3 py-2 rounded-lg bg-amber-400 text-slate-900 font-medium">Exportar PDF</button>
+        <button id="logoutBtn"  class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Salir</button>
       </div>
     </header>
 
@@ -83,25 +74,25 @@
         <div class="flex items-end gap-3 flex-wrap">
           <div>
             <label class="block text-xs mb-1 text-slate-600">Desde</label>
-            <input id="fDesde" type="date"
-              class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+            <input id="fDesde" type="date" class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
           </div>
           <div>
             <label class="block text-xs mb-1 text-slate-600">Hasta</label>
-            <input id="fHasta" type="date"
-              class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+            <input id="fHasta" type="date" class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
           </div>
 
           <!-- Filtro asignado para Agenda -->
           <div id="wrapAsignado" class="hidden">
             <label class="block text-xs mb-1 text-slate-600">Asignado a</label>
-            <select id="asignado"
-              class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
-              <option>Todos</option>
-              <option>Amalia</option>
-              <option>Valentino</option>
-              <option>Otros</option>
-            </select>
+            <div class="flex gap-1">
+              <select id="asignado" class="px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+                <option>Todos</option><option>Amalia</option><option>Valentino</option><option>Otros</option>
+              </select>
+              <!-- atajos rápidos -->
+              <button class="chip" data-quick="Amalia">Amalia</button>
+              <button class="chip" data-quick="Valentino">Valentino</button>
+              <button class="chip" data-quick="Otros">Otros</button>
+            </div>
           </div>
 
           <div class="flex-1">
@@ -112,6 +103,13 @@
           <button id="newBtn"   class="px-3 py-2 rounded-lg bg-amber-400 text-slate-900 font-medium">+ Nuevo</button>
           <button id="filterBtn" class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Filtrar</button>
           <button id="clearBtn"  class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50">Limpiar</button>
+        </div>
+
+        <!-- KPIs contables -->
+        <div id="contableKpis" class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 hidden">
+          <div class="kpi"><div class="text-xs text-slate-500">Ingresos</div><div id="k_ing" class="text-lg font-semibold">—</div></div>
+          <div class="kpi"><div class="text-xs text-slate-500">Egresos</div><div id="k_egr" class="text-lg font-semibold">—</div></div>
+          <div class="kpi"><div class="text-xs text-slate-500">Saldo</div><div id="k_saldo" class="text-lg font-semibold">—</div></div>
         </div>
 
         <div class="overflow-x-auto mt-4">
@@ -144,16 +142,15 @@
   </div>
 
 <script>
-  // Supabase (tu proyecto nuevo)
+  // Supabase
   const sb = supabase.createClient(
     "https://ecmjxpnpdgmvnxmbciur.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
   );
 
-  // Teléfono destino para WhatsApp (editá si querés)
   const WHATSAPP_PHONE = "54911XXXXXXXX";
 
-  // Config de pestañas
+  // Definición de pestañas (igual a tu base + mejoras contable/agenda/parteiario)
   const tabs = {
     accesos: {
       table: "accesos",
@@ -251,11 +248,18 @@
   const errEl = document.getElementById("err");
   const wrapAsignado = document.getElementById("wrapAsignado");
   const selAsignado  = document.getElementById("asignado");
+  const contKpis     = document.getElementById("contableKpis");
 
   // Requiere sesión
   (async () => {
     const { data } = await sb.auth.getSession();
     if (!data?.session) { location.replace("./index.html"); return; }
+
+    // Por defecto: mostrar día de hoy
+    const today = new Date(); const iso = today.toISOString().slice(0,10);
+    document.getElementById("fDesde").value = iso;
+    document.getElementById("fHasta").value = iso;
+
     buildHead();
     toggleAgendaFilter();
     await load();
@@ -273,12 +277,21 @@
     });
   });
 
+  // Atajos agenda
+  document.querySelectorAll('[data-quick]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selAsignado.value = btn.dataset.quick;
+      load();
+    });
+  });
+
   // Botones
   document.getElementById("logoutBtn").addEventListener("click", async ()=>{
     await sb.auth.signOut(); location.replace("./index.html");
   });
   document.getElementById("refreshBtn").addEventListener("click", load);
   document.getElementById("filterBtn").addEventListener("click", load);
+  document.getElementById("exportBtn").addEventListener("click", exportPDF);
   document.getElementById("clearBtn").addEventListener("click", ()=>{
     document.getElementById("fDesde").value = "";
     document.getElementById("fHasta").value = "";
@@ -297,6 +310,7 @@
 
   function toggleAgendaFilter(){
     wrapAsignado.classList.toggle("hidden", current!=="agenda");
+    contKpis.classList.toggle("hidden", current!=="contable");
   }
 
   function buildHead(){
@@ -321,7 +335,7 @@
     // filtros por fecha
     if (current==="accesos"){ if (desde) q = q.gte("f_ing", desde); if (hasta) q = q.lte("f_ing", hasta); }
     if (["paqueteria","agenda","contable","parte"].includes(current)){
-      const col = current==="contable" ? "fecha" : (current==="parte" ? "fecha" : "fecha");
+      const col = current==="contable" ? "fecha" : "fecha";
       if (desde) q = q.gte(col, desde);
       if (hasta) q = q.lte(col, hasta);
     }
@@ -333,26 +347,66 @@
     const { data, error } = await q;
     if (error){ errEl.textContent = error.message; return; }
     const list = filterLocal(data||[]);
-    if (!list.length){ empty.classList.remove("hidden"); return; }
+    if (!list.length){ empty.classList.remove("hidden"); updateKpis([]); return; }
+
+    // Pintar filas
     for (const r of list){
       const t = tabs[current].row(r).map(v=>`<td class="py-2 pr-4 border-b border-slate-100 align-top">${esc(v??"")}</td>`).join("");
       rows.insertAdjacentHTML("beforeend", `<tr>${t}</tr>`);
     }
+
+    // KPIs contables
+    if (current==="contable"){ updateKpis(list); }
+  }
+
+  function updateKpis(list){
+    if (current!=="contable"){ return; }
+    let ing=0, egr=0;
+    for(const r of list){
+      if (r.tipo==="Ingreso") ing += Number(r.monto||0);
+      if (r.tipo==="Egreso")  egr += Number(r.monto||0);
+    }
+    document.getElementById('k_ing').textContent   = formatMoney(ing);
+    document.getElementById('k_egr').textContent   = formatMoney(egr);
+    document.getElementById('k_saldo').textContent = formatMoney(ing - egr);
   }
 
   function openModal(){
     document.getElementById("modalTitle").textContent = `Nuevo — ${capitalize(current)}`;
     form.innerHTML = ""; hint.innerHTML = "";
-    for (const f of tabs[current].fields){
-      form.insertAdjacentHTML("beforeend", fieldHTML(f));
-    }
-    if (current==="contable"){
-      hint.innerHTML = 'Subí una imagen de comprobante (bucket <code>tickets</code>).';
-    }
+    for (const f of tabs[current].fields){ form.insertAdjacentHTML("beforeend", fieldHTML(f)); }
+
+    if (current==="contable"){ hint.innerHTML = 'Subí una imagen de comprobante (bucket <code>tickets</code> en Storage).'; }
     if (current==="parte"){
-      hint.innerHTML = 'Podés pegar JSON en los bloques (ej: <code>{"Trailblazer":"En la quinta"}</code>). Al guardar se abre WhatsApp con el mensaje.';
+      hint.innerHTML = 'Se sugieren actividades del día en "Agenda (texto)". Al guardar se abre WhatsApp con el mensaje.';
+      prefillAgendaToday(); // ====> autocompleta con agenda del día
+      // Prefija fecha de hoy
+      const today = new Date().toISOString().slice(0,10);
+      const el = document.getElementById("f_fecha"); if (el) el.value = today;
     }
     modal.classList.remove("hidden");
+  }
+
+  async function prefillAgendaToday(){
+    const start = new Date(); start.setHours(0,0,0,0);
+    const end   = new Date(); end.setHours(23,59,59,999);
+    const { data, error } = await sb
+      .from('agenda_dom')
+      .select('asignado_a,cliente,servicio,hora,estado')
+      .gte('fecha', start.toISOString().slice(0,10))
+      .lte('fecha', end.toISOString().slice(0,10))
+      .order('hora',{ascending:true});
+    if (error) return;
+    const group = {Amalia:[], Valentino:[], Otros:[]};
+    for(const r of (data||[])){ (group[r.asignado_a]||group.Otros).push(r); }
+    const fmt = (arr) => arr.map(x => `• ${x.hora||'--:--'} ${x.cliente} — ${x.servicio} (${x.estado||'Pendiente'})`).join('\n') || '—';
+    const text = [
+      'AMALIA', fmt(group.Amalia), '',
+      'VALENTINO', fmt(group.Valentino), '',
+      'OTROS', fmt(group.Otros)
+    ].join('\n');
+    const ta = document.getElementById('f_agenda_texto');
+    if (ta) ta.value = text;
   }
 
   function fieldHTML(f){
@@ -388,18 +442,13 @@
     // Campos
     for (const f of def.fields){
       if (f.t==="file") continue;
-
       const el = document.getElementById(`f_${f.k}`);
       let v = el ? el.value : null;
-
       if (f.t==="number" && v!=="") v = Number(v);
-      if (f.t==="array" && v) v = v.split(",").map(x=>x.trim()).filter(Boolean);
-      if (f.t==="json" && v){
-        try{ v = JSON.parse(v); }
-        catch(e){ alert(`JSON inválido en "${f.l}"`); return; }
-      }
+      if (f.t==="array"  && v) v = v.split(",").map(x=>x.trim()).filter(Boolean);
+      if (f.t==="json"   && v){ try{ v = JSON.parse(v); } catch(e){ alert(`JSON inválido en "${f.l}"`); return; } }
       if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
-      if (v==="" ) v = null;
+      if (v==="") v = null;
       payload[f.k] = v;
     }
 
@@ -416,15 +465,12 @@
       }
     }
 
-    // Insert y obtener id
     const { data: inserted, error } = await sb.from(def.table).insert(payload).select('id');
     if (error){ alert("Guardar: " + error.message); return; }
     modal.classList.add("hidden");
 
-    // Si es Parte Diario → abrir WhatsApp con mensaje
-    if (current==="parte" && inserted?.[0]?.id){
-      await openWhatsApp(inserted[0].id);
-    }
+    // Si es Parte Diario → abrir WhatsApp con mensaje (vista parte_diario_whatsapp)
+    if (current==="parte" && inserted?.[0]?.id){ await openWhatsApp(inserted[0].id); }
 
     await load();
   }
@@ -435,10 +481,41 @@
       .select('mensaje')
       .eq('id', parteId)
       .single();
-
     if (error){ alert("WhatsApp: " + error.message); return; }
     const url = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(data.mensaje || '')}`;
     window.open(url, '_blank');
+  }
+
+  // === Exportar PDF del listado visible ===
+  function exportPDF(){
+    const titleMap = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", agenda:"Agenda", parte:"Parte Diario"};
+    const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim());
+    const body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].map(td => td.innerText));
+    if (!body.length){ alert("No hay datos para exportar."); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
+    const title = `CRM San Isidro — ${titleMap[current]}`;
+    doc.setFontSize(14); doc.text(title, 40, 40);
+
+    doc.autoTable({
+      startY: 60,
+      head: [head],
+      body,
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [245, 158, 11] }, // dorado
+      theme: 'striped'
+    });
+
+    // Filtros visibles en pie
+    const desde = document.getElementById("fDesde").value || "—";
+    const hasta = document.getElementById("fHasta").value || "—";
+    const q = document.getElementById("q").value || "—";
+    let footer = `Rango: ${desde} → ${hasta} | Búsqueda: ${q}`;
+    if (current==="agenda" && selAsignado.value !== "Todos") footer += ` | Asignado: ${selAsignado.value}`;
+    doc.setFontSize(9); doc.text(footer, 40, doc.lastAutoTable.finalY + 20);
+
+    doc.save(`${titleMap[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
   }
 
   // helpers
