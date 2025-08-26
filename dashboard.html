@@ -139,7 +139,8 @@
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
   );
 
-  const WHATSAPP_PHONE = "54911XXXXXXXX"; // <<< poner número destino
+  // PONÉ AQUÍ EL NÚMERO DE WHATSAPP DESTINO (solo dígitos, con país)
+  const WHATSAPP_PHONE = "54911XXXXXXXX";
 
   const tabs = {
     accesos: {
@@ -160,7 +161,7 @@
     },
     paqueteria: {
       table: "paqueteria",
-      head: ["Receptor","Empresa","Remito","Estado","Fecha","Hora","Notas",""],
+      head: ["Receptor","Empresa","Remito","Estado","Fecha","Hora","Entregado a","F. Entrega","H. Entrega","Notas",""],
       fields: [
         {k:"receptor", l:"Receptor", t:"text", r:true},
         {k:"empresa",  l:"Empresa",  t:"text"},
@@ -168,9 +169,17 @@
         {k:"estado",   l:"Estado",   t:"select", p:["pendiente","en_camino","entregado","incidencia"]},
         {k:"fecha",    l:"Fecha",    t:"date"},
         {k:"hora",     l:"Hora",     t:"time"},
+        {k:"entregado_a",   l:"Entregado a",   t:"text"},
+        {k:"fecha_entrega", l:"Fecha de entrega", t:"date"},
+        {k:"hora_entrega",  l:"Hora de entrega",  t:"time"},
         {k:"notas",    l:"Notas",    t:"textarea"},
       ],
-      row: r => [r.receptor,r.empresa,r.remito,r.estado,r.fecha,r.hora,r.notas||"", actions(r.id)]
+      row: r => [
+        r.receptor,r.empresa,r.remito,r.estado,
+        r.fecha,r.hora,
+        r.entregado_a || "—", r.fecha_entrega || "—", r.hora_entrega || "—",
+        r.notas || "", actions(r.id)
+      ]
     },
     contable: {
       table: "movimientos",
@@ -180,24 +189,23 @@
         {k:"concepto", l:"Concepto", t:"text", r:true},
         {k:"monto",    l:"Monto (ARS)", t:"number", r:true},
         {k:"fecha",    l:"Fecha",    t:"date"},
-        {k:"file",     l:"Comprobante (imagen)", t:"file"},
+        {k:"file",     l:"Comprobante (imagen)", t:"file"},   // virtual
       ],
       row: r => [r.tipo,r.concepto,formatMoney(r.monto),r.fecha, r.url ? `<a class="underline text-amber-700" target="_blank" href="${r.url}">Ver</a>`:"—", actions(r.id)],
       kpis: true
     },
     agenda: {
       table: "agenda_dom",
-      head: ["Asignado","Cliente","Servicio","Fecha","Hora","Estado","Notas",""],
+      head: ["Asignado","Tarea","Fecha","Hora","Estado","Notas",""],
       fields: [
         {k:"asignado_a", l:"Asignado a", t:"select", p:["Amalia","Valentino","Otros"], r:true},
-        {k:"cliente",    l:"Cliente", t:"text", r:true},
-        {k:"servicio",   l:"Servicio", t:"text", r:true},
+        {k:"tarea",      l:"Tarea",   t:"text", r:true},
         {k:"fecha",      l:"Fecha",   t:"date", r:true},
         {k:"hora",       l:"Hora",    t:"time"},
         {k:"estado",     l:"Estado",  t:"select", p:["pendiente","confirmado","completado","cancelado"], r:true},
         {k:"notas",      l:"Notas",   t:"textarea"},
       ],
-      row: r => [r.asignado_a,r.cliente,r.servicio,r.fecha,r.hora||"--:--",r.estado,r.notas||"", actions(r.id)],
+      row: r => [r.asignado_a, r.tarea, r.fecha, r.hora||"--:--", r.estado, r.notas||"", actions(r.id)],
       agendaFilter: true
     },
     parte: {
@@ -351,7 +359,25 @@
     byId('k_saldo').textContent = formatMoney(ing-egr);
   }
 
-  function openModal(data=null){
+  async function kpiSaldoHasta(fechaISO){
+    const { data, error } = await sb.from('movimientos').select('monto,tipo').lte('fecha', fechaISO);
+    if (error) return 0;
+    let ing=0,egr=0;
+    for(const r of (data||[])){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); else if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
+    return ing - egr;
+  }
+  async function textoAgendaDelDia(fechaISO){
+    const { data, error } = await sb
+      .from('agenda_dom').select('asignado_a,tarea,hora,estado').eq('fecha', fechaISO).order('hora',{ascending:true});
+    if (error) return "";
+    if (!data?.length) return "";
+    const fmt = (h)=> h ? h.slice(0,5) : "--:--";
+    let out = `Agenda ${fechaISO.split('-').reverse().join('/')}\n`;
+    for (const r of data){ out += `• ${r.asignado_a}: ${fmt(r.hora)} — ${r.tarea} [${r.estado}]\n`; }
+    return out.trim();
+  }
+
+  async function openModal(data=null){
     byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + nice(current);
     form.innerHTML=""; hint.innerHTML="";
     for (const f of tabs[current].fields){
@@ -359,7 +385,14 @@
     }
     if (current==="parte"){
       hint.innerHTML = 'Formulario largo, desplazable. El mensaje de WhatsApp sale de la vista <code>parte_diario_whatsapp</code>.';
-      if (!editingId) { const d = byId("f_fecha"); if (d) d.value = new Date().toISOString().slice(0,10); }
+      if (!editingId) {
+        const hoy = new Date().toISOString().slice(0,10);
+        const d = byId("f_fecha"); if (d) d.value = hoy;
+        const saldo = await kpiSaldoHasta(hoy);
+        const c = byId('f_caja_chica'); if (c && (c.value==="" || c.value===null)) c.value = String(saldo.toFixed(2));
+        const ag = await textoAgendaDelDia(hoy);
+        const a = byId('f_agenda_texto'); if (a && !a.value) a.value = ag;
+      }
     }
     modal.classList.remove("hidden");
   }
@@ -381,7 +414,19 @@
     const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
     const def = tabs[current]; let payload = { user_id: uid };
 
+    const PARTE_VIRTUAL = new Set([
+      "c1","c2","c3","c4",
+      "v_trailblazer","v_amarok","v_sw4","v_corolla","v_q5","v_q7",
+      "fam1","fam2","fam3","fam4","fam5",
+      "empleadas","niniera",
+      "tec_camaras","tec_cerco","tec_portones",
+      "prof_jardinero","prof_piletero","prof_paisajistas","prof_fumigador","prof_floristas",
+      "amigos_sra","amigos_isabella","amigos_angie","elementos"
+    ]);
+
     for (const f of def.fields){
+      if (f.k === "file") continue; // contable: evitar columna inexistente
+      if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue; // parte: campos virtuales
       const el = byId(`f_${f.k}`); if (!el) continue;
       let v = el.value;
       if (f.t==="number" && v!=="") v = Number(v);
@@ -390,6 +435,7 @@
       payload[f.k] = v;
     }
 
+    // Transformaciones especiales
     if (current==="parte"){
       payload.choferes = [byId('f_c1').value,byId('f_c2').value,byId('f_c3').value,byId('f_c4').value].filter(x=>x && x.trim());
       payload.novedades_vehiculos = clean({
