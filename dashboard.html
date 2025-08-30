@@ -281,6 +281,33 @@ let lastBatchCount = 0;
 function resetPaging(){ page = 0; lastBatchCount = 0; byId('loadMoreBtn')?.classList.add('hidden'); }
 function canLoadMore(){ return lastBatchCount === PAGE_SIZE; }
 
+/* ===== Ordenamiento centralizado (descendente) ===== */
+function applyOrdering(q){
+  switch (current){
+    case 'contable':
+      return q
+        .order('fecha', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    case 'paqueteria':
+      return q
+        .order('fecha', { ascending: false, nullsFirst: false })
+        .order('hora',  { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    case 'accesos':
+      return q
+        .order('f_ing', { ascending: false, nullsFirst: false })
+        .order('h_ing', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    case 'agenda':
+      return q
+        .order('fecha', { ascending: false, nullsFirst: false })
+        .order('hora',  { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    default:
+      return q.order('created_at', { ascending: false });
+  }
+}
+
 (async () => {
   const { data } = await sb.auth.getSession();
   if (!data?.session) { location.replace("./index.html"); return; }
@@ -337,7 +364,6 @@ function buildHead(){
 
 /* ===== Búsqueda: server-side cuando hay texto ===== */
 function filterLocal(list){
-  // Sólo usamos filtro local cuando el campo Buscar está vacío.
   const q = byId("q").value.trim().toLowerCase();
   if (!q) return list;
   return list; // con texto, se filtra en Supabase (ver load)
@@ -369,7 +395,7 @@ function calcHoras(r){
   const end   = new Date(`${r.f_sal}T${r.h_sal}`);
   const ms = end - start;
   if (isNaN(ms) || ms < 0) return null;
-  return ms / 3600000; // horas decimales
+  return ms / 3600000;
 }
 function totalHoras(list){
   let t=0; for(const r of list){ const h = calcHoras(r); if(h!=null) t+=h; }
@@ -397,11 +423,11 @@ async function load(clearBefore = true){
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
   const qText = byId("q").value.trim();
 
+  // Base query sin orden inicial
   let q = sb.from(tabs[current].table)
-            .select("*", { count: "exact", head: false })
-            .order("created_at",{ascending:false});
+            .select("*", { count: "exact", head: false });
 
-  // Fechas
+  // Fechas por tabla
   const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
@@ -409,11 +435,14 @@ async function load(clearBefore = true){
   // Filtro asignado (Agenda)
   if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
 
-  // 🔎 Filtro en servidor
+  // Filtro en servidor
   if (qText){
     const orStr = buildSearchOr(current, qText);
     if (orStr) q = q.or(orStr);
   }
+
+  // Orden centralizado (desc)
+  q = applyOrdering(q);
 
   // Paginación
   const from = page * PAGE_SIZE;
@@ -423,7 +452,6 @@ async function load(clearBefore = true){
   const { data, error } = await q;
   if (error){ errEl.textContent = error.message; byId('loadMoreBtn').classList.add('hidden'); return; }
 
-  // Lista final
   const list = qText ? (data||[]) : filterLocal(data||[]);
   lastBatchCount = (data||[]).length;
 
@@ -622,7 +650,7 @@ window.copyAgendaDelDia = async () => {
   const a = byId('f_agenda_texto'); if (a) a.value = txt;
 };
 
-/* ===== Autocomplete Personas para Accesos (con último vehículo/dominio) ===== */
+/* ===== Autocomplete Personas ===== */
 function attachPersonAutocomplete(){
   const nameEl = byId('f_nombre');
   const dniEl  = byId('f_dni');
@@ -640,7 +668,6 @@ function attachPersonAutocomplete(){
         const p = JSON.parse(li.getAttribute('data-json'));
         if (nameEl) nameEl.value = p.nombre || "";
         if (dniEl)  dniEl.value  = p.dni || "";
-        // Completar vehículo/dominio desde el último acceso de esta persona
         try{
           let q = sb.from('accesos').select('vehiculo,dominio,created_at').order('created_at',{ascending:false}).limit(1);
           if (p.dni) q = q.eq('dni', p.dni);
@@ -651,7 +678,6 @@ function attachPersonAutocomplete(){
             if (domEl && !domEl.value) domEl.value = data[0].dominio || '';
           }
         }catch(e){ console.warn(e); }
-
         sugName?.classList.add('hidden'); sugDni?.classList.add('hidden');
       });
     });
@@ -698,9 +724,8 @@ async function save(ev){
   ]);
 
   for (const f of def.fields){
-    if (f.k === "file") continue;                 // virtual (contable)
-    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue; // se mapean más abajo
-
+    if (f.k === "file") continue;
+    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue;
     const el = byId(`f_${f.k}`); if (!el) continue;
     let v = el.value;
     if (f.t==="number" && v!=="") v = Number(v);
@@ -727,7 +752,6 @@ async function save(ev){
     payload.elementos_asignados = (val('f_elementos')||"").split('\n').map(s=>s.trim()).filter(Boolean);
   }
 
-  // Accesos: SIEMPRE actualizar/crear la persona para autocompletar futuro
   if (current==="accesos"){
     try{
       await sb.rpc('upsert_persona', {
