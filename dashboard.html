@@ -223,7 +223,6 @@ const tabs = {
   parte: {
     table: "parte_diario",
     head: ["Fecha","Inicio","Fin","Caja chica","Resumen",""],
-    // El formulario se renderiza con secciones personalizadas (ver openModal)
     fields: [
       {k:"fecha",       l:"Fecha", t:"date", r:true},
       {k:"hora_inicio", l:"Hora inicio", t:"time"},
@@ -260,7 +259,7 @@ const tabs = {
       {k:"amigos_sra",      l:"Amigos de la Sra. (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
       {k:"amigos_isabella", l:"Amigos de Isabella (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
       {k:"amigos_angie",    l:"Amigos de Angie (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
-      {k:"elementos", l:"Elementos asignados (una línea por ítem)", t:"textarea"},
+      {k:"elementos", l:"Elementos asignados (una por línea)", t:"textarea"},
       {k:"otros",     l:"OTROS", t:"textarea"},
       {k:"agenda_texto", l:"AGENDA (texto)", t:"textarea"},
     ],
@@ -287,10 +286,8 @@ function canLoadMore(){ return lastBatchCount === PAGE_SIZE; }
   const { data } = await sb.auth.getSession();
   if (!data?.session) { location.replace("./index.html"); return; }
 
-  // TIP sobre horas
   extraHint.innerHTML = 'Sugerencia: filtrá por nombre o DNI para ver el <b>total de horas</b>.';
 
-  // sin fechas por defecto => trae todo
   byId("fDesde").value = "";
   byId("fHasta").value = "";
   buildHead(); toggleExtras(); resetPaging(); await load();
@@ -399,7 +396,6 @@ async function load(clearBefore = true){
   const list = filterLocal(data||[]);
   lastBatchCount = list.length;
 
-  // Accesos: mostrar KPI de horas
   if (current === "accesos") {
     const th = totalHoras(list);
     kHorasVal.textContent = th ? `${th.toFixed(2)} h` : "—";
@@ -490,7 +486,6 @@ function fieldHTML(f, value){
   }
   if (f.t==="select")  return `<div><label class="label">${f.l}${f.r?" *":""}</label><select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select></div>`;
   if (f.t==="textarea")return `<div class="md:col-span-2"><label class="label">${f.l}${f.r?" *":""}</label><textarea id="f_${f.k}" rows="3" ${base}>${v??""}</textarea></div>`;
-  // inputs con contenedor para sugerencias (autocomplete)
   if (f.autocomplete === "personas"){
     return `<div class="relative">
       <label class="label">${f.l}${f.r?" *":""}</label>
@@ -583,7 +578,6 @@ function renderParteForm(data){
   form.insertAdjacentHTML("beforeend", sec("Amigos / Invitados", invitados));
   form.insertAdjacentHTML("beforeend", sec("Otros y Agenda", otros));
 
-  // Botones de llenado rápido
   const quick = document.createElement('div');
   quick.className = "md:col-span-2 flex flex-wrap gap-2 mt-2";
   quick.innerHTML = `
@@ -646,7 +640,6 @@ function attachPersonAutocomplete(){
     }, 220);
   });
 
-  // cierres
   document.addEventListener('click', (e)=>{
     if (!sugName?.contains(e.target) && e.target!==nameEl) sugName?.classList.add('hidden');
     if (!sugDni?.contains(e.target)  && e.target!==dniEl)  sugDni?.classList.add('hidden');
@@ -665,9 +658,11 @@ async function save(ev){
     "amigos_sra","amigos_isabella","amigos_angie","elementos","_save_persona"
   ]);
 
-  // recolección básica
   for (const f of def.fields){
     if (f.k === "file") continue;
+    /* ⬇️ FIX: saltar campos virtuales (como _save_persona) para no enviarlos a la tabla */
+    if (f.k.startsWith('_')) continue;
+
     if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue;
     const el = byId(`f_${f.k}`); if (!el) continue;
     let v = (f.t==="checkbox") ? (el.checked ? true : false) : el.value;
@@ -755,12 +750,9 @@ function exportPDF(){
 
   if (!body.length){ alert("No hay datos para exportar."); return; }
 
-  // Accesos: resumen de horas
   let resumenHoras = "";
   if (current==="accesos"){
-    // total horas está en el KPI, pero recalculamos por si
     const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].map(td => td.innerText));
-    // la columna penúltima es "Horas"
     const horas = rowsData.map(r => parseFloat(r[r.length-2].replace(',', '.'))).filter(n => !isNaN(n));
     const total = horas.reduce((a,b)=>a+b,0);
     resumenHoras = `Total de horas (lista): ${total.toFixed(2)} h`;
