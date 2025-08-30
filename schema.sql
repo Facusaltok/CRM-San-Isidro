@@ -229,3 +229,131 @@ alter view public.parte_diario_whatsapp owner to postgres;
 
 -- ===== Refrescar esquema =====
 notify pgrst, 'reload schema';
+
+-- ========= DUEÑO AUTOMÁTICO EN INSERTS =========
+create or replace function public.set_owner()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.user_id is null then
+    new.user_id := auth.uid();
+  end if;
+  return new;
+end;
+$$;
+
+-- Aplico el trigger a todas las tablas de datos
+drop trigger if exists t_personas_owner on public.personas;
+create trigger t_personas_owner before insert on public.personas
+for each row execute function public.set_owner();
+
+drop trigger if exists t_accesos_owner on public.accesos;
+create trigger t_accesos_owner before insert on public.accesos
+for each row execute function public.set_owner();
+
+drop trigger if exists t_paqueteria_owner on public.paqueteria;
+create trigger t_paqueteria_owner before insert on public.paqueteria
+for each row execute function public.set_owner();
+
+drop trigger if exists t_movimientos_owner on public.movimientos;
+create trigger t_movimientos_owner before insert on public.movimientos
+for each row execute function public.set_owner();
+
+drop trigger if exists t_agenda_dom_owner on public.agenda_dom;
+create trigger t_agenda_dom_owner before insert on public.agenda_dom
+for each row execute function public.set_owner();
+
+drop trigger if exists t_parte_diario_owner on public.parte_diario;
+create trigger t_parte_diario_owner before insert on public.parte_diario
+for each row execute function public.set_owner();
+
+-- ========= RPC para "reclamar" filas históricas sin user_id =========
+drop function if exists public.claim_orphan_rows cascade;
+create or replace function public.claim_orphan_rows()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  -- Evita usar si no hay sesión
+  if uid is null then
+    raise exception 'No authenticated user';
+  end if;
+
+  update public.personas     set user_id = uid where user_id is null;
+  update public.accesos      set user_id = uid where user_id is null;
+  update public.paqueteria   set user_id = uid where user_id is null;
+  update public.movimientos  set user_id = uid where user_id is null;
+  update public.agenda_dom   set user_id = uid where user_id is null;
+  update public.parte_diario set user_id = uid where user_id is null;
+end;
+$$;
+
+revoke all on function public.claim_orphan_rows() from public;
+grant execute on function public.claim_orphan_rows() to authenticated;
+
+-- ========= Helpers de Personas para Accesos =========
+-- Upsert rápido de persona (opcional cuando guardás desde el modal de Accesos)
+drop function if exists public.upsert_persona(text,text,text,text);
+create or replace function public.upsert_persona(p_nombre text, p_dni text, p_telefono text, p_email text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+  pid uuid;
+begin
+  if uid is null then
+    raise exception 'No authenticated user';
+  end if;
+
+  select id into pid
+  from public.personas
+  where user_id = uid
+    and ( (p_dni is not null and dni = p_dni) or (p_nombre is not null and nombre = p_nombre) )
+  limit 1;
+
+  if pid is null then
+    insert into public.personas(user_id, nombre, dni, telefono, email)
+    values (uid, p_nombre, p_dni, p_telefono, p_email)
+    returning id into pid;
+  else
+    update public.personas
+       set nombre   = coalesce(p_nombre, nombre),
+           dni      = coalesce(p_dni, dni),
+           telefono = coalesce(p_telefono, telefono),
+           email    = coalesce(p_email, email)
+     where id = pid;
+  end if;
+
+  return pid;
+end;
+$$;
+
+grant execute on function public.upsert_persona(text,text,text,text) to authenticated;
+
+-- ========= Vista auxiliar para horas (por si querés chequear desde SQL) =========
+drop view if exists public.accesos_horas;
+create or replace view public.accesos_horas as
+select
+  id,
+  user_id,
+  nombre,
+  dni,
+  f_ing, h_ing, f_sal, h_sal,
+  -- duración en horas (decimal) si hay ingreso y salida
+  case
+    when f_ing is not null and h_ing is not null and f_sal is not null and h_sal is not null
+      then extract(epoch from ((f_sal + h_sal) - (f_ing + h_ing))) / 3600.0
+    else null
+  end as horas
+from public.accesos;
+
