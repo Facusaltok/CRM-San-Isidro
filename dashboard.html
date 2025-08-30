@@ -334,10 +334,27 @@ function toggleExtras(){
 function buildHead(){
   thead.innerHTML = `<tr class="border-b border-slate-200">${tabs[current].head.map(h=>`<th class="text-left py-2 pr-4">${h}</th>`).join("")}</tr>`;
 }
+
+/* ===== Búsqueda: server-side cuando hay texto ===== */
 function filterLocal(list){
-  const q = byId("q").value.trim().toLowerCase(); if (!q) return list;
-  return list.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+  // Sólo usamos filtro local cuando el campo Buscar está vacío.
+  const q = byId("q").value.trim().toLowerCase();
+  if (!q) return list;
+  return list; // con texto, se filtra en Supabase (ver load)
 }
+function buildSearchOr(current, q){
+  const map = {
+    accesos:    ["nombre","dni","vehiculo","dominio","motivo"],
+    paqueteria: ["receptor","descripcion","id_num","estado","entregado_a","notas"],
+    contable:   ["tipo","concepto"],
+    agenda:     ["asignado_a","tarea","estado","notas"],
+    parte:      ["cabina","amt","puesto_hudson","otros","agenda_texto"]
+  };
+  const fields = map[current] || [];
+  const like = fields.map(f => `${f}.ilike.%${q}%`).join(",");
+  return like;
+}
+
 function actions(id){
   return `<div class="flex gap-2">
     <button class="chip" onclick="editRow('${id}')">Editar</button>
@@ -378,13 +395,27 @@ async function load(clearBefore = true){
   empty.classList.add("hidden"); errEl.textContent="";
 
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
-  let q = sb.from(tabs[current].table).select("*", { count: "exact", head: false }).order("created_at",{ascending:false});
+  const qText = byId("q").value.trim();
 
+  let q = sb.from(tabs[current].table)
+            .select("*", { count: "exact", head: false })
+            .order("created_at",{ascending:false});
+
+  // Fechas
   const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
+
+  // Filtro asignado (Agenda)
   if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
 
+  // 🔎 Filtro en servidor
+  if (qText){
+    const orStr = buildSearchOr(current, qText);
+    if (orStr) q = q.or(orStr);
+  }
+
+  // Paginación
   const from = page * PAGE_SIZE;
   const to   = from + PAGE_SIZE - 1;
   q = q.range(from, to);
@@ -392,10 +423,12 @@ async function load(clearBefore = true){
   const { data, error } = await q;
   if (error){ errEl.textContent = error.message; byId('loadMoreBtn').classList.add('hidden'); return; }
 
-  const list = filterLocal(data||[]);
-  lastBatchCount = list.length;
+  // Lista final
+  const list = qText ? (data||[]) : filterLocal(data||[]);
+  lastBatchCount = (data||[]).length;
 
-  if (current === "accesos") {
+  // KPI horas (Accesos)
+  if (current === "accesos" && clearBefore) {
     const th = totalHoras(list);
     kHorasVal.textContent = th ? `${th.toFixed(2)} h` : "—";
   }
