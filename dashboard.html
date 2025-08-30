@@ -37,18 +37,11 @@
   .section{border:1px solid #e5e7eb;border-radius:12px; box-shadow:0 8px 18px rgba(0,0,0,.04)}
   .section summary{cursor:pointer;list-style:none;padding:.6rem .9rem;border-bottom:1px solid #e5e7eb;background:#f8fafc;border-radius:12px 12px 0 0}
   .section .content{padding:.8rem .9rem}
-  .suggest{position:absolute; z-index:20; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 16px 32px rgba(0,0,0,.12); max-height:220px; overflow:auto; width:100%}
+  .suggest{position:absolute; z-index:70; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 16px 32px rgba(0,0,0,.12); max-height:220px; overflow:auto; width:100%}
   .suggest li{padding:.55rem .7rem; cursor:pointer}
   .suggest li:hover{background:#fff7ed}
   .note{font-size:.78rem;color:#64748b}
   .badge{font-size:.72rem;border:1px solid #e5e7eb;border-radius:999px;padding:.1rem .5rem}
-
-  /* Leyenda de seguridad */
-  .secure-badge{display:flex;align-items:center;gap:.55rem;padding:.55rem .8rem;border:1px dashed #f59e0b;border-radius:12px;background:linear-gradient(180deg,#fff, #fffaf3)}
-  .lock{width:18px;height:18px;border:2px solid #111827;border-radius:4px; position:relative}
-  .lock:before{content:""; position:absolute; left:50%; transform:translateX(-50%); top:-8px; width:10px; height:8px; border:2px solid #111827; border-bottom:none; border-radius:8px 8px 0 0}
-  .pulse{ animation:pulse 2s ease-in-out infinite}
-  @keyframes pulse{0%{opacity:1}50%{opacity:.55}100%{opacity:1}}
 
   /* Filas: blanco / dorado suave + animación */
   .row-fade{ animation: fadeInUp .35s ease both}
@@ -57,7 +50,23 @@
   .row-blank{ background:#ffffff }
 
   /* Cabecera sticky para tablas largas */
-  thead.sticky-head th{ position: sticky; top:0; background:#fdfaf5; z-index:2; box-shadow:0 1px 0 #e5e7eb}
+  thead.sticky-head th{ position: sticky; top:0; background:#fdfaf5; z-index:10; box-shadow:0 1px 0 #e5e7eb}
+
+  /* Modal centrado y PRIORIDAD encima de todo */
+  .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+          background:rgba(0,0,0,.4); backdrop-filter: blur(2px); z-index:100; }
+  .modal.show{ display:flex; }
+  .modal-card{ width:100%; max-width: 64rem; background:#fff; border:1px solid #e5e7eb; border-radius:1rem;
+               box-shadow:0 20px 60px rgba(0,0,0,.25); position:relative; z-index:101; }
+
+  /* Bloquear scroll de fondo cuando el modal está abierto */
+  body.modal-open{ overflow:hidden; }
+
+  /* Leyenda de seguridad – chica y al pie */
+  .secure-badge{display:flex;align-items:center;gap:.45rem;padding:.45rem .65rem;border:1px dashed #f59e0b20;border-radius:10px;background:linear-gradient(180deg,#fff, #fffdf7)}
+  .secure-badge p{ font-size:.72rem; color:#6b7280 }
+  .lock{width:14px;height:14px;border:2px solid #9ca3af;border-radius:3px; position:relative}
+  .lock:before{content:""; position:absolute; left:50%; transform:translateX(-50%); top:-6px; width:8px; height:6px; border:2px solid #9ca3af; border-bottom:none; border-radius:6px 6px 0 0}
 </style>
 </head>
 <body class="min-h-screen text-slate-800">
@@ -76,15 +85,7 @@
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 pb-24">
-      <!-- Leyenda de seguridad -->
-      <div class="secure-badge mb-4 shadow-sm">
-        <span class="lock pulse"></span>
-        <p class="text-sm text-slate-700 leading-snug">
-          Tus datos están <b>encriptados</b> en tránsito (TLS) y en reposo (AES-256). Acceso protegido por <b>roles</b> y <b>autenticación segura</b>.
-        </p>
-      </div>
-
+    <main class="max-w-6xl mx-auto px-4 pb-16">
       <nav class="flex gap-2 mb-4">
         <button data-tab="accesos"    class="tab active">Accesos</button>
         <button data-tab="paqueteria" class="tab">Paquetería</button>
@@ -117,7 +118,6 @@
           </div>
 
           <button id="newBtn" class="btn btn-gold">+ Nuevo</button>
-          <!-- Renombrado a “Buscar” (id intacto para no romper lógica) -->
           <button id="filterBtn" class="btn">Buscar</button>
           <button id="clearBtn" class="btn">Limpiar</button>
           <button id="showAllBtn" class="btn">Mostrar todo</button>
@@ -153,11 +153,17 @@
           <button id="loadMoreBtn" class="btn hidden">Cargar más</button>
         </div>
       </section>
+
+      <!-- Leyenda de seguridad (al pie, discreta) -->
+      <div class="secure-badge mt-6">
+        <span class="lock"></span>
+        <p>Tus datos viajan cifrados (TLS) y se almacenan con encriptación fuerte en reposo. Acceso restringido por roles y autenticación.</p>
+      </div>
     </main>
 
     <!-- Modal -->
-    <div id="modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center p-4">
-      <div class="w-full max-w-4xl rounded-2xl bg-white border border-slate-200 p-4 shadow-2xl">
+    <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-card p-4">
         <div class="flex items-center justify-between mb-3">
           <h3 id="modalTitle" class="text-lg font-semibold">Nuevo</h3>
           <div class="flex gap-2"><button id="closeModal" class="btn">Cerrar</button></div>
@@ -364,7 +370,7 @@ document.querySelectorAll('[data-quick]').forEach(btn=>{
 byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
 
 byId("refreshBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
-byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); }); // Texto del botón ya dice "Buscar"
+byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
 byId("exportBtn").addEventListener("click", exportPDF);
 byId("exportCsvBtn").addEventListener("click", exportCSV);
 byId("clearBtn").addEventListener("click", async ()=>{
@@ -380,8 +386,20 @@ byId("loadMoreBtn").addEventListener("click", async ()=>{ page += 1; await load(
 
 const modal = byId("modal"), form = byId("form"), hint = byId("hint");
 byId("newBtn").addEventListener("click", () => openModal());
-byId("closeModal").addEventListener("click", ()=>modal.classList.add("hidden"));
+byId("closeModal").addEventListener("click", closeModal);
 byId("saveBtn").addEventListener("click", save);
+
+function openModal(data=null){
+  // Render se hace más abajo, pero primero asegurar estado visual
+  document.body.classList.add('modal-open');
+  modal.classList.add('show');
+  // El contenido se llena luego en openModalInner
+  openModalInner(data);
+}
+function closeModal(){
+  modal.classList.remove('show');
+  document.body.classList.remove('modal-open');
+}
 
 function toggleExtras(){
   wrapAsignado.classList.toggle("hidden", tabs[current].agendaFilter!==true);
@@ -397,7 +415,7 @@ function buildHead(){
 function filterLocal(list){
   const q = byId("q").value.trim().toLowerCase();
   if (!q) return list;
-  return list; // con texto, se filtra en Supabase (ver load)
+  return list;
 }
 function buildSearchOr(current, q){
   const map = {
@@ -447,7 +465,7 @@ window.deleteRow = async function(id){
   await load(true);
 };
 
-let __rowStripeIndex = 0; // para alternar blanco / dorado
+let __rowStripeIndex = 0;
 
 async function load(clearBefore = true){
   if (clearBefore) { rows.innerHTML=""; resetPaging(); __rowStripeIndex = 0; }
@@ -456,28 +474,21 @@ async function load(clearBefore = true){
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
   const qText = byId("q").value.trim();
 
-  // Base query sin orden inicial
-  let q = sb.from(tabs[current].table)
-            .select("*", { count: "exact", head: false });
+  let q = sb.from(tabs[current].table).select("*", { count: "exact", head: false });
 
-  // Fechas por tabla
   const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
 
-  // Filtro asignado (Agenda)
   if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
 
-  // Filtro en servidor
   if (qText){
     const orStr = buildSearchOr(current, qText);
     if (orStr) q = q.or(orStr);
   }
 
-  // Orden centralizado (desc)
   q = applyOrdering(q);
 
-  // Paginación
   const from = page * PAGE_SIZE;
   const to   = from + PAGE_SIZE - 1;
   q = q.range(from, to);
@@ -488,7 +499,6 @@ async function load(clearBefore = true){
   const list = qText ? (data||[]) : filterLocal(data||[]);
   lastBatchCount = (data||[]).length;
 
-  // KPI horas (Accesos)
   if (current === "accesos" && clearBefore) {
     const th = totalHoras(list);
     kHorasVal.textContent = th ? `${th.toFixed(2)} h` : "—";
@@ -508,7 +518,6 @@ async function load(clearBefore = true){
       return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
     }).join("");
 
-    // Alternancia de filas + animación
     const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
     rows.insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${t}</tr>`);
     __rowStripeIndex++;
@@ -542,8 +551,8 @@ async function textoAgendaDelDia(fechaISO){
   return out.trim();
 }
 
-/* ===== Modal ===== */
-async function openModal(data=null){
+/* ===== Modal (render) ===== */
+async function openModalInner(data=null){
   byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + nice(current);
   form.innerHTML=""; hint.innerHTML="";
 
@@ -570,8 +579,6 @@ async function openModal(data=null){
       const a = byId('f_agenda_texto'); if (a && !a.value) a.value = ag;
     }
   }
-
-  modal.classList.remove("hidden");
 }
 
 function fieldHTML(f, value){
@@ -669,23 +676,21 @@ function renderParteForm(data){
   form.insertAdjacentHTML("beforeend", sec("Profesionales", prof));
   form.insertAdjacentHTML("beforeend", sec("Amigos / Invitados", invitados));
   form.insertAdjacentHTML("beforeend", sec("Otros y Agenda", otros));
-
-  const quick = document.createElement('div');
-  quick.className = "md:col-span-2 flex flex-wrap gap-2 mt-2";
-  quick.innerHTML = `
-    <span class="note">Atajos: </span>
-    <button type="button" class="chip" onclick="fillNow('f_hora_inicio')">Inicio = ahora</button>
-    <button type="button" class="chip" onclick="fillNow('f_hora_fin')">Fin = ahora</button>
-    <button type="button" class="chip" onclick="copyAgendaDelDia()">Pegar agenda del día</button>
-  `;
-  form.appendChild(quick);
 }
-window.fillNow = (id) => { const el = byId(id); if (!el) return; const d = new Date(); el.value = d.toTimeString().slice(0,5); };
-window.copyAgendaDelDia = async () => {
-  const d = byId('f_fecha')?.value; if (!d) return;
-  const txt = await textoAgendaDelDia(d); if (!txt) return;
-  const a = byId('f_agenda_texto'); if (a) a.value = txt;
-};
+
+function fieldHTML(f, value){
+  const base = `class="input"`; const v = value ?? "";
+  if (f.t==="select")  return `<div><label class="label">${f.l}${f.r?" *":""}</label><select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select></div>`;
+  if (f.t==="textarea")return `<div class="md:col-span-2"><label class="label">${f.l}${f.r?" *":""}</label><textarea id="f_${f.k}" rows="3" ${base}>${v??""}</textarea></div>`;
+  if (f.autocomplete === "personas"){
+    return `<div class="relative">
+      <label class="label">${f.l}${f.r?" *":""}</label>
+      <input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base} autocomplete="off" placeholder="${f.k==='nombre'?'Ej: Juan Pérez':''}">
+      <ul id="suggest_${f.k}" class="suggest hidden"></ul>
+    </div>`;
+  }
+  return `<div><label class="label">${f.l}${f.r?" *":""}</label><input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base}></div>`;
+}
 
 /* ===== Autocomplete Personas ===== */
 function attachPersonAutocomplete(){
@@ -726,7 +731,6 @@ function attachPersonAutocomplete(){
     t1 = setTimeout(async ()=>{
       const q = nameEl.value.trim();
       if (!q){ renderSug(sugName, []); return; }
-      // Permite “nombre apellido” también
       const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
       if (error){ console.warn(error); return; }
       renderSug(sugName, data);
@@ -837,7 +841,7 @@ async function save(ev){
   }
 
   editingId = null;
-  modal.classList.add("hidden");
+  closeModal();
   await load(true);
 }
 
