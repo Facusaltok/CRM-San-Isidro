@@ -163,8 +163,7 @@ const tabs = {
       {k:"f_ing",    l:"Fecha ingreso", t:"date"},
       {k:"h_ing",    l:"Hora ingreso",  t:"time"},
       {k:"f_sal",    l:"Fecha salida",  t:"date"},
-      {k:"h_sal",    l:"Hora salida",   t:"time"},
-      {k:"_save_persona", l:"Guardar/actualizar en Personas", t:"checkbox"} // virtual
+      {k:"h_sal",    l:"Hora salida",   t:"time"}
     ],
     row: r => {
       const horas = calcHoras(r);
@@ -479,11 +478,6 @@ async function openModal(data=null){
 
 function fieldHTML(f, value){
   const base = `class="input"`; const v = value ?? "";
-  if (f.t==="checkbox"){
-    return `<div class="md:col-span-2 flex items-center gap-2">
-      <input id="f_${f.k}" type="checkbox" class="h-4 w-4"><label class="label m-0"> ${f.l} </label>
-    </div>`;
-  }
   if (f.t==="select")  return `<div><label class="label">${f.l}${f.r?" *":""}</label><select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select></div>`;
   if (f.t==="textarea")return `<div class="md:col-span-2"><label class="label">${f.l}${f.r?" *":""}</label><textarea id="f_${f.k}" rows="3" ${base}>${v??""}</textarea></div>`;
   if (f.autocomplete === "personas"){
@@ -595,10 +589,12 @@ window.copyAgendaDelDia = async () => {
   const a = byId('f_agenda_texto'); if (a) a.value = txt;
 };
 
-/* ===== Autocomplete Personas para Accesos ===== */
+/* ===== Autocomplete Personas para Accesos (con último vehículo/dominio) ===== */
 function attachPersonAutocomplete(){
   const nameEl = byId('f_nombre');
   const dniEl  = byId('f_dni');
+  const vehEl  = byId('f_vehiculo');
+  const domEl  = byId('f_dominio');
   const sugName = byId('suggest_nombre');
   const sugDni  = byId('suggest_dni');
 
@@ -607,12 +603,22 @@ function attachPersonAutocomplete(){
     ul.innerHTML = items.map(p => `<li data-json='${JSON.stringify(p)}'>${esc(p.nombre||'')} — <span class="text-slate-500">${esc(p.dni||'')}</span></li>`).join("");
     ul.classList.remove('hidden');
     [...ul.querySelectorAll('li')].forEach(li=>{
-      li.addEventListener('click', ()=>{
+      li.addEventListener('click', async ()=>{
         const p = JSON.parse(li.getAttribute('data-json'));
         if (nameEl) nameEl.value = p.nombre || "";
         if (dniEl)  dniEl.value  = p.dni || "";
-        const tel = byId('f_telefono'); if (tel) tel.value = p.telefono || "";
-        const email = byId('f_email');  if (email) email.value = p.email || "";
+        // Completar vehículo/dominio desde el último acceso de esta persona
+        try{
+          let q = sb.from('accesos').select('vehiculo,dominio,created_at').order('created_at',{ascending:false}).limit(1);
+          if (p.dni) q = q.eq('dni', p.dni);
+          else if (p.nombre) q = q.ilike('nombre', p.nombre);
+          const { data, error } = await q;
+          if (!error && data && data[0]){
+            if (vehEl && !vehEl.value) vehEl.value = data[0].vehiculo || '';
+            if (domEl && !domEl.value) domEl.value = data[0].dominio || '';
+          }
+        }catch(e){ console.warn(e); }
+
         sugName?.classList.add('hidden'); sugDni?.classList.add('hidden');
       });
     });
@@ -624,7 +630,7 @@ function attachPersonAutocomplete(){
     t1 = setTimeout(async ()=>{
       const q = nameEl.value.trim();
       if (!q){ renderSug(sugName, []); return; }
-      const { data, error } = await sb.from('personas').select('id,nombre,dni,telefono,email').ilike('nombre', `%${q}%`).limit(10);
+      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
       if (error){ console.warn(error); return; }
       renderSug(sugName, data);
     }, 220);
@@ -634,7 +640,7 @@ function attachPersonAutocomplete(){
     t2 = setTimeout(async ()=>{
       const q = dniEl.value.trim();
       if (!q){ renderSug(sugDni, []); return; }
-      const { data, error } = await sb.from('personas').select('id,nombre,dni,telefono,email').ilike('dni', `%${q}%`).limit(10);
+      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('dni', `%${q}%`).limit(10);
       if (error){ console.warn(error); return; }
       renderSug(sugDni, data);
     }, 220);
@@ -655,17 +661,15 @@ async function save(ev){
     "c1","c2","c3","c4","v_trailblazer","v_amarok","v_sw4","v_corolla","v_q5","v_q7",
     "fam1","fam2","fam3","fam4","fam5","empleadas","niniera",
     "tec_camaras","tec_cerco","tec_portones","prof_jardinero","prof_piletero","prof_paisajistas","prof_fumigador","prof_floristas",
-    "amigos_sra","amigos_isabella","amigos_angie","elementos","_save_persona"
+    "amigos_sra","amigos_isabella","amigos_angie","elementos"
   ]);
 
   for (const f of def.fields){
-    if (f.k === "file") continue;
-    // SALTO campos virtuales (empiezan con "_")
-    if (f.k.startsWith('_')) continue;
+    if (f.k === "file") continue;                 // virtual (contable)
+    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue; // se mapean más abajo
 
-    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue;
     const el = byId(`f_${f.k}`); if (!el) continue;
-    let v = (f.t==="checkbox") ? (el.checked ? true : false) : el.value;
+    let v = el.value;
     if (f.t==="number" && v!=="") v = Number(v);
     if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
     if (v==="") v = null;
@@ -690,8 +694,8 @@ async function save(ev){
     payload.elementos_asignados = (val('f_elementos')||"").split('\n').map(s=>s.trim()).filter(Boolean);
   }
 
-  // Accesos: si tildaste "Guardar/actualizar en Personas"
-  if (current==="accesos" && byId('f__save_persona')?.checked){
+  // Accesos: SIEMPRE actualizar/crear la persona para autocompletar futuro
+  if (current==="accesos"){
     try{
       await sb.rpc('upsert_persona', {
         p_nombre: val('f_nombre') || null,
@@ -700,11 +704,6 @@ async function save(ev){
         p_email:    null
       });
     }catch(e){ console.warn(e); }
-  }
-
-  // ✅ FIX FINAL: por seguridad, borro cualquier clave que empiece con "_" antes de enviar
-  for (const k of Object.keys(payload)){
-    if (k.startsWith('_')) delete payload[k];
   }
 
   if (current==="contable"){
