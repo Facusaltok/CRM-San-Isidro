@@ -660,7 +660,7 @@ async function save(ev){
 
   for (const f of def.fields){
     if (f.k === "file") continue;
-    /* ⬇️ FIX: saltar campos virtuales (como _save_persona) para no enviarlos a la tabla */
+    // SALTO campos virtuales (empiezan con "_")
     if (f.k.startsWith('_')) continue;
 
     if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue;
@@ -700,6 +700,11 @@ async function save(ev){
         p_email:    null
       });
     }catch(e){ console.warn(e); }
+  }
+
+  // ✅ FIX FINAL: por seguridad, borro cualquier clave que empiece con "_" antes de enviar
+  for (const k of Object.keys(payload)){
+    if (k.startsWith('_')) delete payload[k];
   }
 
   if (current==="contable"){
