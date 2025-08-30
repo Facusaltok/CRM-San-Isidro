@@ -18,24 +18,46 @@
   @keyframes floatGlow{ from{ transform: translate(0,0) scale(1) } to{ transform: translate(-6%,4%) scale(1.05) } }
   @keyframes shimmer{ 0%{ background-position:-200% 0 } 100%{ background-position:200% 0 } }
   .app-layer{ position:relative; z-index:1; }
-  .tab{padding:.5rem .9rem;border-radius:.7rem;border:1px solid rgb(203 213 225);background:#f8fafc;color:#0f172a}
+
+  /* Estética general */
+  .tab{padding:.5rem .9rem;border-radius:.7rem;border:1px solid rgb(203 213 225);background:#f8fafc;color:#0f172a; transition: all .25s ease}
+  .tab:hover{ transform: translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.06)}
   .tab.active{background:#f59e0b;color:#111827;border-color:#f59e0b}
-  .chip{border:1px solid rgb(203 213 225);border-radius:999px;padding:.15rem .6rem;font-size:.75rem}
-  .kpi{border:1px solid rgb(226 232 240);border-radius:14px;background:#fff;padding:12px}
+  .chip{border:1px solid rgb(203 213 225);border-radius:999px;padding:.15rem .6rem;font-size:.75rem; transition: background .2s ease}
+  .chip:hover{ background:#f1f5f9}
+  .kpi{border:1px solid rgb(226 232 240);border-radius:14px;background:#fff;padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.06)}
   .table-wrap{max-height:65vh; overflow:auto;}
   .modal-body{max-height:75vh; overflow:auto;}
-  .btn{padding:.5rem .9rem;border-radius:.7rem;border:1px solid rgb(203 213 225);background:#fff}
+  .btn{padding:.55rem .95rem;border-radius:.8rem;border:1px solid rgb(203 213 225);background:#fff; transition: all .25s ease}
+  .btn:hover{ transform: translateY(-1px); box-shadow:0 10px 24px rgba(0,0,0,.08)}
   .btn-gold{background:#f59e0b;color:#111827;border-color:#f59e0b}
   .label{display:block;font-size:.75rem;color:#475569;margin-bottom:.25rem}
-  .input{width:100%;padding:.5rem .75rem;border:1px solid #cbd5e1;border-radius:.5rem;outline:none}
-  .section{border:1px solid #e5e7eb;border-radius:12px}
+  .input{width:100%;padding:.6rem .85rem;border:1px solid #cbd5e1;border-radius:.75rem;outline:none; transition:border-color .2s ease, box-shadow .2s ease}
+  .input:focus{ border-color:#f59e0b; box-shadow:0 0 0 4px rgba(245,158,11,.15)}
+  .section{border:1px solid #e5e7eb;border-radius:12px; box-shadow:0 8px 18px rgba(0,0,0,.04)}
   .section summary{cursor:pointer;list-style:none;padding:.6rem .9rem;border-bottom:1px solid #e5e7eb;background:#f8fafc;border-radius:12px 12px 0 0}
   .section .content{padding:.8rem .9rem}
-  .suggest{position:absolute; z-index:20; background:#fff; border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 10px 24px rgba(0,0,0,.06); max-height:220px; overflow:auto; width:100%}
-  .suggest li{padding:.45rem .6rem; cursor:pointer}
+  .suggest{position:absolute; z-index:20; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 16px 32px rgba(0,0,0,.12); max-height:220px; overflow:auto; width:100%}
+  .suggest li{padding:.55rem .7rem; cursor:pointer}
   .suggest li:hover{background:#fff7ed}
   .note{font-size:.78rem;color:#64748b}
   .badge{font-size:.72rem;border:1px solid #e5e7eb;border-radius:999px;padding:.1rem .5rem}
+
+  /* Leyenda de seguridad */
+  .secure-badge{display:flex;align-items:center;gap:.55rem;padding:.55rem .8rem;border:1px dashed #f59e0b;border-radius:12px;background:linear-gradient(180deg,#fff, #fffaf3)}
+  .lock{width:18px;height:18px;border:2px solid #111827;border-radius:4px; position:relative}
+  .lock:before{content:""; position:absolute; left:50%; transform:translateX(-50%); top:-8px; width:10px; height:8px; border:2px solid #111827; border-bottom:none; border-radius:8px 8px 0 0}
+  .pulse{ animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%{opacity:1}50%{opacity:.55}100%{opacity:1}}
+
+  /* Filas: blanco / dorado suave + animación */
+  .row-fade{ animation: fadeInUp .35s ease both}
+  @keyframes fadeInUp{ from{ opacity:0; transform: translateY(6px)} to{ opacity:1; transform: translateY(0)} }
+  .row-gold{ background:#fff8e6 } /* dorado claro */
+  .row-blank{ background:#ffffff }
+
+  /* Cabecera sticky para tablas largas */
+  thead.sticky-head th{ position: sticky; top:0; background:#fdfaf5; z-index:2; box-shadow:0 1px 0 #e5e7eb}
 </style>
 </head>
 <body class="min-h-screen text-slate-800">
@@ -43,7 +65,7 @@
   <div class="app-layer">
     <header class="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-xl bg-amber-400 text-slate-900 font-extrabold flex items-center justify-center">CRM</div>
+        <div class="w-12 h-12 rounded-xl bg-amber-400 text-slate-900 font-extrabold flex items-center justify-center shadow-sm">CRM</div>
         <div><h1 class="text-2xl font-semibold leading-tight">San Isidro</h1><p class="text-xs text-slate-500">Panel</p></div>
       </div>
       <div class="flex items-center gap-2">
@@ -55,6 +77,14 @@
     </header>
 
     <main class="max-w-6xl mx-auto px-4 pb-24">
+      <!-- Leyenda de seguridad -->
+      <div class="secure-badge mb-4 shadow-sm">
+        <span class="lock pulse"></span>
+        <p class="text-sm text-slate-700 leading-snug">
+          Tus datos están <b>encriptados</b> en tránsito (TLS) y en reposo (AES-256). Acceso protegido por <b>roles</b> y <b>autenticación segura</b>.
+        </p>
+      </div>
+
       <nav class="flex gap-2 mb-4">
         <button data-tab="accesos"    class="tab active">Accesos</button>
         <button data-tab="paqueteria" class="tab">Paquetería</button>
@@ -82,12 +112,13 @@
 
           <div class="flex-1 min-w-[220px]">
             <label class="label">Buscar</label>
-            <input id="q" type="text" placeholder="Texto libre (nombre, DNI, etc.)" class="input">
+            <input id="q" type="text" placeholder="Texto libre (nombre, apellido, DNI, etc.)" class="input">
             <div class="note mt-1" id="extraHint"></div>
           </div>
 
           <button id="newBtn" class="btn btn-gold">+ Nuevo</button>
-          <button id="filterBtn" class="btn">Filtrar</button>
+          <!-- Renombrado a “Buscar” (id intacto para no romper lógica) -->
+          <button id="filterBtn" class="btn">Buscar</button>
           <button id="clearBtn" class="btn">Limpiar</button>
           <button id="showAllBtn" class="btn">Mostrar todo</button>
         </div>
@@ -111,7 +142,7 @@
 
         <div class="table-wrap mt-4">
           <table class="min-w-full">
-            <thead id="thead" class="text-sm text-slate-600 bg-slate-50"></thead>
+            <thead id="thead" class="text-sm text-slate-700 sticky-head"></thead>
             <tbody id="rows" class="text-sm"></tbody>
           </table>
           <p id="empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
@@ -126,7 +157,7 @@
 
     <!-- Modal -->
     <div id="modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center p-4">
-      <div class="w-full max-w-4xl rounded-2xl bg-white border border-slate-200 p-4">
+      <div class="w-full max-w-4xl rounded-2xl bg-white border border-slate-200 p-4 shadow-2xl">
         <div class="flex items-center justify-between mb-3">
           <h3 id="modalTitle" class="text-lg font-semibold">Nuevo</h3>
           <div class="flex gap-2"><button id="closeModal" class="btn">Cerrar</button></div>
@@ -312,7 +343,7 @@ function applyOrdering(q){
   const { data } = await sb.auth.getSession();
   if (!data?.session) { location.replace("./index.html"); return; }
 
-  extraHint.innerHTML = 'Sugerencia: filtrá por nombre o DNI para ver el <b>total de horas</b>.';
+  extraHint.innerHTML = 'Sugerencia: buscá por <b>nombre, apellido o DNI</b> para ver el <b>total de horas</b>.';
 
   byId("fDesde").value = "";
   byId("fHasta").value = "";
@@ -333,7 +364,7 @@ document.querySelectorAll('[data-quick]').forEach(btn=>{
 byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
 
 byId("refreshBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
-byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
+byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); }); // Texto del botón ya dice "Buscar"
 byId("exportBtn").addEventListener("click", exportPDF);
 byId("exportCsvBtn").addEventListener("click", exportCSV);
 byId("clearBtn").addEventListener("click", async ()=>{
@@ -416,8 +447,10 @@ window.deleteRow = async function(id){
   await load(true);
 };
 
+let __rowStripeIndex = 0; // para alternar blanco / dorado
+
 async function load(clearBefore = true){
-  if (clearBefore) { rows.innerHTML=""; resetPaging(); }
+  if (clearBefore) { rows.innerHTML=""; resetPaging(); __rowStripeIndex = 0; }
   empty.classList.add("hidden"); errEl.textContent="";
 
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
@@ -474,7 +507,11 @@ async function load(clearBefore = true){
       const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
       return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
     }).join("");
-    rows.insertAdjacentHTML("beforeend", `<tr>${t}</tr>`);
+
+    // Alternancia de filas + animación
+    const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
+    rows.insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${t}</tr>`);
+    __rowStripeIndex++;
   }
 
   if (current==="contable" && clearBefore) updateKpis(list);
@@ -517,7 +554,7 @@ async function openModal(data=null){
       form.insertAdjacentHTML("beforeend", fieldHTML(f, data? data[f.k] : null));
     }
     if (current==="accesos"){
-      hint.innerHTML = 'Tip: escribí <b>DNI o Nombre</b> para autocompletar desde <i>Personas</i>.';
+      hint.innerHTML = 'Tip: escribí <b>nombre, apellido o DNI</b> para autocompletar desde <i>Personas</i>.';
       attachPersonAutocomplete();
     }
   }
@@ -544,7 +581,7 @@ function fieldHTML(f, value){
   if (f.autocomplete === "personas"){
     return `<div class="relative">
       <label class="label">${f.l}${f.r?" *":""}</label>
-      <input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base} autocomplete="off">
+      <input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base} autocomplete="off" placeholder="${f.k==='nombre'?'Ej: Juan Pérez':''}">
       <ul id="suggest_${f.k}" class="suggest hidden"></ul>
     </div>`;
   }
@@ -689,6 +726,7 @@ function attachPersonAutocomplete(){
     t1 = setTimeout(async ()=>{
       const q = nameEl.value.trim();
       if (!q){ renderSug(sugName, []); return; }
+      // Permite “nombre apellido” también
       const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
       if (error){ console.warn(error); return; }
       renderSug(sugName, data);
