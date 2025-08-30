@@ -28,14 +28,6 @@
   .btn-gold{background:#f59e0b;color:#111827;border-color:#f59e0b}
   .label{display:block;font-size:.75rem;color:#475569;margin-bottom:.25rem}
   .input{width:100%;padding:.5rem .75rem;border:1px solid #cbd5e1;border-radius:.5rem;outline:none}
-  .section{border:1px solid #e5e7eb;border-radius:12px}
-  .section summary{cursor:pointer;list-style:none;padding:.6rem .9rem;border-bottom:1px solid #e5e7eb;background:#f8fafc;border-radius:12px 12px 0 0}
-  .section .content{padding:.8rem .9rem}
-  .suggest{position:absolute; z-index:20; background:#fff; border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 10px 24px rgba(0,0,0,.06); max-height:220px; overflow:auto; width:100%}
-  .suggest li{padding:.45rem .6rem; cursor:pointer}
-  .suggest li:hover{background:#fff7ed}
-  .note{font-size:.78rem;color:#64748b}
-  .badge{font-size:.72rem;border:1px solid #e5e7eb;border-radius:999px;padding:.1rem .5rem}
 </style>
 </head>
 <body class="min-h-screen text-slate-800">
@@ -67,7 +59,6 @@
         <div class="flex items-end gap-3 flex-wrap">
           <div><label class="label">Desde</label><input id="fDesde" type="date" class="input"></div>
           <div><label class="label">Hasta</label><input id="fHasta" type="date" class="input"></div>
-
           <div id="wrapAsignado" class="hidden">
             <label class="label">Asignado a</label>
             <div class="flex gap-1 items-center">
@@ -79,11 +70,9 @@
               <button class="chip" data-quick="Otros">Otros</button>
             </div>
           </div>
-
           <div class="flex-1 min-w-[220px]">
             <label class="label">Buscar</label>
-            <input id="q" type="text" placeholder="Texto libre (nombre, DNI, etc.)" class="input">
-            <div class="note mt-1" id="extraHint"></div>
+            <input id="q" type="text" placeholder="Texto libre" class="input">
           </div>
 
           <button id="newBtn" class="btn btn-gold">+ Nuevo</button>
@@ -96,17 +85,6 @@
           <div class="kpi"><div class="text-xs text-slate-500">Ingresos</div><div id="k_ing" class="text-lg font-semibold">—</div></div>
           <div class="kpi"><div class="text-xs text-slate-500">Egresos</div><div id="k_egr" class="text-lg font-semibold">—</div></div>
           <div class="kpi"><div class="text-xs text-slate-500">Saldo</div><div id="k_saldo" class="text-lg font-semibold">—</div></div>
-        </div>
-
-        <!-- KPI HORAS (solo Accesos) -->
-        <div id="accesosKpi" class="kpi mt-4 hidden">
-          <div class="flex items-center justify-between gap-2">
-            <div>
-              <div class="text-xs text-slate-500">Total horas (lista filtrada)</div>
-              <div id="k_horas" class="text-lg font-semibold">—</div>
-            </div>
-            <span id="k_horas_badge" class="badge">Accesos</span>
-          </div>
         </div>
 
         <div class="table-wrap mt-4">
@@ -153,23 +131,19 @@ const WHATSAPP_PHONE = '54911XXXXXXXX';
 const tabs = {
   accesos: {
     table: "accesos",
-    head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal","Horas",""],
+    head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal",""],
     fields: [
-      {k:"nombre",   l:"Persona",   t:"text", r:true, autocomplete: "personas"},
-      {k:"dni",      l:"DNI",       t:"text", autocomplete: "personas"},
+      {k:"nombre",   l:"Persona",   t:"text", r:true},
+      {k:"dni",      l:"DNI",       t:"text"},
       {k:"vehiculo", l:"Vehículo",  t:"text"},
       {k:"dominio",  l:"Dominio",   t:"text"},
       {k:"motivo",   l:"Motivo",    t:"text"},
       {k:"f_ing",    l:"Fecha ingreso", t:"date"},
       {k:"h_ing",    l:"Hora ingreso",  t:"time"},
       {k:"f_sal",    l:"Fecha salida",  t:"date"},
-      {k:"h_sal",    l:"Hora salida",   t:"time"}
+      {k:"h_sal",    l:"Hora salida",   t:"time"},
     ],
-    row: r => {
-      const horas = calcHoras(r);
-      return [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo,r.f_ing,r.h_ing,r.f_sal,r.h_sal, horas!=null?horas.toFixed(2):"—", actions(r.id)]
-    },
-    showHorasKpi: true
+    row: r => [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo,r.f_ing,r.h_ing,r.f_sal,r.h_sal, actions(r.id)]
   },
   paqueteria: {
     table: "paqueteria",
@@ -258,7 +232,7 @@ const tabs = {
       {k:"amigos_sra",      l:"Amigos de la Sra. (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
       {k:"amigos_isabella", l:"Amigos de Isabella (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
       {k:"amigos_angie",    l:"Amigos de Angie (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
-      {k:"elementos", l:"Elementos asignados (una por línea)", t:"textarea"},
+      {k:"elementos", l:"Elementos asignados (una línea por ítem)", t:"textarea"},
       {k:"otros",     l:"OTROS", t:"textarea"},
       {k:"agenda_texto", l:"AGENDA (texto)", t:"textarea"},
     ],
@@ -269,9 +243,6 @@ const tabs = {
 const thead = byId("thead"), rows = byId("rows"), empty = byId("empty"), errEl = byId("err");
 const wrapAsignado = byId("wrapAsignado"), selAsignado = byId("asignado");
 const contKpis = byId("contableKpis");
-const kpiHoras = byId("accesosKpi"), kHorasVal = byId("k_horas"), kHorasBadge = byId("k_horas_badge");
-const extraHint = byId("extraHint");
-
 let current = "accesos", editingId = null;
 
 /* Paginación */
@@ -281,42 +252,12 @@ let lastBatchCount = 0;
 function resetPaging(){ page = 0; lastBatchCount = 0; byId('loadMoreBtn')?.classList.add('hidden'); }
 function canLoadMore(){ return lastBatchCount === PAGE_SIZE; }
 
-/* ===== Ordenamiento centralizado (descendente) ===== */
-function applyOrdering(q){
-  switch (current){
-    case 'contable':
-      return q
-        .order('fecha', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
-    case 'paqueteria':
-      return q
-        .order('fecha', { ascending: false, nullsFirst: false })
-        .order('hora',  { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
-    case 'accesos':
-      return q
-        .order('f_ing', { ascending: false, nullsFirst: false })
-        .order('h_ing', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
-    case 'agenda':
-      return q
-        .order('fecha', { ascending: false, nullsFirst: false })
-        .order('hora',  { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
-    default:
-      return q.order('created_at', { ascending: false });
-  }
-}
-
 (async () => {
   const { data } = await sb.auth.getSession();
   if (!data?.session) { location.replace("./index.html"); return; }
-
-  extraHint.innerHTML = 'Sugerencia: filtrá por nombre o DNI para ver el <b>total de horas</b>.';
-
-  byId("fDesde").value = "";
-  byId("fHasta").value = "";
+  byId("fDesde").value = ""; byId("fHasta").value = "";
   buildHead(); toggleExtras(); resetPaging(); await load();
+  if (current === 'contable') await updateKpisFromDB();
 })();
 
 document.querySelectorAll("[data-tab]").forEach(b=>{
@@ -325,27 +266,35 @@ document.querySelectorAll("[data-tab]").forEach(b=>{
     b.classList.add("active");
     current = b.dataset.tab; editingId=null;
     buildHead(); toggleExtras(); resetPaging(); await load(true);
+    if (current === 'contable') await updateKpisFromDB();
   });
 });
 document.querySelectorAll('[data-quick]').forEach(btn=>{
-  btn.addEventListener('click', ()=>{ selAsignado.value = btn.dataset.quick; resetPaging(); load(true); });
+  btn.addEventListener('click', async ()=>{ selAsignado.value = btn.dataset.quick; resetPaging(); await load(true); });
 });
 byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
 
-byId("refreshBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
-byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
+/* Botones + refresco de KPIs contables */
+byId("refreshBtn").addEventListener("click", async ()=>{
+  resetPaging(); await load(true); if(current==='contable') await updateKpisFromDB();
+});
+byId("filterBtn").addEventListener("click", async ()=>{
+  resetPaging(); await load(true); if(current==='contable') await updateKpisFromDB();
+});
 byId("exportBtn").addEventListener("click", exportPDF);
 byId("exportCsvBtn").addEventListener("click", exportCSV);
 byId("clearBtn").addEventListener("click", async ()=>{
   byId("fDesde").value=""; byId("fHasta").value=""; selAsignado.value="Todos"; byId("q").value="";
-  resetPaging(); await load(true);
+  resetPaging(); await load(true); if(current==='contable') await updateKpisFromDB();
 });
 byId("showAllBtn").addEventListener("click", async ()=>{
   byId("fDesde").value=""; byId("fHasta").value="";
   selAsignado.value="Todos"; byId("q").value="";
-  resetPaging(); await load(true);
+  resetPaging(); await load(true); if(current==='contable') await updateKpisFromDB();
 });
-byId("loadMoreBtn").addEventListener("click", async ()=>{ page += 1; await load(false); });
+byId("loadMoreBtn").addEventListener("click", async ()=>{
+  page += 1; await load(false);
+});
 
 const modal = byId("modal"), form = byId("form"), hint = byId("hint");
 byId("newBtn").addEventListener("click", () => openModal());
@@ -355,51 +304,17 @@ byId("saveBtn").addEventListener("click", save);
 function toggleExtras(){
   wrapAsignado.classList.toggle("hidden", tabs[current].agendaFilter!==true);
   contKpis.classList.toggle("hidden", tabs[current].kpis!==true);
-  kpiHoras.classList.toggle("hidden", tabs[current].showHorasKpi!==true);
-  kHorasBadge.textContent = current === "accesos" ? "Accesos" : "";
 }
-function buildHead(){
-  thead.innerHTML = `<tr class="border-b border-slate-200">${tabs[current].head.map(h=>`<th class="text-left py-2 pr-4">${h}</th>`).join("")}</tr>`;
-}
-
-/* ===== Búsqueda: server-side cuando hay texto ===== */
+function buildHead(){ thead.innerHTML = `<tr class="border-b border-slate-200">${tabs[current].head.map(h=>`<th class="text-left py-2 pr-4">${h}</th>`).join("")}</tr>`; }
 function filterLocal(list){
-  const q = byId("q").value.trim().toLowerCase();
-  if (!q) return list;
-  return list; // con texto, se filtra en Supabase (ver load)
+  const q = byId("q").value.trim().toLowerCase(); if (!q) return list;
+  return list.filter(r => JSON.stringify(r).toLowerCase().includes(q));
 }
-function buildSearchOr(current, q){
-  const map = {
-    accesos:    ["nombre","dni","vehiculo","dominio","motivo"],
-    paqueteria: ["receptor","descripcion","id_num","estado","entregado_a","notas"],
-    contable:   ["tipo","concepto"],
-    agenda:     ["asignado_a","tarea","estado","notas"],
-    parte:      ["cabina","amt","puesto_hudson","otros","agenda_texto"]
-  };
-  const fields = map[current] || [];
-  const like = fields.map(f => `${f}.ilike.%${q}%`).join(",");
-  return like;
-}
-
 function actions(id){
   return `<div class="flex gap-2">
     <button class="chip" onclick="editRow('${id}')">Editar</button>
     <button class="chip" style="border-color:#ef4444;color:#991b1b" onclick="deleteRow('${id}')">Eliminar</button>
   </div>`;
-}
-
-/* ====== Cálculo horas Accesos ====== */
-function calcHoras(r){
-  if (!r?.f_ing || !r?.h_ing || !r?.f_sal || !r?.h_sal) return null;
-  const start = new Date(`${r.f_ing}T${r.h_ing}`);
-  const end   = new Date(`${r.f_sal}T${r.h_sal}`);
-  const ms = end - start;
-  if (isNaN(ms) || ms < 0) return null;
-  return ms / 3600000;
-}
-function totalHoras(list){
-  let t=0; for(const r of list){ const h = calcHoras(r); if(h!=null) t+=h; }
-  return t;
 }
 
 window.editRow = async function(id){
@@ -414,6 +329,7 @@ window.deleteRow = async function(id){
   const { error } = await sb.from(tabs[current].table).delete().eq('id', id);
   if (error){ alert("Eliminar: " + error.message); return; }
   await load(true);
+  if (current==='contable') await updateKpisFromDB();
 };
 
 async function load(clearBefore = true){
@@ -421,30 +337,13 @@ async function load(clearBefore = true){
   empty.classList.add("hidden"); errEl.textContent="";
 
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
-  const qText = byId("q").value.trim();
+  let q = sb.from(tabs[current].table).select("*", { count: "exact", head: false }).order("created_at",{ascending:false});
 
-  // Base query sin orden inicial
-  let q = sb.from(tabs[current].table)
-            .select("*", { count: "exact", head: false });
-
-  // Fechas por tabla
   const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
-
-  // Filtro asignado (Agenda)
   if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
 
-  // Filtro en servidor
-  if (qText){
-    const orStr = buildSearchOr(current, qText);
-    if (orStr) q = q.or(orStr);
-  }
-
-  // Orden centralizado (desc)
-  q = applyOrdering(q);
-
-  // Paginación
   const from = page * PAGE_SIZE;
   const to   = from + PAGE_SIZE - 1;
   q = q.range(from, to);
@@ -452,18 +351,12 @@ async function load(clearBefore = true){
   const { data, error } = await q;
   if (error){ errEl.textContent = error.message; byId('loadMoreBtn').classList.add('hidden'); return; }
 
-  const list = qText ? (data||[]) : filterLocal(data||[]);
-  lastBatchCount = (data||[]).length;
-
-  // KPI horas (Accesos)
-  if (current === "accesos" && clearBefore) {
-    const th = totalHoras(list);
-    kHorasVal.textContent = th ? `${th.toFixed(2)} h` : "—";
-  }
+  const list = filterLocal(data||[]);
+  lastBatchCount = list.length;
 
   if (clearBefore && !list.length){
     empty.classList.remove("hidden");
-    if(current==="contable") updateKpis([]);
+    if(current==="contable") { await updateKpisFromDB(); }
     byId('loadMoreBtn').classList.add('hidden');
     return;
   }
@@ -477,53 +370,59 @@ async function load(clearBefore = true){
     rows.insertAdjacentHTML("beforeend", `<tr>${t}</tr>`);
   }
 
-  if (current==="contable" && clearBefore) updateKpis(list);
-
+  if (current==="contable" && clearBefore) await updateKpisFromDB();
   byId('loadMoreBtn').classList.toggle('hidden', !canLoadMore());
 }
-function updateKpis(list){
-  let ing=0,egr=0; for(const r of list){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
-  byId('k_ing').textContent   = formatMoney(ing);
-  byId('k_egr').textContent   = formatMoney(egr);
-  byId('k_saldo').textContent = formatMoney(ing-egr);
-}
 
+/* ===== KPIs Contables desde DB (nuevo) ===== */
+async function updateKpisFromDB(){
+  try{
+    const desde = byId("fDesde").value || null;
+    const hasta = byId("fHasta").value || null;
+    let q = sb.from('movimientos').select('monto,tipo,fecha', { head:false });
+    if (desde) q = q.gte('fecha', desde);
+    if (hasta) q = q.lte('fecha', hasta);
+    const { data, error } = await q;
+    if (error) throw error;
+
+    let ing=0, egr=0;
+    for (const r of (data||[])){
+      const t = (r.tipo||'').toString().toLowerCase();
+      if (t==='ingreso') ing += Number(r.monto||0);
+      else if (t==='egreso') egr += Number(r.monto||0);
+    }
+    byId('k_ing').textContent   = formatMoney(ing);
+    byId('k_egr').textContent   = formatMoney(egr);
+    byId('k_saldo').textContent = formatMoney(ing - egr);
+  } catch(e){
+    console.error(e);
+    byId('k_ing').textContent = byId('k_egr').textContent = byId('k_saldo').textContent = '—';
+  }
+}
+/* Compat: la función que usábamos antes ahora delega a la nueva */
+function updateKpis(){ return updateKpisFromDB(); }
+
+/* Saldo hasta una fecha (parte diario) */
 async function kpiSaldoHasta(fechaISO){
   const { data, error } = await sb.from('movimientos').select('monto,tipo').lte('fecha', fechaISO);
-  if (error) return 0;
+  if (error || !data) return 0;
   let ing=0,egr=0;
-  for(const r of (data||[])){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); else if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
+  for (const r of data){
+    const t = (r.tipo||'').toString().toLowerCase();
+    if (t==='ingreso') ing += Number(r.monto||0);
+    else if (t==='egreso') egr += Number(r.monto||0);
+  }
   return ing - egr;
 }
-async function textoAgendaDelDia(fechaISO){
-  const { data, error } = await sb.from('agenda_dom').select('asignado_a,tarea,hora,estado').eq('fecha', fechaISO).order('hora',{ascending:true});
-  if (error) return "";
-  if (!data?.length) return "";
-  const fmt = (h)=> h ? h.slice(0,5) : "--:--";
-  let out = `Agenda ${fechaISO.split('-').reverse().join('/')}\n`;
-  for (const r of data){ out += `• ${r.asignado_a}: ${fmt(r.hora)} — ${r.tarea} [${r.estado}]\n`; }
-  return out.trim();
-}
 
-/* ===== Modal ===== */
 async function openModal(data=null){
   byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + nice(current);
   form.innerHTML=""; hint.innerHTML="";
-
-  if (current==="parte"){
-    renderParteForm(data);
-  } else {
-    for (const f of tabs[current].fields){
-      form.insertAdjacentHTML("beforeend", fieldHTML(f, data? data[f.k] : null));
-    }
-    if (current==="accesos"){
-      hint.innerHTML = 'Tip: escribí <b>DNI o Nombre</b> para autocompletar desde <i>Personas</i>.';
-      attachPersonAutocomplete();
-    }
+  for (const f of tabs[current].fields){
+    form.insertAdjacentHTML("beforeend", fieldHTML(f, data? data[f.k] : null));
   }
-
   if (current==="parte"){
-    hint.innerHTML = 'Secciones plegables con autocompletados. WhatsApp se abre al guardar.';
+    hint.innerHTML = 'Formulario largo, desplazable. El WhatsApp se abre al guardar.';
     if (!editingId) {
       const hoy = new Date().toISOString().slice(0,10);
       const d = byId("f_fecha"); if (d) d.value = hoy;
@@ -533,182 +432,13 @@ async function openModal(data=null){
       const a = byId('f_agenda_texto'); if (a && !a.value) a.value = ag;
     }
   }
-
   modal.classList.remove("hidden");
 }
-
 function fieldHTML(f, value){
   const base = `class="input"`; const v = value ?? "";
   if (f.t==="select")  return `<div><label class="label">${f.l}${f.r?" *":""}</label><select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select></div>`;
   if (f.t==="textarea")return `<div class="md:col-span-2"><label class="label">${f.l}${f.r?" *":""}</label><textarea id="f_${f.k}" rows="3" ${base}>${v??""}</textarea></div>`;
-  if (f.autocomplete === "personas"){
-    return `<div class="relative">
-      <label class="label">${f.l}${f.r?" *":""}</label>
-      <input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base} autocomplete="off">
-      <ul id="suggest_${f.k}" class="suggest hidden"></ul>
-    </div>`;
-  }
   return `<div><label class="label">${f.l}${f.r?" *":""}</label><input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base}></div>`;
-}
-
-/* ===== Parte Diario — UI pro (secciones) ===== */
-function sec(title, inner){
-  return `<details class="section" open>
-    <summary class="flex items-center justify-between">
-      <span class="font-medium">${title}</span>
-      <span class="note">click para plegar</span>
-    </summary>
-    <div class="content grid md:grid-cols-2 gap-3">${inner}</div>
-  </details>`;
-}
-function renderParteForm(data){
-  const top =
-  `<div class="grid md:grid-cols-4 gap-3 md:col-span-2">
-      <div class="md:col-span-1"><label class="label">Fecha *</label><input id="f_fecha" type="date" class="input" value="${data?.fecha??''}"></div>
-      <div><label class="label">Hora inicio</label><input id="f_hora_inicio" type="time" class="input" value="${data?.hora_inicio??''}"></div>
-      <div><label class="label">Hora fin</label><input id="f_hora_fin" type="time" class="input" value="${data?.hora_fin??''}"></div>
-      <div><label class="label">Caja chica (ARS)</label><input id="f_caja_chica" type="number" class="input" value="${data?.caja_chica??''}"></div>
-   </div>`;
-
-  const op = 
-    `<div class="md:col-span-2"><label class="label">CABINA</label><textarea id="f_cabina" rows="3" class="input">${data?.cabina??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">AMT</label><textarea id="f_amt" rows="3" class="input">${data?.amt??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">PUESTO HUDSON</label><textarea id="f_puesto_hudson" rows="3" class="input">${data?.puesto_hudson??""}</textarea></div>`;
-
-  const choferes =
-    `<div><label class="label">Chofer C-1</label><input id="f_c1" class="input" value="${data?.c1??''}"></div>
-     <div><label class="label">Chofer C-2</label><input id="f_c2" class="input" value="${data?.c2??''}"></div>
-     <div><label class="label">Chofer C-3</label><input id="f_c3" class="input" value="${data?.c3??''}"></div>
-     <div><label class="label">Chofer C-4</label><input id="f_c4" class="input" value="${data?.c4??''}"></div>`;
-
-  const vehiculos =
-    `<div><label class="label">Trailblazer</label><input id="f_v_trailblazer" class="input" value="${data?.v_trailblazer??''}"></div>
-     <div><label class="label">Amarok</label><input id="f_v_amarok" class="input" value="${data?.v_amarok??''}"></div>
-     <div><label class="label">SW4</label><input id="f_v_sw4" class="input" value="${data?.v_sw4??''}"></div>
-     <div><label class="label">Toyota Corolla</label><input id="f_v_corolla" class="input" value="${data?.v_corolla??''}"></div>
-     <div><label class="label">Q5</label><input id="f_v_q5" class="input" value="${data?.v_q5??''}"></div>
-     <div><label class="label">Q7</label><input id="f_v_q7" class="input" value="${data?.v_q7??''}"></div>`;
-
-  const familia =
-    `<div><label class="label">Familia #1</label><input id="f_fam1" class="input" value="${data?.fam1??''}"></div>
-     <div><label class="label">Familia #2</label><input id="f_fam2" class="input" value="${data?.fam2??''}"></div>
-     <div><label class="label">Familia #3</label><input id="f_fam3" class="input" value="${data?.fam3??''}"></div>
-     <div><label class="label">Familia #4</label><input id="f_fam4" class="input" value="${data?.fam4??''}"></div>
-     <div><label class="label">Familia #5</label><input id="f_fam5" class="input" value="${data?.fam5??''}"></div>`;
-
-  const domes =
-    `<div class="md:col-span-2"><label class="label">Empleadas domésticas (una por línea)</label><textarea id="f_empleadas" rows="3" class="input">${data?.empleadas??""}</textarea></div>
-     <div><label class="label">Niñera</label><input id="f_niniera" class="input" value="${data?.niniera??''}"></div>`;
-
-  const tec =
-    `<div><label class="label">Sistemas de cámaras</label><input id="f_tec_camaras" class="input" value="${data?.tec_camaras??''}"></div>
-     <div><label class="label">Cerco eléctrico</label><input id="f_tec_cerco" class="input" value="${data?.tec_cerco??''}"></div>
-     <div class="md:col-span-2"><label class="label">Portones (detalle)</label><input id="f_tec_portones" class="input" value="${data?.tec_portones??''}"></div>`;
-
-  const prof =
-    `<div><label class="label">Jardinero</label><input id="f_prof_jardinero" class="input" value="${data?.prof_jardinero??''}"></div>
-     <div><label class="label">Piletero</label><input id="f_prof_piletero" class="input" value="${data?.prof_piletero??''}"></div>
-     <div><label class="label">Paisajistas</label><input id="f_prof_paisajistas" class="input" value="${data?.prof_paisajistas??''}"></div>
-     <div><label class="label">Fumigador</label><input id="f_prof_fumigador" class="input" value="${data?.prof_fumigador??''}"></div>
-     <div><label class="label">Floristas</label><input id="f_prof_floristas" class="input" value="${data?.prof_floristas??''}"></div>`;
-
-  const invitados =
-    `<div class="md:col-span-2"><label class="label">Amigos de la Sra.</label><textarea id="f_amigos_sra" rows="3" class="input">${data?.amigos_sra??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">Amigos de Isabella</label><textarea id="f_amigos_isabella" rows="3" class="input">${data?.amigos_isabella??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">Amigos de Angie</label><textarea id="f_amigos_angie" rows="3" class="input">${data?.amigos_angie??""}</textarea></div>`;
-
-  const otros =
-    `<div class="md:col-span-2"><label class="label">Elementos asignados (una por línea)</label><textarea id="f_elementos" rows="3" class="input">${data?.elementos??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">OTROS</label><textarea id="f_otros" rows="3" class="input">${data?.otros??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">AGENDA (texto)</label><textarea id="f_agenda_texto" rows="3" class="input">${data?.agenda_texto??""}</textarea></div>`;
-
-  form.insertAdjacentHTML("beforeend", top);
-  form.insertAdjacentHTML("beforeend", sec("Operativo", op));
-  form.insertAdjacentHTML("beforeend", sec("Choferes", choferes));
-  form.insertAdjacentHTML("beforeend", sec("Vehículos", vehiculos));
-  form.insertAdjacentHTML("beforeend", sec("Familia en la quinta", familia));
-  form.insertAdjacentHTML("beforeend", sec("Personal doméstico", domes));
-  form.insertAdjacentHTML("beforeend", sec("Sistemas técnicos", tec));
-  form.insertAdjacentHTML("beforeend", sec("Profesionales", prof));
-  form.insertAdjacentHTML("beforeend", sec("Amigos / Invitados", invitados));
-  form.insertAdjacentHTML("beforeend", sec("Otros y Agenda", otros));
-
-  const quick = document.createElement('div');
-  quick.className = "md:col-span-2 flex flex-wrap gap-2 mt-2";
-  quick.innerHTML = `
-    <span class="note">Atajos: </span>
-    <button type="button" class="chip" onclick="fillNow('f_hora_inicio')">Inicio = ahora</button>
-    <button type="button" class="chip" onclick="fillNow('f_hora_fin')">Fin = ahora</button>
-    <button type="button" class="chip" onclick="copyAgendaDelDia()">Pegar agenda del día</button>
-  `;
-  form.appendChild(quick);
-}
-window.fillNow = (id) => { const el = byId(id); if (!el) return; const d = new Date(); el.value = d.toTimeString().slice(0,5); };
-window.copyAgendaDelDia = async () => {
-  const d = byId('f_fecha')?.value; if (!d) return;
-  const txt = await textoAgendaDelDia(d); if (!txt) return;
-  const a = byId('f_agenda_texto'); if (a) a.value = txt;
-};
-
-/* ===== Autocomplete Personas ===== */
-function attachPersonAutocomplete(){
-  const nameEl = byId('f_nombre');
-  const dniEl  = byId('f_dni');
-  const vehEl  = byId('f_vehiculo');
-  const domEl  = byId('f_dominio');
-  const sugName = byId('suggest_nombre');
-  const sugDni  = byId('suggest_dni');
-
-  const renderSug = (ul, items) => {
-    if (!items?.length){ ul.classList.add('hidden'); ul.innerHTML = ""; return; }
-    ul.innerHTML = items.map(p => `<li data-json='${JSON.stringify(p)}'>${esc(p.nombre||'')} — <span class="text-slate-500">${esc(p.dni||'')}</span></li>`).join("");
-    ul.classList.remove('hidden');
-    [...ul.querySelectorAll('li')].forEach(li=>{
-      li.addEventListener('click', async ()=>{
-        const p = JSON.parse(li.getAttribute('data-json'));
-        if (nameEl) nameEl.value = p.nombre || "";
-        if (dniEl)  dniEl.value  = p.dni || "";
-        try{
-          let q = sb.from('accesos').select('vehiculo,dominio,created_at').order('created_at',{ascending:false}).limit(1);
-          if (p.dni) q = q.eq('dni', p.dni);
-          else if (p.nombre) q = q.ilike('nombre', p.nombre);
-          const { data, error } = await q;
-          if (!error && data && data[0]){
-            if (vehEl && !vehEl.value) vehEl.value = data[0].vehiculo || '';
-            if (domEl && !domEl.value) domEl.value = data[0].dominio || '';
-          }
-        }catch(e){ console.warn(e); }
-        sugName?.classList.add('hidden'); sugDni?.classList.add('hidden');
-      });
-    });
-  };
-
-  let t1, t2;
-  nameEl?.addEventListener('input', async ()=>{
-    clearTimeout(t1);
-    t1 = setTimeout(async ()=>{
-      const q = nameEl.value.trim();
-      if (!q){ renderSug(sugName, []); return; }
-      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
-      if (error){ console.warn(error); return; }
-      renderSug(sugName, data);
-    }, 220);
-  });
-  dniEl?.addEventListener('input', async ()=>{
-    clearTimeout(t2);
-    t2 = setTimeout(async ()=>{
-      const q = dniEl.value.trim();
-      if (!q){ renderSug(sugDni, []); return; }
-      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('dni', `%${q}%`).limit(10);
-      if (error){ console.warn(error); return; }
-      renderSug(sugDni, data);
-    }, 220);
-  });
-
-  document.addEventListener('click', (e)=>{
-    if (!sugName?.contains(e.target) && e.target!==nameEl) sugName?.classList.add('hidden');
-    if (!sugDni?.contains(e.target)  && e.target!==dniEl)  sugDni?.classList.add('hidden');
-  });
 }
 
 async function save(ev){
@@ -735,14 +465,14 @@ async function save(ev){
   }
 
   if (current==="parte"){
-    payload.choferes = [val('f_c1'),val('f_c2'),val('f_c3'),val('f_c4')].filter(x=>x && x.trim());
+    payload.choferes = [byId('f_c1').value,byId('f_c2').value,byId('f_c3').value,byId('f_c4').value].filter(x=>x && x.trim());
     payload.novedades_vehiculos = clean({
-      "Trailblazer": val('f_v_trailblazer'),
-      "Amarok": val('f_v_amarok'),
-      "SW4": val('f_v_sw4'),
-      "Toyota Corolla": val('f_v_corolla'),
-      "Q5": val('f_v_q5'),
-      "Q7": val('f_v_q7'),
+      "Trailblazer": byId('f_v_trailblazer').value || null,
+      "Amarok": byId('f_v_amarok').value || null,
+      "SW4": byId('f_v_sw4').value || null,
+      "Toyota Corolla": byId('f_v_corolla').value || null,
+      "Q5": byId('f_v_q5').value || null,
+      "Q7": byId('f_v_q7').value || null,
     });
     payload.familia_en_quinta = clean({ "1":val('f_fam1'), "2":val('f_fam2'), "3":val('f_fam3'), "4":val('f_fam4'), "5":val('f_fam5') });
     payload.personal_domestico = clean({ "empleadas": (val('f_empleadas')||"").split('\n').map(s=>s.trim()).filter(Boolean), "niniera": val('f_niniera') });
@@ -750,17 +480,6 @@ async function save(ev){
     payload.profesionales = clean({ "jardinero": val('f_prof_jardinero'), "piletero": val('f_prof_piletero'), "paisajistas": val('f_prof_paisajistas'), "fumigador": val('f_prof_fumigador'), "floristas": val('f_prof_floristas') });
     payload.invitados = clean({ "amigos_sra": val('f_amigos_sra'), "amigos_isabella": val('f_amigos_isabella'), "amigos_angie": val('f_amigos_angie') });
     payload.elementos_asignados = (val('f_elementos')||"").split('\n').map(s=>s.trim()).filter(Boolean);
-  }
-
-  if (current==="accesos"){
-    try{
-      await sb.rpc('upsert_persona', {
-        p_nombre: val('f_nombre') || null,
-        p_dni:    val('f_dni')    || null,
-        p_telefono: null,
-        p_email:    null
-      });
-    }catch(e){ console.warn(e); }
   }
 
   if (current==="contable"){
@@ -801,31 +520,17 @@ async function save(ev){
   editingId = null;
   modal.classList.add("hidden");
   await load(true);
+  if (current==='contable') await updateKpisFromDB();
 }
 
-/* ===== Exportaciones ===== */
 function exportPDF(){
   const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", agenda:"Agenda", parte:"Parte Diario"};
-  let head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
-  let body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
-
+  const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
+  const body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
   if (!body.length){ alert("No hay datos para exportar."); return; }
-
-  let resumenHoras = "";
-  if (current==="accesos"){
-    const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].map(td => td.innerText));
-    const horas = rowsData.map(r => parseFloat(r[r.length-2].replace(',', '.'))).filter(n => !isNaN(n));
-    const total = horas.reduce((a,b)=>a+b,0);
-    resumenHoras = `Total de horas (lista): ${total.toFixed(2)} h`;
-  }
-
   const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
-  const title = `CRM — ${map[current]}`;
-  doc.setFontSize(14); doc.text(title, 40, 40);
-  if (resumenHoras) { doc.setFontSize(11); doc.text(resumenHoras, 40, 58); }
-
-  const startY = resumenHoras ? 72 : 60;
-  doc.autoTable({ startY, head:[head], body, styles:{ fontSize:9, cellPadding:4 }, headStyles:{ fillColor:[245,158,11] }, theme:'striped' });
+  const title = `CRM — ${map[current]}`; doc.setFontSize(14); doc.text(title, 40, 40);
+  doc.autoTable({ startY:60, head:[head], body, styles:{ fontSize:9, cellPadding:4 }, headStyles:{ fillColor:[245,158,11] }, theme:'striped' });
   doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 function exportCSV(){
@@ -838,14 +543,23 @@ function exportCSV(){
   const a = document.createElement("a"); const map = {accesos:"Accesos", paqueteria:"Paqueteria", contable:"Contable", agenda:"Agenda", parte:"Parte_Diario"};
   a.href = url; a.download = `${map[current]}_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
-
-/* ===== Utils ===== */
 function byId(id){ return document.getElementById(id); }
 function esc(v){ return (""+v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
 function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); }
 function nice(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function clean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
 function val(id){ const el=byId(id); return el? (el.value||null) : null; }
+
+/* Aux para Agenda -> Parte */
+async function textoAgendaDelDia(fechaISO){
+  const { data, error } = await sb.from('agenda_dom').select('asignado_a,tarea,hora,estado').eq('fecha', fechaISO).order('hora',{ascending:true});
+  if (error) return "";
+  if (!data?.length) return "";
+  const fmt = (h)=> h ? h.slice(0,5) : "--:--";
+  let out = `Agenda ${fechaISO.split('-').reverse().join('/')}\n`;
+  for (const r of data){ out += `• ${r.asignado_a}: ${fmt(r.hora)} — ${r.tarea} [${r.estado}]\n`; }
+  return out.trim();
+}
 </script>
 </body>
 </html>
