@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CRM San Isidro — Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+</head>
+<body class="min-h-screen bg-neutral-950 text-neutral-100">
+<header class="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl bg-amber-400 flex items-center justify-center text-neutral-900 font-bold">CRM</div>
+    <div>
+      <h1 class="text-xl font-semibold">San Isidro</h1>
+      <p class="text-xs text-neutral-400">Seguro y rápido</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <button id="refreshBtn" class="px-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 hover:bg-neutral-700">Actualizar</button>
+    <button id="logoutBtn" class="px-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 hover:bg-neutral-700">Salir</button>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 pb-24">
+  <!-- Tabs -->
+  <nav class="flex gap-2 mb-4">
+    <button data-tab="accesos"    class="tab active">Accesos</button>
+    <button data-tab="paqueteria" class="tab">Paquetería</button>
+    <button data-tab="contable"   class="tab">Contable</button>
+    <button data-tab="agenda"     class="tab">Agenda</button>
+    <button data-tab="parte"      class="tab">Parte diario</button>
+  </nav>
+
+  <!-- Filtros comunes -->
+  <section class="rounded-2xl bg-neutral-900 border border-neutral-800 shadow-xl p-4">
+    <div class="flex items-end gap-3 flex-wrap">
+      <div>
+        <label class="block text-xs mb-1 text-neutral-400">Desde</label>
+        <input id="fDesde" type="date" class="px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800">
+      </div>
+      <div>
+        <label class="block text-xs mb-1 text-neutral-400">Hasta</label>
+        <input id="fHasta" type="date" class="px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800">
+      </div>
+      <div class="flex-1">
+        <label class="block text-xs mb-1 text-neutral-400">Buscar</label>
+        <input id="q" type="text" placeholder="Nombre / DNI / Dominio / Ref." class="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800">
+      </div>
+      <button id="newBtn"   class="px-3 py-2 rounded-lg bg-amber-400 text-neutral-900 font-medium">+ Nuevo</button>
+      <button id="filterBtn" class="px-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700">Filtrar</button>
+      <button id="clearBtn"  class="px-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700">Limpiar</button>
+    </div>
+
+    <!-- tablas -->
+    <div class="overflow-x-auto mt-4">
+      <table class="min-w-full">
+        <thead id="thead" class="text-sm text-neutral-300"></thead>
+        <tbody id="rows"  class="text-sm"></tbody>
+      </table>
+      <p id="empty" class="text-center text-neutral-400 py-6 hidden">Sin registros</p>
+      <p id="err"   class="text-center text-red-400 py-2"></p>
+    </div>
+  </section>
+</main>
+
+<!-- Modal -->
+<div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
+  <div class="w-full max-w-2xl rounded-2xl bg-neutral-900 border border-neutral-800 p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h3 id="modalTitle" class="text-lg font-semibold">Nuevo</h3>
+      <button id="closeModal" class="px-2 py-1 rounded-lg bg-neutral-800 border border-neutral-700">Cerrar</button>
+    </div>
+    <form id="form" class="grid md:grid-cols-2 gap-3"></form>
+    <div class="mt-4 flex justify-end gap-2">
+      <button id="saveBtn" class="px-3 py-2 rounded-lg bg-amber-400 text-neutral-900 font-medium">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tab{padding:.5rem .9rem;border-radius:.7rem;border:1px solid #27272a;background:#171717}
+  .tab.active{background:#f59e0b;color:#111827;border-color:#f59e0b}
+</style>
+
+<script>
+  // ===== Supabase
+  const sb = supabase.createClient(
+    "https://ecmjxpnpdgmvnxmbciur.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
+  );
+
+  const tabs = {
+    accesos: {
+      table: "accesos",
+      head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal"],
+      fields: [
+        {k:"nombre",   l:"Nombre",   t:"text", r:true},
+        {k:"dni",      l:"DNI",      t:"text"},
+        {k:"vehiculo", l:"Vehículo", t:"text"},
+        {k:"dominio",  l:"Dominio",  t:"text"},
+        {k:"motivo",   l:"Motivo",   t:"text"},
+        {k:"f_ing",    l:"Fecha ingreso", t:"date"},
+        {k:"h_ing",    l:"Hora ingreso",  t:"time"},
+        {k:"f_sal",    l:"Fecha salida",  t:"date"},
+        {k:"h_sal",    l:"Hora salida",   t:"time"},
+      ],
+      row: r => [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo,r.f_ing,r.h_ing,r.f_sal,r.h_sal],
+      searchKeys: ["nombre","dni","dominio"]
+    },
+    paqueteria: {
+      table: "paqueteria",
+      head: ["Receptor","Empresa","Remito","Estado","Fecha","Hora","Notas"],
+      fields: [
+        {k:"receptor", l:"Receptor", t:"text", r:true},
+        {k:"empresa",  l:"Empresa",  t:"text"},
+        {k:"remito",   l:"Remito/Ref", t:"text"},
+        {k:"estado",   l:"Estado", t:"text", p:["Pendiente","Entregado","Devuelto"]},
+        {k:"fecha",    l:"Fecha", t:"date"},
+        {k:"hora",     l:"Hora",  t:"time"},
+        {k:"notas",    l:"Notas", t:"text"},
+      ],
+      row: r => [r.receptor,r.empresa,r.remito,r.estado,r.fecha,r.hora,r.notas],
+      searchKeys: ["receptor","empresa","remito","notas"]
+    },
+    contable: {
+      table: "movimientos",
+      head: ["Tipo","Concepto","Monto","Fecha","Comprobante"],
+      fields: [
+        {k:"tipo",     l:"Tipo", t:"select", p:["Ingreso","Egreso"], r:true},
+        {k:"concepto", l:"Concepto", t:"text", r:true},
+        {k:"monto",    l:"Monto (ARS)", t:"number", r:true},
+        {k:"fecha",    l:"Fecha", t:"date"},
+        {k:"file",     l:"Comprobante (imagen)", t:"file"},
+      ],
+      row: r => [r.tipo,r.concepto,formatMoney(r.monto),r.fecha, r.url ? `<a class="underline" target="_blank" href="${r.url}">Ver</a>`:"—"],
+      searchKeys: ["concepto","tipo"]
+    },
+    agenda: {
+      table: "agenda_dom",
+      head: ["Cliente","Servicio","Segmento","Fecha","Hora","Estado","Notas"],
+      fields: [
+        {k:"cliente",  l:"Cliente", t:"text", r:true},
+        {k:"servicio", l:"Servicio", t:"text", r:true},
+        {k:"segmento", l:"Segmento", t:"select", p:["Hatch/Sedán","SUV/PickUp","Motos"]},
+        {k:"fecha",    l:"Fecha", t:"date"},
+        {k:"hora",     l:"Hora", t:"time"},
+        {k:"estado",   l:"Estado", t:"select", p:["Pendiente","Confirmado","Completado","Cancelado"]},
+        {k:"notas",    l:"Notas", t:"text"},
+      ],
+      row: r => [r.cliente,r.servicio,r.segmento,r.fecha,r.hora,r.estado,r.notas],
+      searchKeys: ["cliente","servicio","segmento","estado","notas"]
+    },
+    parte: {
+      table: "parte_diario",
+      head: ["Fecha","Hora","Responsable","Detalle"],
+      fields: [
+        {k:"fecha",      l:"Fecha", t:"date", r:true},
+        {k:"hora",       l:"Hora", t:"time"},
+        {k:"responsable",l:"Responsable", t:"text"},
+        {k:"detalle",    l:"Detalle", t:"textarea", r:true},
+      ],
+      row: r => [r.fecha,r.hora,r.responsable,r.detalle],
+      searchKeys: ["responsable","detalle"]
+    }
+  };
+
+  // Estado UI
+  let current = "accesos";
+  const thead = document.getElementById("thead");
+  const rows  = document.getElementById("rows");
+  const empty = document.getElementById("empty");
+  const errEl = document.getElementById("err");
+
+  // Requiere sesión
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    if (!data?.session) { location.replace("./index.html"); return; }
+    buildHead();
+    await load();
+  })();
+
+  // Tabs
+  document.querySelectorAll("[data-tab]").forEach(b=>{
+    b.addEventListener("click", async ()=>{
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      current = b.dataset.tab;
+      buildHead();
+      await load();
+    });
+  });
+
+  // Botones
+  document.getElementById("logoutBtn").addEventListener("click", async ()=>{
+    await sb.auth.signOut(); location.replace("./index.html");
+  });
+  document.getElementById("refreshBtn").addEventListener("click", load);
+  document.getElementById("filterBtn").addEventListener("click", load);
+  document.getElementById("clearBtn").addEventListener("click", ()=>{
+    document.getElementById("fDesde").value = "";
+    document.getElementById("fHasta").value = "";
+    document.getElementById("q").value = "";
+    load();
+  });
+
+  // Modal
+  const modal = document.getElementById("modal");
+  const form  = document.getElementById("form");
+  document.getElementById("newBtn").addEventListener("click", openModal);
+  document.getElementById("closeModal").addEventListener("click", ()=>modal.classList.add("hidden"));
+  document.getElementById("saveBtn").addEventListener("click", save);
+
+  function buildHead(){
+    const h = tabs[current].head.map(h=>`<th class="text-left py-2 pr-4">${h}</th>`).join("");
+    thead.innerHTML = `<tr class="border-b border-neutral-800">${h}</tr>`;
+  }
+
+  function filterLocal(list){
+    const q = document.getElementById("q").value.trim().toLowerCase();
+    if (!q) return list;
+    const keys = tabs[current].searchKeys;
+    return list.filter(r => keys.some(k => `${r[k]||""}`.toLowerCase().includes(q)));
+  }
+
+  async function load(){
+    rows.innerHTML = ""; empty.classList.add("hidden"); errEl.textContent="";
+    const desde = document.getElementById("fDesde").value;
+    const hasta = document.getElementById("fHasta").value;
+    let q = sb.from(tabs[current].table).select("*").order("created_at",{ascending:false});
+    if (["accesos","agenda"].includes(current) && desde) q = q.gte("fecha" in ({}), desde); // no rompe, pero no filtra si no hay campo
+    // filtros específicos por tabla:
+    if (current==="accesos"){ if (desde) q = q.gte("f_ing", desde); if (hasta) q = q.lte("f_ing", hasta); }
+    if (["paqueteria","agenda","parte","contable"].includes(current)){
+      if (desde && hasCol(current,"fecha")) q = q.gte("fecha", desde);
+      if (hasta && hasCol(current,"fecha")) q = q.lte("fecha", hasta);
+    }
+    const { data, error } = await q;
+    if (error){ errEl.textContent = error.message; return; }
+    const list = filterLocal(data||[]);
+    if (!list.length){ empty.classList.remove("hidden"); return; }
+    for (const r of list){
+      const t = tabs[current].row(r).map(v=>`<td class="py-2 pr-4">${esc(v??"")}</td>`).join("");
+      rows.insertAdjacentHTML("beforeend", `<tr class="border-b border-neutral-800">${t}</tr>`);
+    }
+  }
+
+  function hasCol(tab, col){
+    const map = {paqueteria:["fecha"], agenda:["fecha"], parte:["fecha"], contable:["fecha"]};
+    return (map[tab]||[]).includes(col);
+  }
+
+  function openModal(){
+    document.getElementById("modalTitle").textContent = `Nuevo — ${capitalize(current)}`;
+    form.innerHTML = "";
+    for (const f of tabs[current].fields){
+      form.insertAdjacentHTML("beforeend", fieldHTML(f));
+    }
+    modal.classList.remove("hidden");
+  }
+
+  function fieldHTML(f){
+    const base = `class="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800"`;
+    if (f.t==="select")
+      return `<div><label class="block text-xs mb-1 text-neutral-400">${f.l}</label>
+        <select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option>${x}</option>`).join("")}</select></div>`;
+    if (f.t==="textarea")
+      return `<div class="md:col-span-2"><label class="block text-xs mb-1 text-neutral-400">${f.l}</label>
+        <textarea id="f_${f.k}" rows="3" ${base}></textarea></div>`;
+    return `<div><label class="block text-xs mb-1 text-neutral-400">${f.l}${f.r?" *":""}</label>
+      <input id="f_${f.k}" type="${f.t||'text'}" ${base}></div>`;
+  }
+
+  async function save(){
+    const { data: u } = await sb.auth.getUser();
+    const uid = u?.user?.id;
+    if (!uid){ alert("Sesión expirada"); return; }
+
+    const def = tabs[current];
+    let payload = { user_id: uid };
+
+    // Campos comunes
+    for (const f of def.fields){
+      if (f.t==="file") continue;
+      const v = document.getElementById(`f_${f.k}`)?.value ?? null;
+      if (f.r && !v){ alert(`Completá: ${f.l}`); return; }
+      payload[f.k] = v || null;
+    }
+
+    // Upload comprobante (Contable)
+    if (current==="contable"){
+      const fileInput = document.getElementById("f_file");
+      if (fileInput && fileInput.files.length){
+        const file = fileInput.files[0];
+        const path = `${uid}/${Date.now()}_${file.name}`;
+        const up = await sb.storage.from("tickets").upload(path, file, { upsert: false });
+        if (up.error){ alert("Upload: " + up.error.message); return; }
+        const { data: pub } = sb.storage.from("tickets").getPublicUrl(path);
+        payload.url = pub?.publicUrl || null;
+      }
+    }
+
+    const { error } = await sb.from(def.table).insert(payload);
+    if (error){ alert("Guardar: " + error.message); return; }
+    modal.classList.add("hidden");
+    await load();
+  }
+
+  // helpers
+  function esc(v){ return (""+v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+  function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); }
+  function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+</script>
+</body>
+</html>
