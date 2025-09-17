@@ -1,642 +1,491 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CRM San Isidro — Dashboard</title>
-
-<!-- Tailwind -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CRM — Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = { theme:{ extend:{ colors:{ brand:"#C7A600", textmut:"#6b7280", border:"#e5e7eb" }, boxShadow:{ card:"0 10px 24px rgba(0,0,0,.06)"} } } }
-</script>
-
-<!-- Alpine -->
-<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-<!-- Supabase -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-<!-- jsPDF -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 <style>
-  body{background:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.06)}
-  .btn{border:1px solid #e5e7eb;border-radius:12px;padding:.6rem .9rem;font-weight:700}
-  .btn-primary{background:linear-gradient(90deg,#C7A600,#E5C558);color:#2b2500;border-color:#dabb00}
-  .input,select,textarea{border:1px solid #d1d5db;border-radius:.7rem;padding:.55rem .75rem;width:100%}
-  .input:focus,select:focus,textarea:focus{outline:none;border-color:#C7A600;box-shadow:0 0 0 3px rgba(199,166,0,.2)}
-  [x-cloak]{display:none!important}
+  :root{ color-scheme: light; }
+  body{ background:#fff; position:relative; overflow-x:hidden; }
+  .gold-glow{ pointer-events:none; position:fixed; inset:-20% -20% auto auto; width:70vmax; height:70vmax; border-radius:50%;
+    background: radial-gradient(closest-side, rgba(245,158,11,.12), transparent 70%); animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0; }
+  .gold-ribbon{ pointer-events:none; position:fixed; left:-10%; top:40%; width:120vmax; height:200px;
+    background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent); transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0; }
+  @keyframes floatGlow{ from{ transform: translate(0,0) scale(1) } to{ transform: translate(-6%,4%) scale(1.05) } }
+  @keyframes shimmer{ 0%{ background-position:-200% 0 } 100%{ background-position:200% 0 } }
+  .app-layer{ position:relative; z-index:1; }
+  .tab{padding:.5rem .9rem;border-radius:.7rem;border:1px solid rgb(203 213 225);background:#f8fafc;color:#0f172a}
+  .tab.active{background:#f59e0b;color:#111827;border-color:#f59e0b}
+  .chip{border:1px solid rgb(203 213 225);border-radius:999px;padding:.15rem .6rem;font-size:.75rem}
+  .kpi{border:1px solid rgb(226 232 240);border-radius:14px;background:#fff;padding:12px}
+  .table-wrap{max-height:65vh; overflow:auto;}
+  .modal-body{max-height:75vh; overflow:auto;}
+  .btn{padding:.5rem .9rem;border-radius:.7rem;border:1px solid rgb(203 213 225);background:#fff}
+  .btn-gold{background:#f59e0b;color:#111827;border-color:#f59e0b}
+  .label{display:block;font-size:.75rem;color:#475569;margin-bottom:.25rem}
+  .input{width:100%;padding:.5rem .75rem;border:1px solid #cbd5e1;border-radius:.5rem;outline:none}
 </style>
-
-<script>
-  window.sb = supabase.createClient(
-    "https://upprsqwloohuzxpwobiu.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJzcXdsb29odXp4cHdvYml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3MjQ3MjYsImV4cCI6MjA3MTMwMDcyNn0.dk0KHCrrCBLZUVM4FRbYfBMqbMuCGqpSh-6fkVKdCag"
-  );
-</script>
 </head>
-
-<body x-data="app()" x-init="init()">
-
-<!-- Header -->
-<header class="sticky top-0 z-30 bg-white border-b">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-2">
-      <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,#C7A600,#E5C558)"></div>
-      <h1 class="font-extrabold">CRM SAN ISIDRO</h1>
-    </div>
-    <div class="flex gap-2">
-      <button class="btn" @click="refresh()">⟳ Actualizar</button>
-      <button class="btn" @click="logout()">Salir</button>
-    </div>
-  </div>
-</header>
-
-<!-- Nav -->
-<nav class="bg-white border-b">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
-    <button class="btn" :class="{'btn-primary':tab==='accesos'}"    @click="tab='accesos'">Accesos</button>
-    <button class="btn" :class="{'btn-primary':tab==='paqueteria'}" @click="tab='paqueteria'">Paquetería</button>
-    <button class="btn" :class="{'btn-primary':tab==='agenda'}"     @click="tab='agenda'">Agenda</button>
-    <button class="btn" :class="{'btn-primary':tab==='contable'}"   @click="tab='contable'">Contable</button>
-    <button class="btn" :class="{'btn-primary':tab==='parte'}"      @click="tab='parte'">Parte diario</button>
-  </div>
-</nav>
-
-<!-- Content -->
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
-
-  <!-- ==== ACCESOS ==== -->
-  <section x-show="tab==='accesos'" x-cloak>
-    <div class="card p-5">
-      <div class="flex flex-wrap gap-2 items-end">
-        <input class="input w-40" type="date" x-model="flt.acc.desde">
-        <input class="input w-40" type="date" x-model="flt.acc.hasta">
-        <input class="input w-60" placeholder="Buscar nombre/DNI/dominio…" x-model="flt.acc.q">
-        <button class="btn btn-primary" @click="openAcceso()">+ Nuevo</button>
-        <button class="btn" @click="exportPDF('accesos')">Exportar PDF</button>
-        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
+<body class="min-h-screen text-slate-800">
+  <div class="gold-glow"></div><div class="gold-ribbon"></div>
+  <div class="app-layer">
+    <header class="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-amber-400 text-slate-900 font-extrabold flex items-center justify-center">CRM</div>
+        <div><h1 class="text-2xl font-semibold leading-tight">San Isidro</h1><p class="text-xs text-slate-500">Panel</p></div>
       </div>
+      <div class="flex items-center gap-2">
+        <button id="refreshBtn" class="btn">Actualizar</button>
+        <button id="exportBtn"  class="btn btn-gold">Exportar PDF</button>
+        <button id="exportCsvBtn" class="btn">Exportar CSV</button>
+        <button id="logoutBtn"  class="btn">Salir</button>
+      </div>
+    </header>
 
-      <div class="overflow-x-auto mt-4">
-        <table class="min-w-full text-sm">
-          <thead><tr class="border-b">
-            <th class="py-2 px-2">Nombre</th><th class="py-2 px-2">DNI</th><th class="py-2 px-2">Vehículo</th>
-            <th class="py-2 px-2">Dominio</th><th class="py-2 px-2">Motivo</th>
-            <th class="py-2 px-2">F.Ing</th><th class="py-2 px-2">H.Ing</th>
-            <th class="py-2 px-2">F.Sal</th><th class="py-2 px-2">H.Sal</th>
-            <th class="py-2 px-2">Acciones</th>
-          </tr></thead>
-          <tbody>
-            <template x-for="r in accesosFiltrados()" :key="r.id">
-              <tr class="border-b hover:bg-slate-50">
-                <td class="py-2 px-2" x-text="r.nombre_apellido"></td>
-                <td class="py-2 px-2" x-text="r.dni||'—'"></td>
-                <td class="py-2 px-2" x-text="r.vehiculo||'—'"></td>
-                <td class="py-2 px-2" x-text="r.dominio||'—'"></td>
-                <td class="py-2 px-2" x-text="r.motivo||'—'"></td>
-                <td class="py-2 px-2" x-text="r.fecha_ingreso||'—'"></td>
-                <td class="py-2 px-2" x-text="r.hora_ingreso||'—'"></td>
-                <td class="py-2 px-2" x-text="r.fecha_salida||'—'"></td>
-                <td class="py-2 px-2" x-text="r.hora_salida||'—'"></td>
-                <td class="py-2 px-2">
-                  <button class="btn" @click="openAcceso(r)">Editar</button>
-                  <button class="btn" @click="delAcceso(r.id)">Eliminar</button>
-                </td>
-              </tr>
-            </template>
-            <tr x-show="accesos.length===0"><td colspan="10" class="py-6 text-center text-textmut">Sin registros</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+    <main class="max-w-6xl mx-auto px-4 pb-24">
+      <nav class="flex gap-2 mb-4">
+        <button data-tab="accesos"    class="tab active">Accesos</button>
+        <button data-tab="paqueteria" class="tab">Paquetería</button>
+        <button data-tab="contable"   class="tab">Contable</button>
+        <button data-tab="agenda"     class="tab">Agenda</button>
+        <button data-tab="parte"      class="tab">Parte diario</button>
+      </nav>
 
-  <!-- Modal Acceso -->
-  <div x-show="modal.acceso" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" x-transition.opacity>
-    <div class="card w-full max-w-2xl p-5">
-      <h3 class="font-bold text-brand mb-3" x-text="formAcceso.id?'Editar acceso':'Nuevo acceso'"></h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input class="input" placeholder="Nombre y Apellido" x-model="formAcceso.nombre_apellido" @input="buscarSugerencias()">
-        <input class="input" placeholder="DNI" x-model="formAcceso.dni" @blur="autocompletar()">
-        <input class="input md:col-span-2" placeholder="Vehículo (marca/modelo)" x-model="formAcceso.vehiculo">
-        <input class="input" placeholder="Dominio" x-model="formAcceso.dominio" @blur="autocompletar()">
-        <input class="input md:col-span-2" placeholder="Motivo / Observaciones" x-model="formAcceso.motivo">
-        <input class="input" type="date" x-model="formAcceso.fecha_ingreso">
-        <input class="input" type="time" x-model="formAcceso.hora_ingreso">
-        <input class="input" type="date" x-model="formAcceso.fecha_salida">
-        <input class="input" type="time" x-model="formAcceso.hora_salida">
-      </div>
-
-      <div class="mt-2" x-show="sugerencias.length">
-        <div class="text-xs text-textmut mb-1">Coincidencias:</div>
-        <div class="flex flex-wrap gap-2">
-          <template x-for="p in sugerencias" :key="p.id">
-            <button class="btn" @click="aplicarPersona(p)" x-text="p.nombre_apellido + (p.dominio?' • '+p.dominio:'')"></button>
-          </template>
-        </div>
-      </div>
-
-      <div class="mt-4 flex justify-end gap-2">
-        <button class="btn" @click="modal.acceso=false">Cancelar</button>
-        <button class="btn btn-primary" @click="saveAcceso()">Guardar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==== PAQUETERÍA ==== -->
-  <section x-show="tab==='paqueteria'" x-cloak>
-    <div class="card p-5">
-      <div class="flex flex-wrap gap-2 items-end">
-        <input class="input w-40" type="date" x-model="flt.paq.desde">
-        <input class="input w-40" type="date" x-model="flt.paq.hasta">
-        <input class="input w-60" placeholder="Buscar descripción/entregado a…" x-model="flt.paq.q">
-        <button class="btn btn-primary" @click="openPaq()">+ Nuevo</button>
-        <button class="btn" @click="exportPDF('paqueteria')">Exportar PDF</button>
-        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
-      </div>
-
-      <div class="overflow-x-auto mt-4">
-        <table class="min-w-full text-sm">
-          <thead><tr class="border-b">
-            <th class="py-2 px-2">Descripción</th><th class="py-2 px-2">F.Rec</th><th class="py-2 px-2">H.Rec</th>
-            <th class="py-2 px-2">Recibido por</th><th class="py-2 px-2">Observaciones</th>
-            <th class="py-2 px-2">Entregado a</th><th class="py-2 px-2">F.Ent</th><th class="py-2 px-2">H.Ent</th>
-            <th class="py-2 px-2">Acciones</th>
-          </tr></thead>
-          <tbody>
-            <template x-for="p in paqFiltrada()" :key="p.id">
-              <tr class="border-b hover:bg-slate-50">
-                <td class="py-2 px-2" x-text="p.descripcion"></td>
-                <td class="py-2 px-2" x-text="p.fecha_recepcion"></td>
-                <td class="py-2 px-2" x-text="p.hora_recepcion"></td>
-                <td class="py-2 px-2" x-text="empleadoNombre(p.recibido_por)"></td>
-                <td class="py-2 px-2" x-text="p.observaciones||'—'"></td>
-                <td class="py-2 px-2" x-text="p.entregado_a||'—'"></td>
-                <td class="py-2 px-2" x-text="p.fecha_entrega||'—'"></td>
-                <td class="py-2 px-2" x-text="p.hora_entrega||'—'"></td>
-                <td class="py-2 px-2">
-                  <button class="btn" @click="openPaq(p)">Editar</button>
-                  <button class="btn" @click="delPaq(p.id)">Eliminar</button>
-                </td>
-              </tr>
-            </template>
-            <tr x-show="paq.length===0"><td colspan="9" class="py-6 text-center text-textmut">Sin registros</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Modal Paq -->
-  <div x-show="modal.paq" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" x-transition.opacity>
-    <div class="card w-full max-w-2xl p-5">
-      <h3 class="font-bold text-brand mb-3" x-text="formPaq.id?'Editar paquete':'Nuevo paquete'"></h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input class="input md:col-span-2" placeholder="Descripción" x-model="formPaq.descripcion">
-        <input class="input" type="date" x-model="formPaq.fecha_recepcion">
-        <input class="input" type="time" x-model="formPaq.hora_recepcion">
-        <select class="input" x-model="formPaq.recibido_por">
-          <option value="">Recibido por…</option>
-          <template x-for="e in empleados" :key="e.id">
-            <option :value="e.id" x-text="e.nombre + ' ' + e.apellido"></option>
-          </template>
-        </select>
-        <input class="input md:col-span-2" placeholder="Observaciones" x-model="formPaq.observaciones">
-        <input class="input" placeholder="Entregado a" x-model="formPaq.entregado_a">
-        <input class="input" type="date" x-model="formPaq.fecha_entrega">
-        <input class="input" type="time" x-model="formPaq.hora_entrega">
-      </div>
-      <div class="mt-4 flex justify-end gap-2">
-        <button class="btn" @click="modal.paq=false">Cancelar</button>
-        <button class="btn btn-primary" @click="savePaq()">Guardar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==== AGENDA ==== -->
-  <section x-show="tab==='agenda'" x-cloak>
-    <div class="card p-5">
-      <div class="flex flex-wrap gap-2 items-end">
-        <input class="input w-40" type="date" x-model="flt.ag.desde">
-        <input class="input w-40" type="date" x-model="flt.ag.hasta">
-        <select class="input w-40" x-model="flt.ag.dest">
-          <option value="">Todos</option><option>Amalia</option><option>Valentino</option><option>Otros</option>
-        </select>
-        <button class="btn btn-primary" @click="openAgenda()">+ Nuevo</button>
-        <button class="btn" @click="exportPDF('agenda')">Exportar PDF</button>
-        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
-      </div>
-
-      <div class="overflow-x-auto mt-4">
-        <table class="min-w-full text-sm">
-          <thead><tr class="border-b">
-            <th class="py-2 px-2">Fecha</th><th class="py-2 px-2">Hora</th><th class="py-2 px-2">Para</th>
-            <th class="py-2 px-2">Tarea</th><th class="py-2 px-2">Hecho</th><th class="py-2 px-2">Acciones</th>
-          </tr></thead>
-          <tbody>
-            <template x-for="a in agendaFiltrada()" :key="a.id">
-              <tr class="border-b hover:bg-slate-50">
-                <td class="py-2 px-2" x-text="a.fecha"></td>
-                <td class="py-2 px-2" x-text="a.hora||'—'"></td>
-                <td class="py-2 px-2" x-text="a.destinatario"></td>
-                <td class="py-2 px-2" x-text="a.tarea"></td>
-                <td class="py-2 px-2"><input type="checkbox" :checked="a.done" @change="toggleAgenda(a)"></td>
-                <td class="py-2 px-2">
-                  <button class="btn" @click="openAgenda(a)">Editar</button>
-                  <button class="btn" @click="delAgenda(a.id)">Eliminar</button>
-                </td>
-              </tr>
-            </template>
-            <tr x-show="agenda.length===0"><td colspan="6" class="py-6 text-center text-textmut">Sin registros</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Modal Agenda -->
-  <div x-show="modal.agenda" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" x-transition.opacity>
-    <div class="card w-full max-w-xl p-5">
-      <h3 class="font-bold text-brand mb-3" x-text="formAgenda.id?'Editar tarea':'Nueva tarea'"></h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input class="input" type="date" x-model="formAgenda.fecha">
-        <input class="input" type="time" x-model="formAgenda.hora">
-        <select class="input" x-model="formAgenda.destinatario"><option>Amalia</option><option>Valentino</option><option>Otros</option></select>
-        <input class="input md:col-span-2" placeholder="Tarea" x-model="formAgenda.tarea">
-      </div>
-      <div class="mt-4 flex justify-end gap-2">
-        <button class="btn" @click="modal.agenda=false">Cancelar</button>
-        <button class="btn btn-primary" @click="saveAgenda()">Guardar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==== CONTABLE ==== -->
-  <section x-show="tab==='contable'" x-cloak>
-    <div class="card p-5">
-      <div class="flex flex-wrap gap-2 items-end">
-        <input class="input w-40" type="date" x-model="flt.mov.desde">
-        <input class="input w-40" type="date" x-model="flt.mov.hasta">
-        <select class="input w-40" x-model="flt.mov.tipo"><option value="">Todos</option><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select>
-        <button class="btn btn-primary" @click="openMov()">+ Nuevo</button>
-        <button class="btn" @click="exportPDF('contable')">Exportar PDF</button>
-        <button class="btn" @click="clearFilters()">Limpiar filtros</button>
-      </div>
-
-      <div class="overflow-x-auto mt-4">
-        <table class="min-w-full text-sm">
-          <thead><tr class="border-b">
-            <th class="py-2 px-2">Fecha</th><th class="py-2 px-2">Tipo</th><th class="py-2 px-2">Importe</th>
-            <th class="py-2 px-2">Descripción</th><th class="py-2 px-2">Categoría</th><th class="py-2 px-2">Ticket</th><th class="py-2 px-2">Acciones</th>
-          </tr></thead>
-          <tbody>
-            <template x-for="m in movFiltrados()" :key="m.id">
-              <tr class="border-b hover:bg-slate-50">
-                <td class="py-2 px-2" x-text="m.fecha"></td>
-                <td class="py-2 px-2" x-text="m.tipo"></td>
-                <td class="py-2 px-2" x-text="fmtARS(m.importe)"></td>
-                <td class="py-2 px-2" x-text="m.descripcion||'—'"></td>
-                <td class="py-2 px-2" x-text="m.categoria||'—'"></td>
-                <td class="py-2 px-2">
-                  <a x-show="m.ticket_url" :href="m.ticket_url" class="text-blue-600 underline" target="_blank">Ver</a>
-                  <span x-show="!m.ticket_url">—</span>
-                </td>
-                <td class="py-2 px-2">
-                  <button class="btn" @click="openMov(m)">Editar</button>
-                  <button class="btn" @click="delMov(m.id)">Eliminar</button>
-                </td>
-              </tr>
-            </template>
-            <tr x-show="movs.length===0"><td colspan="7" class="py-6 text-center text-textmut">Sin registros</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Cierre -->
-      <div class="card p-4 mt-4">
-        <div class="flex flex-wrap gap-2 items-end">
-          <select class="input w-40" x-model="cierre.mes"><template x-for="(m,i) in meses" :key="i"><option :value="i+1" x-text="m"></option></template></select>
-          <input class="input w-32" type="number" x-model.number="cierre.anio" placeholder="Año">
-          <button class="btn" @click="calcCierre()">Calcular</button>
-          <button class="btn" x-show="cierreCalc" @click="exportCierre()">PDF</button>
-        </div>
-        <div class="mt-3" x-show="cierreCalc">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div class="card p-3"><div class="text-xs text-textmut">Apertura</div><div class="font-extrabold" x-text="fmtARS(cierreCalc.apertura)"></div></div>
-            <div class="card p-3"><div class="text-xs text-textmut">Ingresado</div><div class="font-extrabold" x-text="fmtARS(cierreCalc.ingresos)"></div></div>
-            <div class="card p-3"><div class="text-xs text-textmut">Gastado</div><div class="font-extrabold" x-text="fmtARS(cierreCalc.gastos)"></div></div>
-            <div class="card p-3"><div class="text-xs text-textmut">Saldo</div><div class="font-extrabold" x-text="fmtARS(cierreCalc.saldo)"></div></div>
+      <section class="rounded-2xl bg-white border border-slate-200 shadow-2xl p-4">
+        <div class="flex items-end gap-3 flex-wrap">
+          <div><label class="label">Desde</label><input id="fDesde" type="date" class="input"></div>
+          <div><label class="label">Hasta</label><input id="fHasta" type="date" class="input"></div>
+          <div id="wrapAsignado" class="hidden">
+            <label class="label">Asignado a</label>
+            <div class="flex gap-1 items-center">
+              <select id="asignado" class="input" style="width:auto">
+                <option>Todos</option><option>Amalia</option><option>Valentino</option><option>Otros</option>
+              </select>
+              <button class="chip" data-quick="Amalia">Amalia</button>
+              <button class="chip" data-quick="Valentino">Valentino</button>
+              <button class="chip" data-quick="Otros">Otros</button>
+            </div>
           </div>
+          <div class="flex-1 min-w-[220px]">
+            <label class="label">Buscar</label>
+            <input id="q" type="text" placeholder="Texto libre" class="input">
+          </div>
+          <button id="newBtn" class="btn btn-gold">+ Nuevo</button>
+          <button id="filterBtn" class="btn">Filtrar</button>
+          <button id="clearBtn" class="btn">Limpiar</button>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- Modal Movimiento -->
-  <div x-show="modal.mov" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" x-transition.opacity>
-    <div class="card w-full max-w-xl p-5">
-      <h3 class="font-bold text-brand mb-3" x-text="formMov.id?'Editar movimiento':'Nuevo movimiento'"></h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <select class="input" x-model="formMov.tipo"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select>
-        <input class="input" type="date" x-model="formMov.fecha">
-        <input class="input" type="number" step="0.01" placeholder="Importe" x-model.number="formMov.importe">
-        <input class="input" placeholder="Descripción" x-model="formMov.descripcion">
-        <select class="input" x-model="formMov.categoria"><option>Caja Chica</option><option>Eventuales</option><option>Apertura</option></select>
-        <div class="md:col-span-2">
-          <label class="text-sm block mb-1">Ticket (imagen)</label>
-          <input class="input" type="file" accept="image/*" @change="onTicketChange">
-          <div class="text-xs text-textmut mt-1" x-text="formMov.ticket_url ? 'Cargado ✔' : 'Sin archivo'"></div>
+        <div id="contableKpis" class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 hidden">
+          <div class="kpi"><div class="text-xs text-slate-500">Ingresos</div><div id="k_ing" class="text-lg font-semibold">—</div></div>
+          <div class="kpi"><div class="text-xs text-slate-500">Egresos</div><div id="k_egr" class="text-lg font-semibold">—</div></div>
+          <div class="kpi"><div class="text-xs text-slate-500">Saldo</div><div id="k_saldo" class="text-lg font-semibold">—</div></div>
         </div>
-      </div>
-      <div class="mt-4 flex justify-end gap-2">
-        <button class="btn" @click="modal.mov=false">Cancelar</button>
-        <button class="btn btn-primary" @click="saveMov()">Guardar</button>
+
+        <div class="table-wrap mt-4">
+          <table class="min-w-full">
+            <thead id="thead" class="text-sm text-slate-600 bg-slate-50"></thead>
+            <tbody id="rows" class="text-sm"></tbody>
+          </table>
+          <p id="empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
+          <p id="err" class="text-center text-red-500 py-2"></p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center p-4">
+      <div class="w-full max-w-4xl rounded-2xl bg-white border border-slate-200 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 id="modalTitle" class="text-lg font-semibold">Nuevo</h3>
+          <div class="flex gap-2"><button id="closeModal" class="btn">Cerrar</button></div>
+        </div>
+        <form id="form" class="grid md:grid-cols-2 gap-3 modal-body"></form>
+        <div class="mt-4 flex justify-between items-center gap-2">
+          <div id="hint" class="text-xs text-slate-500"></div>
+          <div class="flex gap-2"><button id="saveBtn" class="btn btn-gold">Guardar</button></div>
+        </div>
       </div>
     </div>
   </div>
-
-  <!-- ==== PARTE DIARIO ==== -->
-  <section x-show="tab==='parte'" x-cloak>
-    <div class="card p-5">
-      <div class="flex items-end gap-2">
-        <input class="input w-44" type="date" x-model="parte.fecha">
-        <button class="btn" @click="seedParte()">Cargar plantilla</button>
-        <button class="btn btn-primary" @click="copyParte()">Copiar</button>
-        <a class="btn" :href="waLink()" target="_blank">WhatsApp</a>
-      </div>
-      <textarea class="input h-96 mt-4" x-model="parte.texto" placeholder="Editá el parte aquí…"></textarea>
-    </div>
-  </section>
-
-</main>
 
 <script>
-const sb = window.sb;
-const $pdf = window.jspdf;
+const sb = supabase.createClient(
+  "https://ecmjxpnpdgmvnxmbciur.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
+);
 
-function app(){
-return {
-  tab:'accesos',
-  empleados:[],
-  personas:[],
-  accesos:[], paq:[], agenda:[], movs:[],
-  modal:{acceso:false,paq:false,agenda:false,mov:false},
-  // filtros (vacíos por defecto para mostrar TODO)
-  flt:{ acc:{desde:'',hasta:'',q:''}, paq:{desde:'',hasta:'',q:''}, ag:{desde:'',hasta:'',dest:''}, mov:{desde:'',hasta:'',tipo:''} },
-  // formularios
-  formAcceso:{ id:null, nombre_apellido:'', dni:'', vehiculo:'', dominio:'', motivo:'', fecha_ingreso:'', hora_ingreso:'', fecha_salida:'', hora_salida:'' },
-  formPaq:{ id:null, descripcion:'', fecha_recepcion:'', hora_recepcion:'', recibido_por:null, observaciones:'', entregado_a:'', fecha_entrega:'', hora_entrega:'' },
-  formAgenda:{ id:null, fecha:'', hora:'', destinatario:'Amalia', tarea:'', done:false },
-  formMov:{ id:null, tipo:'gasto', fecha:'', importe:0, descripcion:'', categoria:'Caja Chica', ticket_file:null, ticket_url:'' },
-  sugerencias:[],
-  meses:["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
-  cierre:{ mes:new Date().getMonth()+1, anio:new Date().getFullYear() }, cierreCalc:null,
-  parte:{ fecha:new Date().toISOString().slice(0,10), texto:'' },
+/** CONFIG WHATSAPP
+ * Modo 'direct'  -> envía a número (WHATSAPP_PHONE solo dígitos, ej 54911xxxxxxx)
+ * Modo 'chooser' -> abre WhatsApp con el mensaje listo y elegís el grupo (recomendado para grupos)
+ */
+const WHATSAPP_MODE  = 'chooser';     // 'chooser' | 'direct'
+const WHATSAPP_PHONE = '54911XXXXXXXX'; // solo dígitos si usás 'direct'
 
-  fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
-  empleadoNombre(id){ const e=this.empleados.find(x=>x.id===id); return e? (e.nombre+' '+e.apellido):'—' },
+const tabs = {
+  accesos: {
+    table: "accesos",
+    head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal",""],
+    fields: [
+      {k:"nombre",   l:"Persona",   t:"text", r:true},
+      {k:"dni",      l:"DNI",       t:"text"},
+      {k:"vehiculo", l:"Vehículo",  t:"text"},
+      {k:"dominio",  l:"Dominio",   t:"text"},
+      {k:"motivo",   l:"Motivo",    t:"text"},
+      {k:"f_ing",    l:"Fecha ingreso", t:"date"},
+      {k:"h_ing",    l:"Hora ingreso",  t:"time"},
+      {k:"f_sal",    l:"Fecha salida",  t:"date"},
+      {k:"h_sal",    l:"Hora salida",   t:"time"},
+    ],
+    row: r => [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo,r.f_ing,r.h_ing,r.f_sal,r.h_sal, actions(r.id)]
+  },
+  paqueteria: {
+    table: "paqueteria",
+    head: ["Receptor","Descripción","N° ID","Estado","Fecha","Hora","Entregado a","F. Entrega","H. Entrega","Notas",""],
+    fields: [
+      {k:"receptor",    l:"Receptor", t:"text", r:true},
+      {k:"descripcion", l:"Descripción", t:"text", r:true},
+      {k:"id_num",      l:"N° ID", t:"text"},
+      {k:"estado",      l:"Estado", t:"select", p:["en cabina","entregado"], r:true},
+      {k:"fecha",       l:"Fecha",    t:"date"},
+      {k:"hora",        l:"Hora",     t:"time"},
+      {k:"entregado_a", l:"Entregado a", t:"text"},
+      {k:"fecha_entrega", l:"Fecha de entrega", t:"date"},
+      {k:"hora_entrega",  l:"Hora de entrega",  t:"time"},
+      {k:"notas",       l:"Notas",    t:"textarea"},
+    ],
+    row: r => [
+      r.receptor, r.descripcion, r.id_num, r.estado, r.fecha, r.hora,
+      r.entregado_a || "—", r.fecha_entrega || "—", r.hora_entrega || "—",
+      r.notas || "", actions(r.id)
+    ]
+  },
+  contable: {
+    table: "movimientos",
+    head: ["Tipo","Concepto","Monto","Fecha","Comprobante",""],
+    fields: [
+      {k:"tipo",     l:"Tipo",     t:"select", p:["Ingreso","Egreso"], r:true},
+      {k:"concepto", l:"Concepto", t:"text", r:true},
+      {k:"monto",    l:"Monto (ARS)", t:"number", r:true},
+      {k:"fecha",    l:"Fecha",    t:"date"},
+      {k:"file",     l:"Comprobante (imagen)", t:"file"},   // virtual
+    ],
+    row: r => [r.tipo,r.concepto,formatMoney(r.monto),r.fecha, r.url ? `<a class="underline text-amber-700" target="_blank" href="${r.url}">Ver</a>`:"—", actions(r.id)],
+    kpis: true
+  },
+  agenda: {
+    table: "agenda_dom",
+    head: ["Asignado","Tarea","Fecha","Hora","Estado","Notas",""],
+    fields: [
+      {k:"asignado_a", l:"Asignado a", t:"select", p:["Amalia","Valentino","Otros"], r:true},
+      {k:"tarea",      l:"Tarea",   t:"text", r:true},
+      {k:"fecha",      l:"Fecha",   t:"date", r:true},
+      {k:"hora",       l:"Hora",    t:"time"},
+      {k:"estado",     l:"Estado",  t:"select", p:["pendiente","confirmado","completado","cancelado"], r:true},
+      {k:"notas",      l:"Notas",   t:"textarea"},
+    ],
+    row: r => [r.asignado_a, r.tarea, r.fecha, r.hora||"--:--", r.estado, r.notas||"", actions(r.id)],
+    agendaFilter: true
+  },
+  parte: {
+    table: "parte_diario",
+    head: ["Fecha","Inicio","Fin","Caja chica","Resumen",""],
+    fields: [
+      {k:"fecha",       l:"Fecha", t:"date", r:true},
+      {k:"hora_inicio", l:"Hora inicio", t:"time"},
+      {k:"hora_fin",    l:"Hora fin", t:"time"},
+      {k:"caja_chica",  l:"Caja chica (ARS)", t:"number"},
+      {k:"cabina",         l:"CABINA", t:"textarea"},
+      {k:"amt",            l:"AMT", t:"textarea"},
+      {k:"puesto_hudson",  l:"PUESTO HUDSON", t:"textarea"},
+      {k:"c1", l:"Chofer C-1", t:"text"},
+      {k:"c2", l:"Chofer C-2", t:"text"},
+      {k:"c3", l:"Chofer C-3", t:"text"},
+      {k:"c4", l:"Chofer C-4", t:"text"},
+      {k:"v_trailblazer", l:"Trailblazer", t:"text"},
+      {k:"v_amarok",      l:"Amarok", t:"text"},
+      {k:"v_sw4",         l:"SW4", t:"text"},
+      {k:"v_corolla",     l:"Toyota Corolla", t:"text"},
+      {k:"v_q5",          l:"Q5", t:"text"},
+      {k:"v_q7",          l:"Q7", t:"text"},
+      {k:"fam1", l:"Familia #1", t:"text"},
+      {k:"fam2", l:"Familia #2", t:"text"},
+      {k:"fam3", l:"Familia #3", t:"text"},
+      {k:"fam4", l:"Familia #4", t:"text"},
+      {k:"fam5", l:"Familia #5", t:"text"},
+      {k:"empleadas", l:"Empleadas domésticas (una por línea)", t:"textarea"},
+      {k:"niniera",   l:"Niñera", t:"text"},
+      {k:"tec_camaras", l:"Sistemas de cámaras", t:"text"},
+      {k:"tec_cerco",   l:"Cerco eléctrico", t:"text"},
+      {k:"tec_portones",l:"Portones (detalle)", t:"text"},
+      {k:"prof_jardinero", l:"Jardinero", t:"text"},
+      {k:"prof_piletero",  l:"Piletero", t:"text"},
+      {k:"prof_paisajistas", l:"Paisajistas", t:"text"},
+      {k:"prof_fumigador",   l:"Fumigador", t:"text"},
+      {k:"prof_floristas",   l:"Floristas", t:"text"},
+      {k:"amigos_sra",      l:"Amigos de la Sra. (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+      {k:"amigos_isabella", l:"Amigos de Isabella (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+      {k:"amigos_angie",    l:"Amigos de Angie (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+      {k:"elementos", l:"Elementos asignados (una línea por ítem)", t:"textarea"},
+      {k:"otros",     l:"OTROS", t:"textarea"},
+      {k:"agenda_texto", l:"AGENDA (texto)", t:"textarea"},
+    ],
+    row: r => [r.fecha, r.hora_inicio||"--:--", r.hora_fin||"--:--", formatMoney(r.caja_chica), (r.cabina||r.otros||"").toString().slice(0,60)+"…", actions(r.id)]
+  }
+};
 
-  async init(){
-    const { data:{ session } } = await sb.auth.getSession();
-    if(!session){ location.href='./index.html'; return; }
-    await this.refresh();
-  },
-  async refresh(){
-    await Promise.all([this.loadEmpleados(), this.loadPersonas(), this.loadAccesos(), this.loadPaq(), this.loadAgenda(), this.loadMovs()]);
-  },
-  async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
-  clearFilters(){
-    this.flt = {
-      acc:{desde:'',hasta:'',q:''},
-      paq:{desde:'',hasta:'',q:''},
-      ag:{desde:'',hasta:'',dest:''},
-      mov:{desde:'',hasta:'',tipo:''}
-    };
-  },
+const thead = byId("thead"), rows = byId("rows"), empty = byId("empty"), errEl = byId("err");
+const wrapAsignado = byId("wrapAsignado"), selAsignado = byId("asignado");
+const contKpis = byId("contableKpis");
+let current = "accesos", editingId = null;
 
-  // ===== LOADS (ordenado por fechas propias) =====
-  async loadEmpleados(){ try{ const { data } = await sb.from('empleados').select('id,nombre,apellido'); this.empleados = data||[]; }catch{ this.empleados=[]; } },
-  async loadPersonas(){ try{ const { data } = await sb.from('personas').select('*').order('ultima_visita',{ascending:false}).limit(5000); this.personas=data||[]; }catch{ this.personas=[]; } },
-  async loadAccesos(){ try{ const { data } = await sb.from('accesos').select('*').order('fecha_ingreso',{ascending:false}).order('hora_ingreso',{ascending:false}); this.accesos=data||[]; }catch{ this.accesos=[]; } },
-  async loadPaq(){ try{ const { data } = await sb.from('paqueteria').select('*').order('fecha_recepcion',{ascending:false}).order('hora_recepcion',{ascending:false}); this.paq=data||[]; }catch{ this.paq=[]; } },
-  async loadAgenda(){ try{ const { data } = await sb.from('agenda_dom').select('*').order('fecha',{ascending:false}).order('hora',{ascending:false}); this.agenda=data||[]; }catch{ this.agenda=[]; } },
-  async loadMovs(){ try{ const { data } = await sb.from('movimientos').select('*').order('fecha',{ascending:false}); this.movs=data||[]; }catch{ this.movs=[]; } },
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (!data?.session) { location.replace("./index.html"); return; }
+  const today = new Date().toISOString().slice(0,10);
+  byId("fDesde").value = today; byId("fHasta").value = today;
+  buildHead(); toggleExtras(); await load();
+})();
 
-  // ===== Accesos =====
-  accesosFiltrados(){
-    const f=this.flt.acc;
-    return this.accesos.filter(r=>{
-      const fi = r.fecha_ingreso || '';
-      const fs = r.fecha_salida || '';
-      let ok = true;
-      if (f.desde) ok = ok && ((fi && fi >= f.desde) || (fs && fs >= f.desde));
-      if (f.hasta) ok = ok && ((fi && fi <= f.hasta) || (fs && fs <= f.hasta));
-      if (f.q){
-        const q=f.q.toLowerCase();
-        ok = ok && [r.nombre_apellido||'', r.dni||'', r.dominio||''].join(' ').toLowerCase().includes(q);
-      }
-      return ok;
-    });
-  },
-  openAcceso(r){
-    this.formAcceso = r ? JSON.parse(JSON.stringify(r)) :
-      { id:null, nombre_apellido:'', dni:'', vehiculo:'', dominio:'', motivo:'', fecha_ingreso:new Date().toISOString().slice(0,10), hora_ingreso:new Date().toTimeString().slice(0,5), fecha_salida:'', hora_salida:'' };
-    this.sugerencias=[]; this.modal.acceso=true;
-  },
-  buscarSugerencias(){
-    const n=(this.formAcceso.nombre_apellido||'').toLowerCase();
-    if(n.length<2){ this.sugerencias=[]; return; }
-    this.sugerencias = this.personas.filter(p=>(p.nombre_apellido||'').toLowerCase().includes(n)).slice(0,5);
-  },
-  autocompletar(){
-    const dni=(this.formAcceso.dni||'').trim();
-    const dom=(this.formAcceso.dominio||'').trim().toUpperCase();
-    let p=null;
-    if(dom) p=this.personas.find(x=>(x.dominio||'').toUpperCase()===dom);
-    if(!p && dni) p=this.personas.find(x=>(x.dni||'')===dni);
-    if(p) this.aplicarPersona(p);
-  },
-  aplicarPersona(p){
-    this.formAcceso.nombre_apellido=p.nombre_apellido||'';
-    this.formAcceso.dni=p.dni||'';
-    this.formAcceso.vehiculo=p.vehiculo||'';
-    this.formAcceso.dominio=p.dominio||'';
-    this.sugerencias=[];
-  },
-  async saveAcceso(){
-    try{
-      const row={...this.formAcceso};
-      if(row.id) await sb.from('accesos').update(row).eq('id',row.id);
-      else       await sb.from('accesos').insert(row);
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", async ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    current = b.dataset.tab; editingId=null;
+    buildHead(); toggleExtras(); await load();
+  });
+});
+document.querySelectorAll('[data-quick]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ selAsignado.value = btn.dataset.quick; load(); });
+});
+byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
+byId("refreshBtn").addEventListener("click", load);
+byId("filterBtn").addEventListener("click", load);
+byId("exportBtn").addEventListener("click", exportPDF);
+byId("exportCsvBtn").addEventListener("click", exportCSV);
+byId("clearBtn").addEventListener("click", ()=>{ byId("fDesde").value=""; byId("fHasta").value=""; selAsignado.value="Todos"; byId("q").value=""; load(); });
 
-      // upsert en personas (para el futuro autocomplete)
-      if(row.nombre_apellido){
-        await sb.from('personas').upsert({
-          nombre_apellido: row.nombre_apellido,
-          dni: row.dni||null,
-          vehiculo: row.vehiculo||null,
-          dominio: (row.dominio||'').toUpperCase()||null,
-          ultima_visita: new Date().toISOString()
-        }, { onConflict:'dni,dominio' });
-      }
-      this.modal.acceso=false;
-      await Promise.all([this.loadAccesos(), this.loadPersonas()]);
-    }catch(e){ alert(e.message||'No se pudo guardar'); }
-  },
-  async delAcceso(id){ if(!confirm('¿Eliminar?'))return; try{ await sb.from('accesos').delete().eq('id',id); await this.loadAccesos(); }catch(e){ alert(e.message); } },
+const modal = byId("modal"), form = byId("form"), hint = byId("hint");
+byId("newBtn").addEventListener("click", () => openModal());
+byId("closeModal").addEventListener("click", ()=>modal.classList.add("hidden"));
+byId("saveBtn").addEventListener("click", save);
 
-  // ===== Paquetería =====
-  paqFiltrada(){
-    const f=this.flt.paq;
-    return this.paq.filter(p=>{
-      const fr = p.fecha_recepcion || '';
-      let ok=true;
-      if (f.desde) ok = ok && (fr && fr >= f.desde);
-      if (f.hasta) ok = ok && (fr && fr <= f.hasta);
-      if (f.q){
-        const q=f.q.toLowerCase();
-        ok = ok && ((p.descripcion||'').toLowerCase().includes(q) || (p.entregado_a||'').toLowerCase().includes(q));
-      }
-      return ok;
-    });
-  },
-  openPaq(p){
-    this.formPaq = p ? JSON.parse(JSON.stringify(p)) :
-      { id:null, descripcion:'', fecha_recepcion:new Date().toISOString().slice(0,10), hora_recepcion:new Date().toTimeString().slice(0,5), recibido_por:null, observaciones:'', entregado_a:'', fecha_entrega:'', hora_entrega:'' };
-    this.modal.paq=true;
-  },
-  async savePaq(){ try{ const r={...this.formPaq}; if(r.id) await sb.from('paqueteria').update(r).eq('id',r.id); else await sb.from('paqueteria').insert(r); this.modal.paq=false; await this.loadPaq(); }catch(e){ alert(e.message); } },
-  async delPaq(id){ if(!confirm('¿Eliminar?'))return; try{ await sb.from('paqueteria').delete().eq('id',id); await this.loadPaq(); }catch(e){ alert(e.message); } },
-
-  // ===== Agenda =====
-  agendaFiltrada(){
-    const f=this.flt.ag;
-    return this.agenda.filter(a=>{
-      const fa = a.fecha || '';
-      let ok=true;
-      if (f.desde) ok=ok && (fa && fa >= f.desde);
-      if (f.hasta) ok=ok && (fa && fa <= f.hasta);
-      if (f.dest)  ok=ok && a.destinatario===f.dest;
-      return ok;
-    });
-  },
-  openAgenda(a){
-    this.formAgenda = a ? JSON.parse(JSON.stringify(a)) :
-      { id:null, fecha:new Date().toISOString().slice(0,10), hora:'', destinatario:'Amalia', tarea:'', done:false };
-    this.modal.agenda=true;
-  },
-  async saveAgenda(){ try{ const r={...this.formAgenda}; if(r.id) await sb.from('agenda_dom').update(r).eq('id',r.id); else await sb.from('agenda_dom').insert(r); this.modal.agenda=false; await this.loadAgenda(); }catch(e){ alert(e.message); } },
-  async delAgenda(id){ if(!confirm('¿Eliminar?'))return; try{ await sb.from('agenda_dom').delete().eq('id',id); await this.loadAgenda(); }catch(e){ alert(e.message); } },
-  async toggleAgenda(a){ try{ await sb.from('agenda_dom').update({done:!a.done}).eq('id',a.id); a.done=!a.done; }catch(e){ alert(e.message); } },
-
-  // ===== Contable =====
-  movFiltrados(){
-    const f=this.flt.mov;
-    return this.movs.filter(m=>{
-      const fm = m.fecha || '';
-      let ok=true;
-      if (f.desde) ok=ok && (fm && fm >= f.desde);
-      if (f.hasta) ok=ok && (fm && fm <= f.hasta);
-      if (f.tipo)  ok=ok && m.tipo===f.tipo;
-      return ok;
-    });
-  },
-  onTicketChange(ev){ this.formMov.ticket_file = ev.target.files?.[0] || null; },
-  openMov(m){
-    this.formMov = m ? JSON.parse(JSON.stringify(m)) :
-      { id:null, tipo:'gasto', fecha:new Date().toISOString().slice(0,10), importe:0, descripcion:'', categoria:'Caja Chica', ticket_file:null, ticket_url:'' };
-    this.modal.mov=true;
-  },
-  async saveMov(){
-    try{
-      let url=this.formMov.ticket_url||null;
-      if(this.formMov.ticket_file){
-        const f=this.formMov.ticket_file, ext=(f.name.split('.').pop()||'jpg').toLowerCase();
-        const path=`${(await sb.auth.getUser()).data.user.id}/${Date.now()}.${ext}`;
-        const up=await sb.storage.from('tickets').upload(path,f,{upsert:true,contentType:f.type||'image/jpeg'});
-        if(up.error) throw up.error;
-        url = sb.storage.from('tickets').getPublicUrl(path).data.publicUrl;
-      }
-      const row={ tipo:this.formMov.tipo, fecha:this.formMov.fecha, importe:+this.formMov.importe||0, descripcion:this.formMov.descripcion||null, categoria:this.formMov.categoria||null, ticket_url:url };
-      if(this.formMov.id) await sb.from('movimientos').update(row).eq('id',this.formMov.id);
-      else await sb.from('movimientos').insert(row);
-      this.modal.mov=false; await this.loadMovs();
-    }catch(e){ alert(e.message||'No se pudo guardar'); }
-  },
-  async delMov(id){ if(!confirm('¿Eliminar?'))return; try{ await sb.from('movimientos').delete().eq('id',id); await this.loadMovs(); }catch(e){ alert(e.message); } },
-  calcCierre(){
-    const y=this.cierre.anio|0, m=this.cierre.mes|0;
-    const d0=new Date(y,m-1,1).toISOString().slice(0,10);
-    const d1=new Date(y,m,0).toISOString().slice(0,10);
-    const mm=this.movs.filter(x=>x.fecha>=d0 && x.fecha<=d1);
-    const apertura=(mm.find(x=>x.tipo==='ingreso' && x.categoria==='Apertura')?.importe)||0;
-    const ingresos=mm.filter(x=>x.tipo==='ingreso' && x.categoria!=='Apertura').reduce((a,b)=>a+(+b.importe||0),0);
-    const gastos=mm.filter(x=>x.tipo==='gasto').reduce((a,b)=>a+(+b.importe||0),0);
-    this.cierreCalc={ apertura:+apertura||0, ingresos:+ingresos||0, gastos:+gastos||0, saldo:(+apertura||0)+(+ingresos||0)-(+gastos||0) };
-  },
-  exportCierre(){
-    if(!$pdf?.jsPDF || !this.cierreCalc){ alert('PDF no disponible'); return; }
-    const doc=new $pdf.jsPDF();
-    doc.setFontSize(14); doc.text(`Cierre ${this.meses[this.cierre.mes-1]} ${this.cierre.anio}`,14,16);
-    doc.setFontSize(11);
-    doc.text(`Apertura: ${this.fmtARS(this.cierreCalc.apertura)}`,14,26);
-    doc.text(`Ingresado: ${this.fmtARS(this.cierreCalc.ingresos)}`,14,33);
-    doc.text(`Gastado: ${this.fmtARS(this.cierreCalc.gastos)}`,14,40);
-    doc.text(`Saldo: ${this.fmtARS(this.cierreCalc.saldo)}`,14,47);
-    doc.save(`cierre_${this.cierre.anio}_${String(this.cierre.mes).padStart(2,'0')}.pdf`);
-  },
-
-  // ===== Export genérico =====
-  exportPDF(seccion){
-    if(!$pdf?.jsPDF){ alert('PDF no disponible'); return; }
-    const doc=new $pdf.jsPDF(); let cols=[], rows=[];
-    if(seccion==='accesos'){ cols=['Nombre','DNI','Vehículo','Dominio','Motivo','F.Ing','H.Ing','F.Sal','H.Sal']; rows=this.accesosFiltrados().map(r=>[r.nombre_apellido,r.dni||'',r.vehiculo||'',r.dominio||'',r.motivo||'',r.fecha_ingreso||'',r.hora_ingreso||'',r.fecha_salida||'',r.hora_salida||'']); }
-    if(seccion==='paqueteria'){ cols=['Descripción','F.Rec','H.Rec','Recibido por','Obs','Entregado a','F.Ent','H.Ent']; rows=this.paqFiltrada().map(p=>[p.descripcion,p.fecha_recepcion,p.hora_recepcion,this.empleadoNombre(p.recibido_por),p.observaciones||'',p.entregado_a||'',p.fecha_entrega||'',p.hora_entrega||'']); }
-    if(seccion==='agenda'){ cols=['Fecha','Hora','Para','Tarea','OK']; rows=this.agendaFiltrada().map(a=>[a.fecha,a.hora||'',a.destinatario,a.tarea,a.done?'Sí':'No']); }
-    if(seccion==='contable'){ cols=['Fecha','Tipo','Importe','Descripción','Categoría']; rows=this.movFiltrados().map(m=>[m.fecha,m.tipo,this.fmtARS(m.importe),m.descripcion||'',m.categoria||'']); }
-    doc.setFontSize(14); doc.text(seccion.toUpperCase(),14,16);
-    doc.autoTable({ head:[cols], body:rows, startY:22 });
-    doc.save(`${seccion}_${new Date().toISOString().slice(0,10)}.pdf`);
-  },
-
-  // ===== Parte =====
-  seedParte(){
-    const ff=new Date(this.parte.fecha).toLocaleDateString('es-AR');
-    this.parte.texto=`SERVICIO ${ff}
-07:00 A 19:00
-
-CABINA:
-- …
-
-AMT:
-- …
-
-PUESTO HUDSON:
-- -///-
-
-*CAJA CHICA: ${this.fmtARS(this.movs.filter(m=>m.categoria==='Caja Chica'&&m.tipo==='ingreso').reduce((a,b)=>a+(+b.importe||0),0)-this.movs.filter(m=>m.categoria==='Caja Chica'&&m.tipo==='gasto').reduce((a,b)=>a+(+b.importe||0),0))}*
-
-EMPLEADAS DOMESTICAS:
-- …
-
-NIÑERA:
-- …
-
-SISTEMA DE CAMARAS: SIN NOVEDAD
-CERCO ELECTRICO: SIN NOVEDAD
-PORTONES: SIN NOVEDAD
-
-*AGENDA ${ff}*
-- …`;
-  },
-  copyParte(){ navigator.clipboard.writeText(this.parte.texto||''); alert('Parte copiado'); },
-  waLink(){ return 'https://wa.me/?text=' + encodeURIComponent(this.parte.texto||''); }
+function toggleExtras(){
+  wrapAsignado.classList.toggle("hidden", tabs[current].agendaFilter!==true);
+  contKpis.classList.toggle("hidden", tabs[current].kpis!==true);
 }
+function buildHead(){ thead.innerHTML = `<tr class="border-b border-slate-200">${tabs[current].head.map(h=>`<th class="text-left py-2 pr-4">${h}</th>`).join("")}</tr>`; }
+function filterLocal(list){
+  const q = byId("q").value.trim().toLowerCase(); if (!q) return list;
+  return list.filter(r => JSON.stringify(r).toLowerCase().includes(q));
 }
+function actions(id){
+  return `<div class="flex gap-2">
+    <button class="chip" onclick="editRow('${id}')">Editar</button>
+    <button class="chip" style="border-color:#ef4444;color:#991b1b" onclick="deleteRow('${id}')">Eliminar</button>
+  </div>`;
+}
+
+window.editRow = async function(id){
+  editingId = id;
+  const { data, error } = await sb.from(tabs[current].table).select("*").eq("id", id).single();
+  if (error){ alert(error.message); return; }
+  openModal(data);
+}
+window.deleteRow = async function(id){
+  const name = nice(current);
+  if (!confirm(`¿Eliminar este registro de ${name}? Esta acción no se puede deshacer.`)) return;
+  const { error } = await sb.from(tabs[current].table).delete().eq('id', id);
+  if (error){ alert("Eliminar: " + error.message); return; }
+  await load();
+};
+
+async function load(){
+  rows.innerHTML=""; empty.classList.add("hidden"); errEl.textContent="";
+  const desde = byId("fDesde").value, hasta = byId("fHasta").value;
+  let q = sb.from(tabs[current].table).select("*").order("created_at",{ascending:false});
+  const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
+  if (desde) q = q.gte(dateCol, desde);
+  if (hasta) q = q.lte(dateCol, hasta);
+  if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
+  const { data, error } = await q;
+  if (error){ errEl.textContent = error.message; return; }
+  const list = filterLocal(data||[]);
+  if (!list.length){ empty.classList.remove("hidden"); if(current==="contable") updateKpis([]); return; }
+
+  for (const r of list){
+    const arr = tabs[current].row(r);
+    const t = arr.map((v,i)=> {
+      const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
+      return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
+    }).join("");
+    rows.insertAdjacentHTML("beforeend", `<tr>${t}</tr>`);
+  }
+  if (current==="contable") updateKpis(list);
+}
+function updateKpis(list){
+  let ing=0,egr=0; for(const r of list){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
+  byId('k_ing').textContent   = formatMoney(ing);
+  byId('k_egr').textContent   = formatMoney(egr);
+  byId('k_saldo').textContent = formatMoney(ing-egr);
+}
+
+async function kpiSaldoHasta(fechaISO){
+  const { data, error } = await sb.from('movimientos').select('monto,tipo').lte('fecha', fechaISO);
+  if (error) return 0;
+  let ing=0,egr=0;
+  for(const r of (data||[])){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); else if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
+  return ing - egr;
+}
+async function textoAgendaDelDia(fechaISO){
+  const { data, error } = await sb.from('agenda_dom').select('asignado_a,tarea,hora,estado').eq('fecha', fechaISO).order('hora',{ascending:true});
+  if (error) return "";
+  if (!data?.length) return "";
+  const fmt = (h)=> h ? h.slice(0,5) : "--:--";
+  let out = `Agenda ${fechaISO.split('-').reverse().join('/')}\n`;
+  for (const r of data){ out += `• ${r.asignado_a}: ${fmt(r.hora)} — ${r.tarea} [${r.estado}]\n`; }
+  return out.trim();
+}
+
+async function openModal(data=null){
+  byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + nice(current);
+  form.innerHTML=""; hint.innerHTML="";
+  for (const f of tabs[current].fields){
+    form.insertAdjacentHTML("beforeend", fieldHTML(f, data? data[f.k] : null));
+  }
+  if (current==="parte"){
+    hint.innerHTML = 'Formulario largo, desplazable. El WhatsApp se abre al guardar.';
+    if (!editingId) {
+      const hoy = new Date().toISOString().slice(0,10);
+      const d = byId("f_fecha"); if (d) d.value = hoy;
+      const saldo = await kpiSaldoHasta(hoy);
+      const c = byId('f_caja_chica'); if (c && (c.value==="" || c.value===null)) c.value = String(saldo.toFixed(2));
+      const ag = await textoAgendaDelDia(hoy);
+      const a = byId('f_agenda_texto'); if (a && !a.value) a.value = ag;
+    }
+  }
+  modal.classList.remove("hidden");
+}
+function fieldHTML(f, value){
+  const base = `class="input"`; const v = value ?? "";
+  if (f.t==="select")  return `<div><label class="label">${f.l}${f.r?" *":""}</label><select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select></div>`;
+  if (f.t==="textarea")return `<div class="md:col-span-2"><label class="label">${f.l}${f.r?" *":""}</label><textarea id="f_${f.k}" rows="3" ${base}>${v??""}</textarea></div>`;
+  return `<div><label class="label">${f.l}${f.r?" *":""}</label><input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base}></div>`;
+}
+
+async function save(ev){
+  ev?.preventDefault?.();
+  const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
+  const def = tabs[current]; let payload = { user_id: uid };
+
+  const PARTE_VIRTUAL = new Set([
+    "c1","c2","c3","c4","v_trailblazer","v_amarok","v_sw4","v_corolla","v_q5","v_q7",
+    "fam1","fam2","fam3","fam4","fam5","empleadas","niniera",
+    "tec_camaras","tec_cerco","tec_portones","prof_jardinero","prof_piletero","prof_paisajistas","prof_fumigador","prof_floristas",
+    "amigos_sra","amigos_isabella","amigos_angie","elementos"
+  ]);
+
+  for (const f of def.fields){
+    if (f.k === "file") continue;               // contable: evitar columna inexistente
+    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue; // parte: campos virtuales
+    const el = byId(`f_${f.k}`); if (!el) continue;
+    let v = el.value;
+    if (f.t==="number" && v!=="") v = Number(v);
+    if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
+    if (v==="") v = null;
+    payload[f.k] = v;
+  }
+
+  // Transformaciones PARTE
+  if (current==="parte"){
+    payload.choferes = [byId('f_c1').value,byId('f_c2').value,byId('f_c3').value,byId('f_c4').value].filter(x=>x && x.trim());
+    payload.novedades_vehiculos = clean({
+      "Trailblazer": byId('f_v_trailblazer').value || null,
+      "Amarok": byId('f_v_amarok').value || null,
+      "SW4": byId('f_v_sw4').value || null,
+      "Toyota Corolla": byId('f_v_corolla').value || null,
+      "Q5": byId('f_v_q5').value || null,
+      "Q7": byId('f_v_q7').value || null,
+    });
+    payload.familia_en_quinta = clean({ "1":val('f_fam1'), "2":val('f_fam2'), "3":val('f_fam3'), "4":val('f_fam4'), "5":val('f_fam5') });
+    payload.personal_domestico = clean({ "empleadas": (val('f_empleadas')||"").split('\n').map(s=>s.trim()).filter(Boolean), "niniera": val('f_niniera') });
+    payload.sistemas_tecnicos = clean({ "camaras": val('f_tec_camaras'), "cerco": val('f_tec_cerco'), "portones": val('f_tec_portones') });
+    payload.profesionales = clean({ "jardinero": val('f_prof_jardinero'), "piletero": val('f_prof_piletero'), "paisajistas": val('f_prof_paisajistas'), "fumigador": val('f_prof_fumigador'), "floristas": val('f_prof_floristas') });
+    payload.invitados = clean({ "amigos_sra": val('f_amigos_sra'), "amigos_isabella": val('f_amigos_isabella'), "amigos_angie": val('f_amigos_angie') });
+    payload.elementos_asignados = (val('f_elementos')||"").split('\n').map(s=>s.trim()).filter(Boolean);
+  }
+
+  // Upload comprobante (Contable)
+  if (current==="contable"){
+    const fi = byId("f_file");
+    if (fi && fi.files && fi.files.length){
+      const file = fi.files[0];
+      const path = `${uid}/${Date.now()}_${file.name}`;
+      const up = await sb.storage.from("tickets").upload(path, file, { upsert: false });
+      if (up.error){ alert("Upload: " + up.error.message); return; }
+      const { data: pub } = sb.storage.from("tickets").getPublicUrl(path);
+      payload.url = pub?.publicUrl || null;
+    }
+  }
+
+  let resp;
+  if (editingId){ resp = await sb.from(def.table).update(payload).eq('id', editingId);
+  } else { resp = await sb.from(def.table).insert(payload); }
+  if (resp.error){ alert("Guardar: " + resp.error.message); return; }
+
+  // Abrir WhatsApp con el mensaje (chooser/direct)
+  if (current==="parte"){
+    const { data: row } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if (row?.id){
+      const { data, error } = await sb.from('parte_diario_whatsapp').select('mensaje').eq('id', row.id).single();
+      if (!error && data?.mensaje){
+        const msg = encodeURIComponent(data.mensaje);
+        if (WHATSAPP_MODE === 'direct'){
+          const phone = (WHATSAPP_PHONE || "").replace(/\D/g,'');
+          const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
+          window.open(url, '_blank');
+        } else {
+          const url = `https://api.whatsapp.com/send?text=${msg}`; // elegir grupo/contacto
+          window.open(url, '_blank');
+        }
+      }
+    }
+  }
+
+  editingId = null;
+  modal.classList.add("hidden");
+  await load();
+}
+
+function exportPDF(){
+  const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", agenda:"Agenda", parte:"Parte Diario"};
+  const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
+  const body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
+  if (!body.length){ alert("No hay datos para exportar."); return; }
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const title = `CRM — ${map[current]}`; doc.setFontSize(14); doc.text(title, 40, 40);
+  doc.autoTable({ startY:60, head:[head], body, styles:{ fontSize:9, cellPadding:4 }, headStyles:{ fillColor:[245,158,11] }, theme:'striped' });
+  doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+function exportCSV(){
+  const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0, -1);
+  const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0, -1).map(td => td.innerText.replaceAll("\n"," ").trim()));
+  if (!rowsData.length){ alert("No hay datos para exportar."); return; }
+  const escCSV = (v) => { const s = String(v ?? ""); return /[",\n;]/.test(s) ? `"${s.replaceAll('"','""')}"` : s; };
+  const csv = [head.map(escCSV).join(";")].concat(rowsData.map(r => r.map(escCSV).join(";"))).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"}); const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); const map = {accesos:"Accesos", paqueteria:"Paqueteria", contable:"Contable", agenda:"Agenda", parte:"Parte_Diario"};
+  a.href = url; a.download = `${map[current]}_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function byId(id){ return document.getElementById(id); }
+function esc(v){ return (""+v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); }
+function nice(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function clean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
+function val(id){ const el=byId(id); return el? (el.value||null) : null; }
 </script>
 </body>
 </html>
