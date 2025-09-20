@@ -800,8 +800,8 @@ async function load(clearBefore = true){
             .select("*", { count: "exact", head: false });
 
   // Fechas por tabla
-  const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
-  if (desde) q = q.gte(dateCol, desde);
+  const dateCol = (current==="accesos") ? "f_ing" : (current==="contable" ? "fecha" : "fecha");
+if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
 
   // Filtro asignado (Agenda)
