@@ -413,7 +413,7 @@ restoreState();
         <button data-tab="accesos"    class="tab active">Accesos</button>
         <button data-tab="paqueteria" class="tab">Paquetería</button>
         <button data-tab="contable"   class="tab">Contable</button>
-        <button data-tab="agenda"     class="tab">Agenda</button>
+        
         <button data-tab="parte"      class="tab">Parte diario</button>
       </nav>
 
@@ -436,7 +436,7 @@ restoreState();
 
           <div class="flex-1 min-w-[220px]">
             <label class="label">Buscar</label>
-            <input id="q" type="text" placeholder="Texto libre (nombre, apellido, DNI, etc.)" class="input">
+            <input id="q" type="text" placeholder="Buscar por nombre, DNI, patente, concepto..." class="input">
             <div class="note mt-1" id="extraHint"></div>
           </div>
 
@@ -530,13 +530,13 @@ const tabs = {
     table: "paqueteria",
     head: ["Receptor","Descripción","N° ID","Estado","Fecha","Hora","Entregado a","F. Entrega","H. Entrega","Notas",""],
     fields: [
-      {k:"receptor",    l:"Receptor", t:"text", r:true},
+      {k:"receptor",    l:"Receptor", t:"text", r:true, autocomplete:"personas"},
       {k:"descripcion", l:"Descripción", t:"text", r:true},
       {k:"id_num",      l:"N° ID", t:"text"},
       {k:"estado",      l:"Estado", t:"select", p:["en cabina","entregado"], r:true},
       {k:"fecha",       l:"Fecha",    t:"date"},
       {k:"hora",        l:"Hora",     t:"time"},
-      {k:"entregado_a", l:"Entregado a", t:"text"},
+      {k:"entregado_a", l:"Entregado a", t:"text", autocomplete:"personas"},
       {k:"fecha_entrega", l:"Fecha de entrega", t:"date"},
       {k:"hora_entrega",  l:"Hora de entrega",  t:"time"},
       {k:"notas",       l:"Notas",    t:"textarea"},
@@ -559,22 +559,7 @@ const tabs = {
     ],
     row: r => [r.tipo,r.concepto,formatMoney(r.monto),r.fecha, r.url ? `<a class="underline text-amber-700" target="_blank" href="${r.url}">Ver</a>`:"—", actions(r.id)],
     kpis: true
-  },
-  agenda: {
-    table: "agenda_dom",
-    head: ["Asignado","Tarea","Fecha","Hora","Estado","Notas",""],
-    fields: [
-      {k:"asignado_a", l:"Asignado a", t:"select", p:["Amalia","Valentino","Otros"], r:true},
-      {k:"tarea",      l:"Tarea",   t:"text", r:true},
-      {k:"fecha",      l:"Fecha",   t:"date", r:true},
-      {k:"hora",       l:"Hora",    t:"time"},
-      {k:"estado",     l:"Estado",  t:"select", p:["pendiente","confirmado","completado","cancelado"], r:true},
-      {k:"notas",      l:"Notas",   t:"textarea"},
-    ],
-    row: r => [r.asignado_a, r.tarea, r.fecha, r.hora||"--:--", r.estado, r.notas||"", actions(r.id)],
-    agendaFilter: true
-  },
-  parte: {
+  }, parte: {
     table: "parte_diario",
     head: ["Fecha","Inicio","Fin","Caja chica","Resumen",""],
     fields: [
@@ -1287,6 +1272,93 @@ openModal = async function(data=null){
 
 // Initialize restore before first load
 restoreState();
+
+
+/* ========= Typeahead / Autocomplete ========= */
+function debounce(fn, delay){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), delay); }; }
+
+async function suggestFromPersonas(prefix){
+  if (!prefix || prefix.length < 1) return [];
+  const { data, error } = await sb.from('personas')
+    .select('nombre,dni,telefono,email')
+    .ilike('nombre', `${prefix}%`)
+    .order('nombre', { ascending: true })
+    .limit(8);
+  if (error) return [];
+  return (data||[]).map(p=> (p.dni? `${p.nombre} — DNI ${p.dni}` : p.nombre));
+}
+
+async function suggestDistinct(table, column, prefix){
+  if (!prefix || prefix.length < 1) return [];
+  // We ask server for values starting with prefix and distinct.
+  const { data, error } = await sb.rpc('distinct_prefix', { p_table: table, p_column: column, p_prefix: prefix }); // fallback below if function absent
+  if (!error && data) return data.slice(0,8);
+  // Fallback: simple ilike + client distinct
+  const { data: rows, error: e2 } = await sb.from(table).select(column).ilike(column, `${prefix}%`).limit(25);
+  if (e2) return [];
+  const set = new Set(); const out = [];
+  for (const r of rows||[]){ const v = r[column]; if (v && !set.has(v)){ set.add(v); out.push(v); if (out.length>=8) break; } }
+  return out;
+}
+function attachAutocomplete(inputEl, provider){
+  let wrap, list; inputEl.setAttribute('autocomplete','off');
+  function ensure(){
+    if (wrap) return;
+    wrap = document.createElement('ul');
+    wrap.className = 'suggest';
+    inputEl.parentElement.style.position = 'relative';
+    inputEl.parentElement.appendChild(wrap);
+  }
+  const update = debounce(async ()=>{
+    const q = inputEl.value.trim();
+    if (!q){ if(wrap) wrap.innerHTML = ''; return; }
+    ensure();
+    const items = await provider(q);
+    if (!items.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = items.map(v=>`<li>${esc(v)}</li>`).join('');
+    wrap.querySelectorAll('li').forEach(li=>{
+      li.addEventListener('click', ()=>{ inputEl.value = li.textContent.replace(/ — DNI .*/,''); wrap.innerHTML=''; });
+    });
+  }, 220);
+  inputEl.addEventListener('input', update);
+  inputEl.addEventListener('blur', ()=> setTimeout(()=>{ if(wrap) wrap.innerHTML=''; }, 120));
+}
+
+/* Hook into openModal to wire fields */
+const __openModalForAuto = openModal;
+openModal = async function(data=null){
+  await __openModalForAuto(data);
+  // personas-based
+  const personasFields = ['f_nombre','f_dni','f_entregado_a','f_receptor'];
+  personasFields.forEach(id=>{
+    const el = byId(id);
+    if (el) attachAutocomplete(el, suggestFromPersonas);
+  });
+  // distincts for accesos
+  if (current==='accesos'){
+    const veh = byId('f_vehiculo'); if (veh) attachAutocomplete(veh, (q)=>suggestDistinct('accesos','vehiculo',q));
+    const dom = byId('f_dominio');  if (dom) attachAutocomplete(dom, (q)=>suggestDistinct('accesos','dominio',q));
+    const mot = byId('f_motivo');   if (mot) attachAutocomplete(mot, (q)=>suggestDistinct('accesos','motivo',q));
+  }
+  // paqueteria
+  if (current==='paqueteria'){
+    const idn = byId('f_id_num'); if (idn) attachAutocomplete(idn, (q)=>suggestDistinct('paqueteria','id_num',q));
+    const des = byId('f_descripcion'); if (des) attachAutocomplete(des, (q)=>suggestDistinct('paqueteria','descripcion',q));
+  }
+}
+/* ========= Autoregistro en personas ========= */
+async function ensurePersonaFrom(formData){
+  const nombre = formData.nombre?.trim(); const dni = formData.dni?.trim();
+  if (!nombre && !dni) return;
+  const { data } = await sb.auth.getUser();
+  const user_id = data?.user?.id || null;
+  // si ya existe por dni o nombre, no insertamos
+  let q = sb.from('personas').select('id').eq('user_id', user_id).limit(1);
+  if (dni) q = q.or(`dni.eq.${dni},nombre.eq.${nombre||''}`); else q = q.eq('nombre', nombre);
+  const { data: found, error: e1 } = await q;
+  if (!e1 && found && found.length) return;
+  await sb.from('personas').insert({ user_id, nombre: (nombre||null), dni: (dni||null) });
+}
 
 </script>
 </body>
