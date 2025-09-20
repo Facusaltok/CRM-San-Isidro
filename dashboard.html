@@ -4,10 +4,330 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>CRM — Dashboard</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.tailwindcss.com">
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2">
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js">
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
+</script>
 <style>
   :root{ color-scheme: light; }
   body{ background:#fff; position:relative; overflow-x:hidden; }
@@ -28,6 +348,7 @@
   .kpi{border:1px solid rgb(226 232 240);border-radius:14px;background:#fff;padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.06)}
   .table-wrap{max-height:65vh; overflow:auto;}
   .modal-body{max-height:75vh; overflow:auto;}
+  .modal-footer-shadow{box-shadow:0 -6px 18px rgba(0,0,0,.06);}
   .btn{padding:.55rem .95rem;border-radius:.8rem;border:1px solid rgb(203 213 225);background:#fff; transition: all .25s ease}
   .btn:hover{ transform: translateY(-1px); box-shadow:0 10px 24px rgba(0,0,0,.08)}
   .btn-gold{background:#f59e0b;color:#111827;border-color:#f59e0b}
@@ -163,7 +484,7 @@
           <div class="flex gap-2"><button id="closeModal" class="btn">Cerrar</button></div>
         </div>
         <form id="form" class="grid md:grid-cols-2 gap-3 modal-body"></form>
-        <div class="mt-4 flex justify-between items-center gap-2">
+        <div class="mt-4 flex justify-between items-center gap-2 modal-footer-shadow">
           <div id="hint" class="text-xs text-slate-500"></div>
           <div class="flex gap-2"><button id="saveBtn" class="btn btn-gold">Guardar</button></div>
         </div>
@@ -604,7 +925,7 @@ function renderParteForm(data){
       <div class="md:col-span-1"><label class="label">Fecha *</label><input id="f_fecha" type="date" class="input" value="${data?.fecha??''}"></div>
       <div><label class="label">Hora inicio</label><input id="f_hora_inicio" type="time" class="input" value="${data?.hora_inicio??''}"></div>
       <div><label class="label">Hora fin</label><input id="f_hora_fin" type="time" class="input" value="${data?.hora_fin??''}"></div>
-      <div><label class="label">Caja chica (ARS)</label><input id="f_caja_chica" type="number" class="input" value="${data?.caja_chica??''}"></div>
+      <div><label class="label">Caja chica (ARS)</label><input id="f_caja_chica" type="number" class="input" value="${data?.caja_chica??''}"><div class="note mt-1" id="caja_preview"></div></div>
    </div>`;
 
   const op = 
@@ -884,6 +1205,86 @@ function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR"
 function nice(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function clean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
 function val(id){ const el=byId(id); return el? (el.value||null) : null; }
+
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
 </script>
 </body>
 </html>
