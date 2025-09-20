@@ -357,3 +357,25 @@ select
   end as horas
 from public.accesos;
 
+create or replace function public.distinct_prefix(p_table text, p_column text, p_prefix text)
+returns text[] language plpgsql stable as $$
+declare sql text; res text[];
+begin
+  sql := format($f$
+    select array_agg(val order by val) from (
+      select distinct %1$I as val
+      from %2$I
+      where %1$I ilike %3$L
+      order by %1$I
+      limit 12
+    ) t
+  $f$, p_column, p_table, p_prefix || '%');
+  execute sql into res;
+  return coalesce(res, array[]::text[]);
+end$$;
+
+create index if not exists idx_personas_nombre on public.personas (lower(nombre));
+create index if not exists idx_personas_dni on public.personas (dni);
+create index if not exists idx_acc_vehiculo on public.accesos (lower(vehiculo));
+create index if not exists idx_acc_dominio on public.accesos (lower(dominio));
+create index if not exists idx_acc_motivo on public.accesos (lower(motivo));
