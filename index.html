@@ -1,209 +1,73 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CRM San Isidro — Acceso</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Anti-cache headers for initial load -->
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRM — Acceso</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
-    :root{
-      --bg:#0b1220;         /* fondo oscuro elegante */
-      --panel:#0f172a;      /* slate-900 */
-      --card:#111827;       /* gray-900 */
-      --muted:#94a3b8;      /* slate-400 */
-      --text:#e5e7eb;       /* gray-200 */
-      --gold:#C7A961;
-      --line:#1f2937;
-      --ring:0 10px 30px rgba(0,0,0,.45);
-      --radius:18px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; font-family:Montserrat,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      background:
-        radial-gradient(1200px 600px at -10% -10%, rgba(199,169,97,.10), transparent 60%),
-        radial-gradient(1200px 600px at 110% 110%, rgba(199,169,97,.10), transparent 60%),
-        var(--bg);
-      color:var(--text);
-    }
-    .wrap{min-height:100%; display:grid; place-items:center; padding:24px}
-    .card{
-      background:linear-gradient(180deg, rgba(17,24,39,.85), rgba(17,24,39,.92));
-      border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--ring);
-      width:min(460px, 96vw); overflow:hidden;
-    }
-    .header{padding:24px 24px 0; display:flex; align-items:center; gap:12px}
-    .logo{width:28px;height:28px;color:var(--gold)}
-    .title{font-weight:800; font-size:20px}
-    .subtitle{color:var(--muted); font-size:13px}
-    .body{padding:24px}
-    .field{margin-bottom:14px}
-    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px}
-    .input{
-      width:100%; height:44px; padding:0 12px; border-radius:12px;
-      border:1px solid #263241; background:#0b1220; color:#e5e7eb;
-      outline:none; box-shadow:none;
-    }
-    .input:focus{border-color:#39475c; box-shadow:0 0 0 3px rgba(199,169,97,.18)}
-    .row{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px}
-    .muted{color:var(--muted); font-size:12px}
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      height:44px; padding:0 14px; border-radius:12px; border:0; cursor:pointer;
-      font-weight:700; letter-spacing:.2px;
-    }
-    .btn.gold{background:var(--gold); color:#111827}
-    .btn.ghost{background:transparent; border:1px solid #263241; color:#e5e7eb}
-    .actions{display:flex; gap:10px; margin-top:12px}
-    .error{background:#2b1a1a; border:1px solid #6b2a2a; color:#fca5a5; padding:10px 12px; border-radius:12px; font-size:13px; display:none}
-    .ok{background:#11271c; border:1px solid #1f7a41; color:#86efac; padding:10px 12px; border-radius:12px; font-size:13px; display:none}
-    .pw-wrap{position:relative}
-    .pw-toggle{position:absolute; right:10px; top:50%; transform:translateY(-50%); background:transparent; border:0; color:#cbd5e1; cursor:pointer}
-    .footer{padding:0 24px 20px; display:flex; align-items:center; justify-content:center}
-    .spinner{width:16px;height:16px;border-radius:50%; border:2px solid #111827; border-top-color:#0b1220; border-right-color:#0b1220; margin-left:8px; border-left-color:#111827;
-             animation:spin 0.9s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    a{color:var(--gold); text-decoration:none}
+    :root{ color-scheme: light; }
+    body{ background:#fff; position:relative; overflow-x:hidden; }
+    .gold-glow{ pointer-events:none; position:fixed; inset:-20% -20% auto auto; width:70vmax; height:70vmax; border-radius:50%;
+      background: radial-gradient(closest-side, rgba(245,158,11,.12), transparent 70%);
+      animation: floatGlow 16s ease-in-out infinite alternate; filter: blur(12px); z-index:0; }
+    .gold-ribbon{ pointer-events:none; position:fixed; left:-10%; top:40%; width:120vmax; height:200px;
+      background: linear-gradient(90deg, transparent, rgba(245,158,11,.08), transparent);
+      transform: rotate(-6deg); animation: shimmer 10s linear infinite; z-index:0; }
+    @keyframes floatGlow{ from{transform:translate(0,0) scale(1)} to{transform:translate(-6%,4%) scale(1.05)} }
+    @keyframes shimmer{ 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+    .app-layer{ position:relative; z-index:1; }
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <div class="card">
-      <div class="header">
-        <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 12h18"/><path d="M12 3v18"/>
-        </svg>
+<body class="min-h-screen text-slate-800">
+  <div class="gold-glow"></div><div class="gold-ribbon"></div>
+  <div class="app-layer min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md p-8 rounded-2xl bg-white shadow-2xl border border-slate-200">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-amber-400 text-slate-900 font-extrabold flex items-center justify-center">CRM</div>
+        <div><h1 class="text-2xl font-semibold leading-tight">San Isidro</h1>
+          <p class="text-xs text-slate-500">Acceso seguro</p></div>
+      </div>
+      <form id="loginForm" class="space-y-4">
         <div>
-          <div class="title">CRM San Isidro</div>
-          <div class="subtitle">Acceso seguro</div>
+          <label class="block mb-1 text-sm text-slate-600">Email</label>
+          <input id="email" type="email" required class="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
         </div>
-      </div>
-      <div class="body">
-        <div id="msgError" class="error"></div>
-        <div id="msgOk" class="ok"></div>
-
-        <div class="field">
-          <label for="email">Correo</label>
-          <input id="email" type="email" class="input" placeholder="tu@email.com" autocomplete="email" required>
+        <div>
+          <label class="block mb-1 text-sm text-slate-600">Contraseña</label>
+          <div class="relative">
+            <input id="password" type="password" required class="w-full px-3 py-2 pr-24 rounded-lg bg-white border border-slate-300 outline-none focus:ring focus:ring-amber-300">
+            <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-amber-700"
+              onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password';
+                       this.textContent=this.textContent==='Ver'?'Ocultar':'Ver'">Ver</button>
+          </div>
         </div>
-
-        <div class="field pw-wrap">
-          <label for="password">Contraseña</label>
-          <input id="password" type="password" class="input" placeholder="••••••••" autocomplete="current-password" required>
-          <button id="togglePw" class="pw-toggle" title="Mostrar/Ocultar">👁️</button>
-        </div>
-
-        <div class="row">
-          <label class="muted"><input id="remember" type="checkbox" checked> Mantener sesión</label>
-          <a class="muted" href="#" id="recoverLink">¿Olvidaste tu contraseña?</a>
-        </div>
-
-        <div class="actions">
-          <button id="loginBtn" class="btn gold" style="flex:1">Ingresar <span id="spin" class="spinner" style="display:none"></span></button>
-          <button id="toDash" class="btn ghost" style="min-width:140px">Ir al Dashboard</button>
-        </div>
-      </div>
-      <div class="footer muted">© Monaco Detailing — San Isidro</div>
+        <button id="submitBtn" type="submit" class="w-full py-2 rounded-lg bg-amber-400 text-slate-900 font-medium hover:brightness-110">Entrar</button>
+        <p id="msg" class="mt-2 text-sm text-red-500"></p>
+      </form>
+      <p class="mt-6 text-center text-xs text-slate-400">© CRM San Isidro</p>
     </div>
   </div>
-
 <script>
-  // ========= Anti-cache: remover Service Workers + limpiar caches y redirigir con versión =========
-  async function nukeCaches(){
-    try{
-      if ('serviceWorker' in navigator){
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r=>r.unregister()));
-      }
-      if (window.caches){
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k=>caches.delete(k)));
-      }
-      console.log('Caches y SW limpiados');
-    }catch(e){ console.warn('No se pudo limpiar SW/caches', e); }
-  }
-  const VERSION = 'v2025-09-20-pro';
-
-  // ========= Supabase =========
-  const SUPABASE_URL = window.SUPABASE_URL || "https://YOUR-PROJECT.supabase.co";
-  const SUPABASE_KEY = window.SUPABASE_KEY || "YOUR-ANON-KEY";
-  const sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  const emailEl = document.getElementById('email');
-  const passEl  = document.getElementById('password');
-  const msgErr  = document.getElementById('msgError');
-  const msgOk   = document.getElementById('msgOk');
-  const loginBtn= document.getElementById('loginBtn');
-  const spin    = document.getElementById('spin');
-  const togglePw= document.getElementById('togglePw');
-  const toDash  = document.getElementById('toDash');
-  const remember= document.getElementById('remember');
-  const recover = document.getElementById('recoverLink');
-
-  function showError(text){ msgOk.style.display='none'; msgErr.textContent=text; msgErr.style.display='block'; }
-  function showOk(text){ msgErr.style.display='none'; msgOk.textContent=text; msgOk.style.display='block'; }
-  function clearMsgs(){ msgErr.style.display='none'; msgOk.style.display='none'; }
-
-  togglePw.addEventListener('click', (e)=>{
-    e.preventDefault();
-    passEl.type = passEl.type === 'password' ? 'text' : 'password';
-  });
-
-  recover.addEventListener('click', async (e)=>{
-    e.preventDefault();
-    clearMsgs();
-    if(!emailEl.value){ showError('Ingresá tu correo para enviarte el enlace de recuperación.'); return; }
-    try{
-      const { error } = await sb.auth.resetPasswordForEmail(emailEl.value, { redirectTo: location.origin + '/dashboard.html?v='+VERSION });
-      if (error) throw error;
-      showOk('Te enviamos un correo con instrucciones para restablecer tu contraseña.');
-    }catch(err){ showError(err.message || 'No se pudo iniciar la recuperación.'); }
-  });
-
-  async function goDashboard(){
-    await nukeCaches();
-    const url = new URL(location.origin + '/dashboard.html');
-    url.searchParams.set('v', VERSION);
-    location.href = url.toString();
-  }
-  toDash.addEventListener('click', (e)=>{ e.preventDefault(); goDashboard(); });
-
-  loginBtn.addEventListener('click', async ()=>{
-    clearMsgs();
-    const email = emailEl.value.trim();
-    const pass  = passEl.value;
-    if(!email || !pass){ showError('Completá correo y contraseña.'); return; }
-    loginBtn.disabled=true; spin.style.display='inline-block';
-    try{
-      // Opcional: persistencia de sesión
-      await sb.auth.setSession(null);
-      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if (error) throw error;
-      // Mantener sesión: supabase ya persiste en localStorage. Podés forzar "remember" guardando un flag propio si querés.
-      showOk('Ingreso correcto, redirigiendo…');
-      await goDashboard();
-    }catch(err){
-      showError(err.message || 'No se pudo iniciar sesión.');
-    }finally{
-      loginBtn.disabled=false; spin.style.display='none';
-    }
-  });
-
-  // Autologin si ya hay sesión
-  (async function(){
-    try{
-      const { data } = await sb.auth.getSession();
-      if (data?.session){ await goDashboard(); }
-    }catch{ /* ignore */ }
-  })();
+const sb = supabase.createClient(
+  "https://ecmjxpnpdgmvnxmbciur.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
+);
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (data?.session) location.href = "./dashboard.html";
+})();
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = emailEl.value.trim(), password = passEl.value;
+  const btn = submitBtn, msg = document.getElementById("msg");
+  btn.disabled = true; btn.textContent = "Ingresando...";
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error){ msg.textContent = "Error: " + error.message; btn.disabled=false; btn.textContent="Entrar"; return; }
+  location.href = "./dashboard.html";
+});
+const emailEl = document.getElementById("email"), passEl = document.getElementById("password"), submitBtn = document.getElementById("submitBtn");
 </script>
 </body>
 </html>
