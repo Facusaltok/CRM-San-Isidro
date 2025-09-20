@@ -87,6 +87,22 @@ openModal = async function(data=null){
 // Initialize restore before first load
 restoreState();
 
+
+// === Overlay control and scroll lock ===
+const overlay = document.getElementById('overlay');
+const __openModal_stack = openModal;
+openModal = async function(data=null){
+  if (overlay){ overlay.style.display='block'; }
+  document.body.classList.add('modal-open');
+  await __openModal_stack(data);
+};
+const __closeModal_stack = closeModal;
+closeModal = function(){
+  if (overlay){ overlay.style.display='none'; }
+  document.body.classList.remove('modal-open');
+  __closeModal_stack();
+};
+
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2">
 /* ==== Enhancements: state persistence, shortcuts, money preview ==== */
@@ -382,6 +398,20 @@ restoreState();
 
   /* Cabecera sticky para tablas largas */
   thead.sticky-head th{ position: sticky; top:0; background:#fdfaf5; z-index:2; box-shadow:0 1px 0 #e5e7eb}
+
+/* === Modal layering & overlay === */
+#overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.45);
+  backdrop-filter: blur(2px);
+  z-index:9998; display:none;
+}
+.modal{ position:fixed; left:50%; top:5vh; transform:translateX(-50%);
+  z-index:10000; isolation:isolate;
+}
+.modal-body{ max-height:70vh; overflow:auto; }
+body.modal-open{ overflow:hidden; }
+.suggest{ z-index:10001; }
+table thead th{ background:#fff; }
 </style>
 </head>
 <body class="min-h-screen text-slate-800">
