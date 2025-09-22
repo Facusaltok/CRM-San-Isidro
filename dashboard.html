@@ -5,55 +5,63 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>CRM — Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-<!-- Overlay/z-index para modal (evita que el thead quede encima) -->
 <style>
-#overlay{position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px); z-index:9998; display:none}
-.modal{position:fixed; left:50%; top:6vh; transform:translateX(-50%); z-index:10000; isolation:isolate}
-body.modal-open{overflow:hidden}
-.suggest{z-index:10001}
+  /* Overlay/z-index por si usás modales */
+  #overlay{position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px); z-index:9998; display:none}
+  .modal{position:fixed; left:50%; top:6vh; transform:translateX(-50%); z-index:10000; isolation:isolate}
+  body.modal-open{overflow:hidden}
+  .suggest{z-index:10001}
+  /* Tab activo */
+  .tab-active{background:#fff; font-weight:600; border-bottom-color:#fff}
+  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid #999;border-top-color:transparent;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
-<body class="bg-white">
-  <!-- Overlay global -->
+<body class="bg-white text-slate-900">
   <div id="overlay"></div>
 
   <!-- HEADER -->
-  <div class="flex items-center justify-between px-4 py-3 border-b bg-white">
+  <header class="flex items-center justify-between px-4 py-3 border-b bg-white sticky top-0 z-10">
     <h1 class="text-xl font-bold">CRM San Isidro</h1>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3">
       <span id="whoami" class="text-slate-500 text-sm"></span>
       <button id="logoutBtn" class="px-3 py-1.5 rounded bg-black text-white">Salir</button>
     </div>
-  </div>
+  </header>
+
+  <!-- MENSAJES GLOBALES -->
+  <section class="px-4 pt-3">
+    <div id="msgBox" class="hidden text-sm px-3 py-2 rounded border"></div>
+  </section>
 
   <!-- TABS -->
-  <div class="px-4 pt-3 border-b bg-white">
+  <nav class="px-4 pt-3 border-b bg-white sticky top-[52px] z-10">
     <div class="flex gap-2">
-      <button class="tab px-3 py-2 rounded-t border bg-white font-semibold" data-tab="accesos">Accesos</button>
+      <button class="tab px-3 py-2 rounded-t border tab-active" data-tab="accesos">Accesos</button>
       <button class="tab px-3 py-2 rounded-t border" data-tab="paqueteria">Paquetería</button>
       <button class="tab px-3 py-2 rounded-t border" data-tab="personas">Personas</button>
       <button class="tab px-3 py-2 rounded-t border" data-tab="contable">Contable</button>
     </div>
-  </div>
+  </nav>
 
   <!-- VIEWS -->
-  <div class="p-4 space-y-8">
+  <main class="p-4 space-y-10">
 
     <!-- ACCESOS -->
     <section id="view-accesos">
       <div class="flex flex-wrap items-end gap-2 mb-3">
         <div class="grow">
-          <label class="block text-sm text-slate-600">Buscar</label>
+          <label class="block text-sm text-slate-700">Buscar</label>
           <input id="acc-q" class="w-full border rounded-lg px-3 h-11" placeholder="nombre, DNI, vehículo, dominio, motivo…" />
         </div>
         <div>
-          <label class="block text-sm text-slate-600">Desde</label>
+          <label class="block text-sm text-slate-700">Desde</label>
           <input id="acc-desde" type="date" class="border rounded-lg px-3 h-11" />
         </div>
         <div>
-          <label class="block text-sm text-slate-600">Hasta</label>
+          <label class="block text-sm text-slate-700">Hasta</label>
           <input id="acc-hasta" type="date" class="border rounded-lg px-3 h-11" />
         </div>
         <div class="flex gap-2">
@@ -69,7 +77,11 @@ body.modal-open{overflow:hidden}
               <th>F. Ingreso</th><th>H. Ingreso</th><th>F. Salida</th><th>H. Salida</th><th>Creado</th>
             </tr>
           </thead>
-          <tbody id="acc-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2"></tbody>
+          <tbody id="acc-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2">
+            <tr><td colspan="10" class="px-3 py-4 text-slate-500 flex items-center gap-2">
+              <span class="spinner"></span> Cargando…
+            </td></tr>
+          </tbody>
         </table>
       </div>
     </section>
@@ -78,15 +90,15 @@ body.modal-open{overflow:hidden}
     <section id="view-paqueteria" hidden>
       <div class="flex flex-wrap items-end gap-2 mb-3">
         <div class="grow">
-          <label class="block text-sm text-slate-600">Buscar</label>
+          <label class="block text-sm text-slate-700">Buscar</label>
           <input id="paq-q" class="w-full border rounded-lg px-3 h-11" placeholder="receptor, entregado a, descripción, id, empresa…" />
         </div>
         <div>
-          <label class="block text-sm text-slate-600">Desde</label>
+          <label class="block text-sm text-slate-700">Desde</label>
           <input id="paq-desde" type="date" class="border rounded-lg px-3 h-11" />
         </div>
         <div>
-          <label class="block text-sm text-slate-600">Hasta</label>
+          <label class="block text-sm text-slate-700">Hasta</label>
           <input id="paq-hasta" type="date" class="border rounded-lg px-3 h-11" />
         </div>
         <div class="flex gap-2">
@@ -102,7 +114,11 @@ body.modal-open{overflow:hidden}
               <th>Descripción</th><th>ID Nº</th><th>Entregado a</th><th>F. Entrega</th><th>H. Entrega</th><th>Notas</th><th>Creado</th>
             </tr>
           </thead>
-          <tbody id="paq-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2"></tbody>
+          <tbody id="paq-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2">
+            <tr><td colspan="13" class="px-3 py-4 text-slate-500 flex items-center gap-2">
+              <span class="spinner"></span> Cargando…
+            </td></tr>
+          </tbody>
         </table>
       </div>
     </section>
@@ -111,7 +127,7 @@ body.modal-open{overflow:hidden}
     <section id="view-personas" hidden>
       <div class="flex flex-wrap items-end gap-2 mb-3">
         <div class="grow">
-          <label class="block text-sm text-slate-600">Buscar</label>
+          <label class="block text-sm text-slate-700">Buscar</label>
           <input id="per-q" class="w-full border rounded-lg px-3 h-11" placeholder="nombre, DNI, teléfono, email…" />
         </div>
         <div class="flex gap-2">
@@ -126,68 +142,88 @@ body.modal-open{overflow:hidden}
               <th>Nombre</th><th>DNI</th><th>Teléfono</th><th>Email</th><th>Creado</th>
             </tr>
           </thead>
-          <tbody id="per-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2"></tbody>
+          <tbody id="per-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2">
+            <tr><td colspan="5" class="px-3 py-4 text-slate-500 flex items-center gap-2">
+              <span class="spinner"></span> Cargando…
+            </td></tr>
+          </tbody>
         </table>
       </div>
     </section>
 
-    <!-- CONTABLE (genérico si existe la tabla) -->
+    <!-- CONTABLE (genérico si existe) -->
     <section id="view-contable" hidden>
       <div class="mb-3 text-slate-600 text-sm">
-        Si existe la tabla <code>contable</code> en Supabase, se mostrará aquí de forma genérica con todas las columnas.
+        Si existe la tabla <code>contable</code> en Supabase, se mostrará aquí con todas las columnas.
       </div>
       <div class="overflow-auto border rounded-xl bg-white">
         <table class="min-w-[900px] w-full">
           <thead id="con-head" class="bg-white sticky top-0 border-b"></thead>
-          <tbody id="con-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2"></tbody>
+          <tbody id="con-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2">
+            <tr><td class="px-3 py-4 text-slate-500 flex items-center gap-2">
+              <span class="spinner"></span> Cargando…
+            </td></tr>
+          </tbody>
         </table>
       </div>
     </section>
-  </div>
-
-  <!-- Modal de ejemplo (si lo necesitás; el overlay ya lo cubre) -->
-  <div id="modal" class="modal hidden">
-    <div class="bg-white border rounded-xl shadow-xl w-[min(900px,96vw)] max-h-[80vh] overflow-auto">
-      <div class="px-4 py-3 border-b flex items-center justify-between">
-        <b id="modalTitle">Modal</b>
-        <button id="closeModalBtn" class="px-3 py-1.5 rounded border">Cerrar</button>
-      </div>
-      <div id="modalBody" class="p-4">
-        Contenido…
-      </div>
-    </div>
-  </div>
+  </main>
 
 <script>
-  // === Credenciales de tu proyecto Supabase ===
+  // ================== SUPABASE ==================
   const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
-  const sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 
-  // Verificar sesión al cargar
+  // ================== UTILS ==================
+  const $ = (s, root=document)=>root.querySelector(s);
+  const showMsg = (type, text) => {
+    const el = $('#msgBox');
+    el.classList.remove('hidden');
+    el.className = 'text-sm px-3 py-2 rounded border ' + (type==='ok' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-rose-50 text-rose-700 border-rose-200');
+    el.textContent = text;
+  };
+  const esc = s => (s??'').toString().replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+
+  function toDate(v){ return v ? new Date(v) : null; }
+  function endOfDayStr(v){ return v ? (v + "T23:59:59") : null; }
+  function between(dateStr, d1, d2){
+    if (!dateStr) return true;
+    const t = new Date(dateStr);
+    if (d1 && t < d1) return false;
+    if (d2 && t > d2) return false;
+    return true;
+  }
+
+  // ================== SESIÓN ==================
   (async () => {
-    const { data } = await sb.auth.getSession();
-    if (!data?.session) location.replace('index.html');
-    document.getElementById('whoami').textContent = data.session.user?.email || '';
+    try{
+      const { data, error } = await sb.auth.getSession();
+      if (error) showMsg('err', 'Auth error: ' + (error.message||error));
+      if (!data?.session) return location.replace('index.html');
+      $('#whoami').textContent = data.session.user?.email || '';
+    }catch(e){
+      showMsg('err', 'No se pudo verificar la sesión.');
+    }
   })();
 
   // Logout
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
+  $('#logoutBtn').addEventListener('click', async () => {
     try{ await sb.auth.signOut(); }catch(e){}
     location.href = 'index.html';
   });
 
-  // Tabs
+  // ================== TABS ==================
   const tabs = Array.from(document.querySelectorAll('.tab'));
   const views = {
-    accesos: document.getElementById('view-accesos'),
-    paqueteria: document.getElementById('view-paqueteria'),
-    personas: document.getElementById('view-personas'),
-    contable: document.getElementById('view-contable'),
+    accesos: $('#view-accesos'),
+    paqueteria: $('#view-paqueteria'),
+    personas: $('#view-personas'),
+    contable: $('#view-contable'),
   };
   tabs.forEach(b=>{
     b.addEventListener('click', ()=>{
-      tabs.forEach(x=> x.classList.toggle('bg-white', x===b));
+      tabs.forEach(x=> x.classList.toggle('tab-active', x===b));
       Object.values(views).forEach(v=> v.hidden = true);
       const t = b.dataset.tab; views[t].hidden = false;
       if (t==='accesos') loadAccesos();
@@ -197,133 +233,133 @@ body.modal-open{overflow:hidden}
     });
   });
 
-  // Modal helpers (overlay fix)
-  const overlay = document.getElementById('overlay');
-  const modal = document.getElementById('modal');
-  function openModal(){ overlay.style.display='block'; document.body.classList.add('modal-open'); modal.classList.remove('hidden'); }
-  function closeModal(){ overlay.style.display='none'; document.body.classList.remove('modal-open'); modal.classList.add('hidden'); }
-  document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-
-  // Utils
-  const esc = s => (s??'').toString().replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&gt;",">":"&gt;"==="&gt;"? "&gt;":"&gt;","\"":"&quot;","'":"&#39;"}[m])); // safe-ish
-  function toDate(v){ return v ? new Date(v) : null; }
-  function between(dateStr, d1, d2){
-    if (!dateStr) return true;
-    const t = new Date(dateStr);
-    if (d1 && t < d1) return false;
-    if (d2 && t > d2) return false;
-    return true;
-  }
-
-  // ======== ACCESOS ========
+  // ================== ACCESOS ==================
   async function loadAccesos(){
-    const q = document.getElementById('acc-q').value.trim().toLowerCase();
-    const d1 = toDate(document.getElementById('acc-desde').value);
-    const d2 = document.getElementById('acc-hasta').value ? new Date(document.getElementById('acc-hasta').value + "T23:59:59") : null;
+    const q = $('#acc-q').value.trim().toLowerCase();
+    const d1 = toDate($('#acc-desde').value);
+    const d2 = endOfDayStr($('#acc-hasta').value) ? new Date(endOfDayStr($('#acc-hasta').value)) : null;
 
-    const { data, error } = await sb.from('accesos').select('*').order('created_at', { ascending:false }).limit(1000);
-    if (error){ console.error(error); return; }
-    const rows = (data||[]).filter(r=>{
-      const text = [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo].filter(Boolean).join(' ').toLowerCase();
-      const okQ = !q || text.includes(q);
-      const fechaRef = r.f_ing || r.created_at;
-      const okD = between(fechaRef, d1, d2);
-      return okQ && okD;
-    }).map(r=>`
-      <tr class="border-b last:border-0">
-        <td>${esc(r.nombre)}</td>
-        <td>${esc(r.dni)}</td>
-        <td>${esc(r.vehiculo)}</td>
-        <td>${esc(r.dominio)}</td>
-        <td>${esc(r.motivo)}</td>
-        <td>${esc(r.f_ing)}</td>
-        <td>${esc(r.h_ing)}</td>
-        <td>${esc(r.f_sal)}</td>
-        <td>${esc(r.h_sal)}</td>
-        <td>${esc(r.created_at)}</td>
-      </tr>
-    `).join('') || `<tr><td colspan="10" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
-
-    document.getElementById('acc-rows').innerHTML = rows;
+    try{
+      const { data, error } = await sb.from('accesos').select('*').order('created_at', { ascending:false }).limit(1000);
+      if (error) throw error;
+      const rows = (data||[]).filter(r=>{
+        const text = [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo].filter(Boolean).join(' ').toLowerCase();
+        const okQ = !q || text.includes(q);
+        const fechaRef = r.f_ing || r.created_at;
+        const okD = between(fechaRef, d1, d2);
+        return okQ && okD;
+      }).map(r=>`
+        <tr class="border-b last:border-0">
+          <td>${esc(r.nombre)}</td>
+          <td>${esc(r.dni)}</td>
+          <td>${esc(r.vehiculo)}</td>
+          <td>${esc(r.dominio)}</td>
+          <td>${esc(r.motivo)}</td>
+          <td>${esc(r.f_ing)}</td>
+          <td>${esc(r.h_ing)}</td>
+          <td>${esc(r.f_sal)}</td>
+          <td>${esc(r.h_sal)}</td>
+          <td>${esc(r.created_at)}</td>
+        </tr>
+      `).join('') || `<tr><td colspan="10" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
+      $('#acc-rows').innerHTML = rows;
+    }catch(e){
+      $('#acc-rows').innerHTML = `<tr><td colspan="10" class="px-3 py-4 text-rose-600">Error: ${esc(e.message||e)}</td></tr>`;
+      showMsg('err', 'Accesos: ' + (e.message||e));
+    }
   }
-  document.getElementById('acc-filtrar').addEventListener('click', loadAccesos);
-  document.getElementById('acc-limpiar').addEventListener('click', ()=>{ document.getElementById('acc-q').value=''; document.getElementById('acc-desde').value=''; document.getElementById('acc-hasta').value=''; loadAccesos(); });
+  $('#acc-filtrar').addEventListener('click', loadAccesos);
+  $('#acc-limpiar').addEventListener('click', ()=>{ $('#acc-q').value=''; $('#acc-desde').value=''; $('#acc-hasta').value=''; loadAccesos(); });
 
-  // ======== PAQUETERÍA ========
+  // ================== PAQUETERÍA ==================
   async function loadPaqueteria(){
-    const q = document.getElementById('paq-q').value.trim().toLowerCase();
-    const d1 = toDate(document.getElementById('paq-desde').value);
-    const d2 = document.getElementById('paq-hasta').value ? new Date(document.getElementById('paq-hasta').value + "T23:59:59") : null;
+    const q = $('#paq-q').value.trim().toLowerCase();
+    const d1 = toDate($('#paq-desde').value);
+    const d2 = endOfDayStr($('#paq-hasta').value) ? new Date(endOfDayStr($('#paq-hasta').value)) : null;
 
-    const { data, error } = await sb.from('paqueteria').select('*').order('created_at', { ascending:false }).limit(1000);
-    if (error){ console.error(error); return; }
-    const rows = (data||[]).filter(r=>{
-      const text = [r.receptor,r.empresa,r.remito,r.estado,r.descripcion,r.id_num,r.entregado_a,r.notas].filter(Boolean).join(' ').toLowerCase();
-      const okQ = !q || text.includes(q);
-      const fechaRef = r.fecha || r.created_at;
-      const okD = between(fechaRef, d1, d2);
-      return okQ && okD;
-    }).map(r=>`
-      <tr class="border-b last:border-0">
-        <td>${esc(r.receptor)}</td>
-        <td>${esc(r.empresa)}</td>
-        <td>${esc(r.remito)}</td>
-        <td>${esc(r.estado)}</td>
-        <td>${esc(r.fecha)}</td>
-        <td>${esc(r.hora)}</td>
-        <td>${esc(r.descripcion)}</td>
-        <td>${esc(r.id_num)}</td>
-        <td>${esc(r.entregado_a)}</td>
-        <td>${esc(r.fecha_entrega)}</td>
-        <td>${esc(r.hora_entrega)}</td>
-        <td>${esc(r.notas)}</td>
-        <td>${esc(r.created_at)}</td>
-      </tr>
-    `).join('') || `<tr><td colspan="13" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
-
-    document.getElementById('paq-rows').innerHTML = rows;
+    try{
+      const { data, error } = await sb.from('paqueteria').select('*').order('created_at', { ascending:false }).limit(1000);
+      if (error) throw error;
+      const rows = (data||[]).filter(r=>{
+        const text = [r.receptor,r.empresa,r.remito,r.estado,r.descripcion,r.id_num,r.entregado_a,r.notas].filter(Boolean).join(' ').toLowerCase();
+        const okQ = !q || text.includes(q);
+        const fechaRef = r.fecha || r.created_at;
+        const okD = between(fechaRef, d1, d2);
+        return okQ && okD;
+      }).map(r=>`
+        <tr class="border-b last:border-0">
+          <td>${esc(r.receptor)}</td>
+          <td>${esc(r.empresa)}</td>
+          <td>${esc(r.remito)}</td>
+          <td>${esc(r.estado)}</td>
+          <td>${esc(r.fecha)}</td>
+          <td>${esc(r.hora)}</td>
+          <td>${esc(r.descripcion)}</td>
+          <td>${esc(r.id_num)}</td>
+          <td>${esc(r.entregado_a)}</td>
+          <td>${esc(r.fecha_entrega)}</td>
+          <td>${esc(r.hora_entrega)}</td>
+          <td>${esc(r.notas)}</td>
+          <td>${esc(r.created_at)}</td>
+        </tr>
+      `).join('') || `<tr><td colspan="13" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
+      $('#paq-rows').innerHTML = rows;
+    }catch(e){
+      $('#paq-rows').innerHTML = `<tr><td colspan="13" class="px-3 py-4 text-rose-600">Error: ${esc(e.message||e)}</td></tr>`;
+      showMsg('err', 'Paquetería: ' + (e.message||e));
+    }
   }
-  document.getElementById('paq-filtrar').addEventListener('click', loadPaqueteria);
-  document.getElementById('paq-limpiar').addEventListener('click', ()=>{ document.getElementById('paq-q').value=''; document.getElementById('paq-desde').value=''; document.getElementById('paq-hasta').value=''; loadPaqueteria(); });
+  $('#paq-filtrar').addEventListener('click', loadPaqueteria);
+  $('#paq-limpiar').addEventListener('click', ()=>{ $('#paq-q').value=''; $('#paq-desde').value=''; $('#paq-hasta').value=''; loadPaqueteria(); });
 
-  // ======== PERSONAS ========
+  // ================== PERSONAS ==================
   async function loadPersonas(){
-    const q = document.getElementById('per-q').value.trim().toLowerCase();
-    const { data, error } = await sb.from('personas').select('*').order('created_at', { ascending:false }).limit(1000);
-    if (error){ console.error(error); return; }
-    const rows = (data||[]).filter(r=>{
-      const text = [r.nombre,r.dni,r.telefono,r.email].filter(Boolean).join(' ').toLowerCase();
-      return !q || text.includes(q);
-    }).map(r=>`
-      <tr class="border-b last:border-0">
-        <td>${esc(r.nombre)}</td>
-        <td>${esc(r.dni)}</td>
-        <td>${esc(r.telefono)}</td>
-        <td>${esc(r.email)}</td>
-        <td>${esc(r.created_at)}</td>
-      </tr>
-    `).join('') || `<tr><td colspan="5" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
-    document.getElementById('per-rows').innerHTML = rows;
+    const q = $('#per-q').value.trim().toLowerCase();
+    try{
+      const { data, error } = await sb.from('personas').select('*').order('created_at', { ascending:false }).limit(1000);
+      if (error) throw error;
+      const rows = (data||[]).filter(r=>{
+        const text = [r.nombre,r.dni,r.telefono,r.email].filter(Boolean).join(' ').toLowerCase();
+        return !q || text.includes(q);
+      }).map(r=>`
+        <tr class="border-b last:border-0">
+          <td>${esc(r.nombre)}</td>
+          <td>${esc(r.dni)}</td>
+          <td>${esc(r.telefono)}</td>
+          <td>${esc(r.email)}</td>
+          <td>${esc(r.created_at)}</td>
+        </tr>
+      `).join('') || `<tr><td colspan="5" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
+      $('#per-rows').innerHTML = rows;
+    }catch(e){
+      $('#per-rows').innerHTML = `<tr><td colspan="5" class="px-3 py-4 text-rose-600">Error: ${esc(e.message||e)}</td></tr>`;
+      showMsg('err', 'Personas: ' + (e.message||e));
+    }
   }
-  document.getElementById('per-filtrar').addEventListener('click', loadPersonas);
-  document.getElementById('per-limpiar').addEventListener('click', ()=>{ document.getElementById('per-q').value=''; loadPersonas(); });
+  $('#per-filtrar').addEventListener('click', loadPersonas);
+  $('#per-limpiar').addEventListener('click', ()=>{ $('#per-q').value=''; loadPersonas(); });
 
-  // ======== CONTABLE (si existe) ========
+  // ================== CONTABLE (si existe) ==================
   async function loadContable(){
-    const head = document.getElementById('con-head');
-    const body = document.getElementById('con-rows');
-    const { data, error } = await sb.from('contable').select('*').order('created_at', { ascending:false }).limit(1000);
-    if (error){ head.innerHTML=''; body.innerHTML = `<tr><td class="px-3 py-4 text-slate-500">No se encontró la tabla "contable".</td></tr>`; return; }
-    const cols = data?.length ? Object.keys(data[0]) : [];
-    head.innerHTML = `<tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`;
-    body.innerHTML = (data||[]).map(r=>`
-      <tr class="border-b last:border-0">
-        ${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}
-      </tr>
-    `).join('') || `<tr><td class="px-3 py-4 text-slate-500">Sin datos</td></tr>`;
+    const head = $('#con-head'); const body = $('#con-rows');
+    try{
+      const { data, error } = await sb.from('contable').select('*').order('created_at', { ascending:false }).limit(1000);
+      if (error) throw error;
+      const cols = data?.length ? Object.keys(data[0]) : [];
+      head.innerHTML = `<tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`;
+      body.innerHTML = (data||[]).map(r=>`
+        <tr class="border-b last:border-0">
+          ${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}
+        </tr>
+      `).join('') || `<tr><td class="px-3 py-4 text-slate-500">Sin datos</td></tr>`;
+    }catch(e){
+      head.innerHTML=''; body.innerHTML = `<tr><td class="px-3 py-4 text-rose-600">Error: ${esc(e.message||e)}</td></tr>`;
+      showMsg('err', 'Contable: ' + (e.message||e));
+    }
   }
 
-  // Inicial: Accesos
+  // ================== INIT ==================
+  // Arranca en Accesos
   loadAccesos();
 </script>
 </body>
