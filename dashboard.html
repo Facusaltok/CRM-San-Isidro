@@ -20,7 +20,7 @@ body.modal-open{overflow:hidden}
   <div id="overlay"></div>
 
   <!-- HEADER -->
-  <div class="flex items-center justify-between px-4 py-3 border-b">
+  <div class="flex items-center justify-between px-4 py-3 border-b bg-white">
     <h1 class="text-xl font-bold">CRM San Isidro</h1>
     <div class="flex items-center gap-2">
       <span id="whoami" class="text-slate-500 text-sm"></span>
@@ -29,7 +29,7 @@ body.modal-open{overflow:hidden}
   </div>
 
   <!-- TABS -->
-  <div class="px-4 pt-3 border-b">
+  <div class="px-4 pt-3 border-b bg-white">
     <div class="flex gap-2">
       <button class="tab px-3 py-2 rounded-t border bg-white font-semibold" data-tab="accesos">Accesos</button>
       <button class="tab px-3 py-2 rounded-t border" data-tab="paqueteria">Paquetería</button>
@@ -61,8 +61,8 @@ body.modal-open{overflow:hidden}
           <button id="acc-limpiar" class="px-3 h-11 rounded-lg border">Limpiar</button>
         </div>
       </div>
-      <div class="overflow-auto border rounded-xl">
-        <table class="min-w-[900px] w-full">
+      <div class="overflow-auto border rounded-xl bg-white">
+        <table class="min-w-[1000px] w-full">
           <thead class="bg-white sticky top-0 border-b">
             <tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">
               <th>Nombre</th><th>DNI</th><th>Vehículo</th><th>Dominio</th><th>Motivo</th>
@@ -94,8 +94,8 @@ body.modal-open{overflow:hidden}
           <button id="paq-limpiar" class="px-3 h-11 rounded-lg border">Limpiar</button>
         </div>
       </div>
-      <div class="overflow-auto border rounded-xl">
-        <table class="min-w-[1000px] w-full">
+      <div class="overflow-auto border rounded-xl bg-white">
+        <table class="min-w-[1200px] w-full">
           <thead class="bg-white sticky top-0 border-b">
             <tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">
               <th>Receptor</th><th>Empresa</th><th>Remito</th><th>Estado</th><th>Fecha</th><th>Hora</th>
@@ -119,7 +119,7 @@ body.modal-open{overflow:hidden}
           <button id="per-limpiar" class="px-3 h-11 rounded-lg border">Limpiar</button>
         </div>
       </div>
-      <div class="overflow-auto border rounded-xl">
+      <div class="overflow-auto border rounded-xl bg-white">
         <table class="min-w-[800px] w-full">
           <thead class="bg-white sticky top-0 border-b">
             <tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">
@@ -136,7 +136,7 @@ body.modal-open{overflow:hidden}
       <div class="mb-3 text-slate-600 text-sm">
         Si existe la tabla <code>contable</code> en Supabase, se mostrará aquí de forma genérica con todas las columnas.
       </div>
-      <div class="overflow-auto border rounded-xl">
+      <div class="overflow-auto border rounded-xl bg-white">
         <table class="min-w-[900px] w-full">
           <thead id="con-head" class="bg-white sticky top-0 border-b"></thead>
           <tbody id="con-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2"></tbody>
@@ -145,7 +145,7 @@ body.modal-open{overflow:hidden}
     </section>
   </div>
 
-  <!-- Modal (si usás alguno, el overlay ya lo cubre) -->
+  <!-- Modal de ejemplo (si lo necesitás; el overlay ya lo cubre) -->
   <div id="modal" class="modal hidden">
     <div class="bg-white border rounded-xl shadow-xl w-[min(900px,96vw)] max-h-[80vh] overflow-auto">
       <div class="px-4 py-3 border-b flex items-center justify-between">
@@ -159,17 +159,16 @@ body.modal-open{overflow:hidden}
   </div>
 
 <script>
-  // Usa sb global si ya existe; si no, crea el cliente con tus claves
-  const SUPABASE_URL = window.SUPABASE_URL || "TU_SUPABASE_URL";
-  const SUPABASE_KEY = window.SUPABASE_KEY || "TU_SUPABASE_ANON_KEY";
+  // === Credenciales de tu proyecto Supabase ===
+  const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
   const sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // Verificar sesión al cargar
   (async () => {
     const { data } = await sb.auth.getSession();
     if (!data?.session) location.replace('index.html');
-    const user = data.session.user;
-    document.getElementById('whoami').textContent = user?.email || '';
+    document.getElementById('whoami').textContent = data.session.user?.email || '';
   })();
 
   // Logout
@@ -206,15 +205,15 @@ body.modal-open{overflow:hidden}
   document.getElementById('closeModalBtn').addEventListener('click', closeModal);
 
   // Utils
-  const esc = s => (s??'').toString().replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
-  const toDate = v => v ? new Date(v) : null;
-  const between = (dateStr, d1, d2) => {
+  const esc = s => (s??'').toString().replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&gt;",">":"&gt;"==="&gt;"? "&gt;":"&gt;","\"":"&quot;","'":"&#39;"}[m])); // safe-ish
+  function toDate(v){ return v ? new Date(v) : null; }
+  function between(dateStr, d1, d2){
     if (!dateStr) return true;
     const t = new Date(dateStr);
     if (d1 && t < d1) return false;
     if (d2 && t > d2) return false;
     return true;
-  };
+  }
 
   // ======== ACCESOS ========
   async function loadAccesos(){
@@ -311,10 +310,9 @@ body.modal-open{overflow:hidden}
 
   // ======== CONTABLE (si existe) ========
   async function loadContable(){
-    // Intento leer la tabla "contable" y renderizar columnas dinámicamente
-    const { data, error } = await sb.from('contable').select('*').order('created_at', { ascending:false }).limit(1000);
     const head = document.getElementById('con-head');
     const body = document.getElementById('con-rows');
+    const { data, error } = await sb.from('contable').select('*').order('created_at', { ascending:false }).limit(1000);
     if (error){ head.innerHTML=''; body.innerHTML = `<tr><td class="px-3 py-4 text-slate-500">No se encontró la tabla "contable".</td></tr>`; return; }
     const cols = data?.length ? Object.keys(data[0]) : [];
     head.innerHTML = `<tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`;
@@ -327,7 +325,6 @@ body.modal-open{overflow:hidden}
 
   // Inicial: Accesos
   loadAccesos();
-
 </script>
 </body>
 </html>
