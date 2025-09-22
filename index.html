@@ -38,10 +38,10 @@
   </div>
 
   <script>
-    // Usa sb global si ya existe; si no, crea el cliente con tus claves
-    const SUPABASE_URL = window.SUPABASE_URL || "TU_SUPABASE_URL";
-    const SUPABASE_KEY = window.SUPABASE_KEY || "TU_SUPABASE_ANON_KEY";
-    const sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // === Credenciales de tu proyecto Supabase ===
+    const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const email = document.getElementById('email');
     const password = document.getElementById('password');
