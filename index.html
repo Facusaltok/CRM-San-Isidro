@@ -3,52 +3,226 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CRM — Acceso</title>
+  <title>CRM San Isidro — Acceso</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#fff}
-    .spinner{width:16px;height:16px;border-radius:50%;border:2px solid #999;border-top-color:transparent;animation:spin .8s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    /* Variables de color */
+    :root {
+      --gold: #d4af37;
+      --gold-light: #f0e6c2;
+      --gold-dark: #b8941f;
+      --gray-dark: #1e293b;
+      --gray-light: #f8fafc;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      min-height: 100vh;
+    }
+    
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid #999;
+      border-top-color: var(--gold);
+      animation: spin .8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Tarjeta de login */
+    .login-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .login-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Encabezado dorado */
+    .gold-header {
+      background: linear-gradient(90deg, var(--gray-dark), #334155);
+      border-bottom: 3px solid var(--gold);
+    }
+    
+    /* Botones dorados */
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: white;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(212, 175, 55, 0.3);
+    }
+    
+    .btn-gold:hover {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(212, 175, 55, 0.4);
+    }
+    
+    /* Inputs */
+    input {
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+      outline: none;
+    }
+    
+    /* Mensajes */
+    .msg-success {
+      background-color: #dcfce7;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+    
+    .msg-error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+    
+    /* Animación de entrada */
+    .fade-in {
+      animation: fadeIn 0.6s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Decoración dorada */
+    .gold-accent {
+      position: relative;
+    }
+    
+    .gold-accent::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+    
+    /* Logo animado */
+    .logo-container {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+    
+    .logo-circle {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+    }
   </style>
 </head>
-<body class="bg-white min-h-screen flex items-center justify-center">
-  <div class="w-full max-w-md p-6 bg-white rounded-xl shadow border">
-    <h1 class="text-2xl font-bold mb-1">CRM San Isidro</h1>
-    <p class="text-slate-500 mb-5">Acceso seguro</p>
 
-    <div id="msg" class="hidden text-sm mb-3"></div>
+<body class="flex items-center justify-center p-4">
+  <div class="w-full max-w-md fade-in">
+    <div class="login-card">
+      <!-- Header con logo -->
+      <div class="gold-header p-6 text-center">
+        <div class="logo-container">
+          <div class="logo-circle">
+            <i class="fas fa-building text-white text-3xl"></i>
+          </div>
+        </div>
+        <h1 class="text-2xl font-bold text-white gold-accent inline-block">CRM San Isidro</h1>
+        <p class="text-yellow-100 mt-2">Acceso seguro</p>
+      </div>
+      
+      <!-- Contenido del formulario -->
+      <div class="p-6">
+        <!-- Mensajes -->
+        <div id="msg" class="hidden text-sm mb-4 px-4 py-3 rounded-lg flex items-start gap-2">
+          <i class="fas fa-info-circle mt-0.5"></i>
+          <div></div>
+        </div>
 
-    <label class="text-sm text-slate-600">Correo</label>
-    <input id="email" type="email" class="w-full border rounded-lg px-3 h-11 mb-3" placeholder="tu@email.com" />
+        <!-- Formulario -->
+        <form id="loginForm">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Correo</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <i class="fas fa-envelope"></i>
+              </div>
+              <input id="email" type="email" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="tu@email.com" required />
+            </div>
+          </div>
 
-    <label class="text-sm text-slate-600">Contraseña</label>
-    <div class="relative mb-4">
-      <input id="password" type="password" class="w-full border rounded-lg px-3 h-11 pr-10" placeholder="••••••••" />
-      <button id="toggle" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm">👁️</button>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <i class="fas fa-lock"></i>
+              </div>
+              <input id="password" type="password" class="w-full border rounded-lg px-3 py-2.5 pl-10 pr-10" placeholder="••••••••" required />
+              <button id="toggle" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between mb-6">
+            <label class="text-sm text-slate-600 flex items-center gap-2">
+              <input id="remember" type="checkbox" class="rounded text-yellow-600 focus:ring-yellow-500" checked />
+              Mantener sesión
+            </label>
+            <button id="recover" type="button" class="text-sm text-slate-600 hover:text-yellow-600 transition-colors">
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+
+          <button type="submit" id="login" class="w-full py-3 rounded-lg btn-gold font-semibold flex items-center justify-center gap-2">
+            <span>Ingresar</span>
+            <span id="spin" class="spinner" style="display:none"></span>
+          </button>
+        </form>
+
+        <details class="mt-6 text-xs text-slate-500">
+          <summary class="cursor-pointer font-medium">Diagnóstico técnico</summary>
+          <pre id="diag" class="whitespace-pre-wrap mt-2 p-3 bg-slate-50 rounded-lg text-slate-600 overflow-x-auto"></pre>
+        </details>
+      </div>
     </div>
-
-    <div class="flex items-center justify-between mb-4">
-      <label class="text-sm text-slate-600 flex items-center gap-2">
-        <input id="remember" type="checkbox" class="accent-black" checked />
-        Mantener sesión
-      </label>
-      <button id="recover" class="text-sm text-slate-600 hover:underline">¿Olvidaste tu contraseña?</button>
+    
+    <div class="mt-6 text-center text-sm text-slate-500">
+      <p>© 2023 CRM San Isidro. Todos los derechos reservados.</p>
     </div>
-
-    <button id="login" class="w-full h-11 rounded-lg bg-black text-white font-semibold flex items-center justify-center gap-2">
-      <span>Ingresar</span><span id="spin" class="spinner" style="display:none"></span>
-    </button>
-
-    <div class="mt-4 pt-3 border-t">
-      <button id="magic" class="w-full h-11 rounded-lg border font-semibold">Enviarme link mágico</button>
-      <p class="text-xs text-slate-500 mt-2">Si el password falla, probá el link mágico para confirmar que el correo llega y el Auth responde.</p>
-    </div>
-
-    <details class="mt-4 text-xs text-slate-500">
-      <summary>Diagnóstico</summary>
-      <pre id="diag" class="whitespace-pre-wrap mt-2"></pre>
-    </details>
   </div>
 
   <script>
@@ -59,70 +233,131 @@
 
     const email = document.getElementById('email');
     const password = document.getElementById('password');
-    const loginBtn = document.getElementById('login');
-    const magicBtn = document.getElementById('magic');
+    const loginForm = document.getElementById('loginForm');
     const msg = document.getElementById('msg');
     const toggle = document.getElementById('toggle');
     const spin = document.getElementById('spin');
     const diag = document.getElementById('diag');
 
-    function show(type, text){
-      msg.className = 'mb-3 text-sm px-3 py-2 rounded ' + (type==='ok' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-rose-50 text-rose-700 border border-rose-200');
-      msg.textContent = text; msg.classList.remove('hidden');
+    function show(type, text) {
+      const msgDiv = msg;
+      const msgContent = msgDiv.querySelector('div');
+      const icon = msgDiv.querySelector('i');
+      
+      msgDiv.classList.remove('hidden', 'msg-success', 'msg-error');
+      msgDiv.classList.add(type === 'ok' ? 'msg-success' : 'msg-error');
+      
+      if (type === 'ok') {
+        icon.className = 'fas fa-check-circle mt-0.5 text-green-600';
+      } else {
+        icon.className = 'fas fa-exclamation-circle mt-0.5 text-red-600';
+      }
+      
+      msgContent.textContent = text;
     }
-    function setLoading(v){ loginBtn.disabled = v; spin.style.display = v ? 'inline-block' : 'none'; }
-    function setDiag(o){ try{ diag.textContent = (typeof o==='string')? o : JSON.stringify(o,null,2); }catch{ diag.textContent = String(o); } }
+    
+    function setLoading(v) {
+      loginForm.querySelector('button[type="submit"]').disabled = v;
+      spin.style.display = v ? 'inline-block' : 'none';
+    }
+    
+    function setDiag(o) {
+      try {
+        diag.textContent = (typeof o === 'string') ? o : JSON.stringify(o, null, 2);
+      } catch {
+        diag.textContent = String(o);
+      }
+    }
 
+    // Toggle password visibility
     toggle.addEventListener('click', () => {
-      password.type = password.type === 'password' ? 'text' : 'password';
-    });
-
-    // Login con email+password
-    loginBtn.addEventListener('click', async () => {
-      msg.classList.add('hidden'); setDiag('');
-      if (!email.value || !password.value){ show('err','Completá correo y contraseña.'); return; }
-      setLoading(true);
-      try{
-        const { data, error } = await sb.auth.signInWithPassword({ email: email.value, password: password.value });
-        setDiag({stage:'signInWithPassword', data, error});
-        if (error) throw error;
-        location.href = 'dashboard.html';
-      }catch(e){
-        show('err', e.message || 'No se pudo iniciar sesión.');
-      }finally{
-        setLoading(false);
+      const passwordInput = document.getElementById('password');
+      const icon = toggle.querySelector('i');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        passwordInput.type = 'password';
+        icon.className = 'fas fa-eye';
       }
     });
 
-    // Enviar Magic Link
-    magicBtn.addEventListener('click', async () => {
-      msg.classList.add('hidden'); setDiag('');
-      if (!email.value){ show('err','Ingresá tu correo para enviarte el link.'); return; }
-      try{
-        const { data, error } = await sb.auth.signInWithOtp({ email: email.value, options: { emailRedirectTo: location.origin + '/dashboard.html' }});
-        setDiag({stage:'signInWithOtp', data, error});
+    // Login con email+password
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.classList.add('hidden');
+      setDiag('');
+      
+      if (!email.value || !password.value) {
+        show('err', 'Completá correo y contraseña.');
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const { data, error } = await sb.auth.signInWithPassword({
+          email: email.value,
+          password: password.value
+        });
+        
+        setDiag({
+          stage: 'signInWithPassword',
+          data,
+          error
+        });
+        
         if (error) throw error;
-        show('ok','Revisá tu correo y abrí el enlace. Volvés acá logueado.');
-      }catch(e){
-        show('err', e.message || 'No se pudo enviar el link.');
+        location.href = 'dashboard.html';
+      } catch (e) {
+        show('err', e.message || 'No se pudo iniciar sesión.');
+      } finally {
+        setLoading(false);
       }
     });
 
     // Recuperar contraseña
     document.getElementById('recover').addEventListener('click', async () => {
-      msg.classList.add('hidden'); setDiag('');
-      if(!email.value){ show('err','Ingresá tu correo para recuperar la contraseña.'); return; }
-      const { data, error } = await sb.auth.resetPasswordForEmail(email.value, { redirectTo: location.origin + '/dashboard.html' });
-      setDiag({stage:'resetPasswordForEmail', data, error});
-      if (error) return show('err', error.message);
-      show('ok','Te enviamos un correo con el enlace de recuperación.');
+      msg.classList.add('hidden');
+      setDiag('');
+      
+      if (!email.value) {
+        show('err', 'Ingresá tu correo para recuperar la contraseña.');
+        return;
+      }
+      
+      try {
+        const { data, error } = await sb.auth.resetPasswordForEmail(email.value, {
+          redirectTo: location.origin + '/dashboard.html'
+        });
+        
+        setDiag({
+          stage: 'resetPasswordForEmail',
+          data,
+          error
+        });
+        
+        if (error) return show('err', error.message);
+        show('ok', 'Te enviamos un correo con el enlace de recuperación.');
+      } catch (e) {
+        show('err', e.message || 'No se pudo enviar el correo de recuperación.');
+      }
     });
 
     // Sesión existente => dashboard
     (async () => {
-      const { data, error } = await sb.auth.getSession();
-      setDiag({stage:'getSession', data, error});
-      if (data?.session) location.replace('dashboard.html');
+      try {
+        const { data, error } = await sb.auth.getSession();
+        setDiag({
+          stage: 'getSession',
+          data,
+          error
+        });
+        
+        if (data?.session) location.replace('dashboard.html');
+      } catch (e) {
+        console.error('Error checking session:', e);
+      }
     })();
   </script>
 </body>
