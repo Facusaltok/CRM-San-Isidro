@@ -3,171 +3,574 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CRM — Dashboard</title>
+<title>CRM San Isidro — Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
+  /* Variables de color */
+  :root {
+    --gold: #d4af37;
+    --gold-light: #f0e6c2;
+    --gold-dark: #b8941f;
+    --gray-dark: #1e293b;
+    --gray-light: #f8fafc;
+  }
+  
   /* Overlay/z-index por si usás modales */
-  #overlay{position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px); z-index:9998; display:none}
-  .modal{position:fixed; left:50%; top:6vh; transform:translateX(-50%); z-index:10000; isolation:isolate}
+  #overlay{position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(4px); z-index:9998; display:none; opacity:0; transition: opacity 0.3s ease;}
+  .modal{position:fixed; left:50%; top:10vh; transform:translateX(-50%); z-index:10000; isolation:isolate; opacity:0; transition: opacity 0.3s ease, transform 0.3s ease; max-width:90%; width:600px; max-height:80vh; overflow-y:auto;}
+  .modal.show{opacity:1; transform:translateX(-50%) translateY(0);}
   body.modal-open{overflow:hidden}
   .suggest{z-index:10001}
+  
   /* Tab activo */
-  .tab-active{background:#fff; font-weight:600; border-bottom-color:#fff}
-  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid #999;border-top-color:transparent;animation:spin .8s linear infinite}
+  .tab{position:relative; transition: all 0.2s ease; border-bottom: 3px solid transparent;}
+  .tab:hover{background-color: var(--gold-light);}
+  .tab-active{background: linear-gradient(to bottom, var(--gold-light), white); font-weight:600; border-bottom-color: var(--gold); color: var(--gray-dark);}
+  
+  /* Spinner */
+  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid #999;border-top-color:var(--gold);animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
+  
+  /* Botones dorados */
+  .btn-gold{background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: white; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(212, 175, 55, 0.3);}
+  .btn-gold:hover{background: linear-gradient(135deg, var(--gold-dark), var(--gold)); transform: translateY(-2px); box-shadow: 0 6px 8px rgba(212, 175, 55, 0.4);}
+  
+  /* Tarjetas */
+  .card{border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease;}
+  .card:hover{transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.12);}
+  
+  /* Animaciones */
+  .fade-in{animation: fadeIn 0.5s ease forwards;}
+  @keyframes fadeIn{from{opacity:0; transform: translateY(10px);} to{opacity:1; transform: translateY(0);}}
+  
+  /* Header mejorado */
+  header{background: linear-gradient(90deg, var(--gray-dark), #334155); border-bottom: 3px solid var(--gold);}
+  
+  /* Tablas */
+  table{border-collapse: separate; border-spacing: 0;}
+  th{background-color: var(--gray-dark); color: white; font-weight:600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;}
+  tr{transition: background-color 0.2s ease;}
+  tr:hover{background-color: var(--gold-light);}
+  
+  /* Inputs */
+  input, select, textarea{border-radius: 8px; border: 1px solid #cbd5e1; transition: border-color 0.2s ease, box-shadow 0.2s ease;}
+  input:focus, select:focus, textarea:focus{border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2); outline: none;}
+  
+  /* Mensajes */
+  .msg-success{background-color: #dcfce7; color: #166534; border-color: #bbf7d0;}
+  .msg-error{background-color: #fee2e2; color: #b91c1c; border-color: #fecaca;}
+  
+  /* Animación de entrada */
+  .slide-in{animation: slideIn 0.4s ease forwards;}
+  @keyframes slideIn{from{opacity:0; transform: translateX(-20px);} to{opacity:1; transform: translateX(0);}}
+  
+  /* Decoración dorada */
+  .gold-accent{position: relative;}
+  .gold-accent::after{content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent);}
 </style>
 </head>
-<body class="bg-white text-slate-900">
+<body class="bg-gray-50 text-slate-900">
   <div id="overlay"></div>
 
   <!-- HEADER -->
-  <header class="flex items-center justify-between px-4 py-3 border-b bg-white sticky top-0 z-10">
-    <h1 class="text-xl font-bold">CRM San Isidro</h1>
+  <header class="flex items-center justify-between px-6 py-4 text-white sticky top-0 z-10 shadow-lg">
     <div class="flex items-center gap-3">
-      <span id="whoami" class="text-slate-500 text-sm"></span>
-      <button id="logoutBtn" class="px-3 py-1.5 rounded bg-black text-white">Salir</button>
+      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+        <i class="fas fa-building text-white"></i>
+      </div>
+      <h1 class="text-2xl font-bold gold-accent">CRM San Isidro</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="hidden md:flex items-center gap-2 text-sm">
+        <i class="fas fa-user-circle text-yellow-300"></i>
+        <span id="whoami" class="text-yellow-100"></span>
+      </div>
+      <button id="logoutBtn" class="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center gap-2">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Salir</span>
+      </button>
     </div>
   </header>
 
   <!-- MENSAJES GLOBALES -->
-  <section class="px-4 pt-3">
-    <div id="msgBox" class="hidden text-sm px-3 py-2 rounded border"></div>
+  <section class="px-4 pt-4 fade-in">
+    <div id="msgBox" class="hidden text-sm px-4 py-3 rounded-lg border flex items-start gap-2">
+      <i class="fas fa-info-circle mt-0.5"></i>
+      <div class="flex-1"></div>
+    </div>
   </section>
 
   <!-- TABS -->
-  <nav class="px-4 pt-3 border-b bg-white sticky top-[52px] z-10">
-    <div class="flex gap-2">
-      <button class="tab px-3 py-2 rounded-t border tab-active" data-tab="accesos">Accesos</button>
-      <button class="tab px-3 py-2 rounded-t border" data-tab="paqueteria">Paquetería</button>
-      <button class="tab px-3 py-2 rounded-t border" data-tab="personas">Personas</button>
-      <button class="tab px-3 py-2 rounded-t border" data-tab="contable">Contable</button>
+  <nav class="px-4 pt-4 border-b bg-white sticky top-[72px] z-10 shadow-sm">
+    <div class="flex gap-1 overflow-x-auto">
+      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2 tab-active" data-tab="accesos">
+        <i class="fas fa-door-open text-yellow-600"></i>
+        <span>Accesos</span>
+      </button>
+      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2" data-tab="paqueteria">
+        <i class="fas fa-box text-yellow-600"></i>
+        <span>Paquetería</span>
+      </button>
+      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2" data-tab="personas">
+        <i class="fas fa-users text-yellow-600"></i>
+        <span>Personas</span>
+      </button>
+      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2" data-tab="contable">
+        <i class="fas fa-calculator text-yellow-600"></i>
+        <span>Contable</span>
+      </button>
+      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2" data-tab="parte-diario">
+        <i class="fas fa-clipboard-list text-yellow-600"></i>
+        <span>Parte Diario</span>
+      </button>
     </div>
   </nav>
 
   <!-- VIEWS -->
-  <main class="p-4 space-y-10">
+  <main class="p-4 space-y-8">
 
     <!-- ACCESOS -->
-    <section id="view-accesos">
-      <div class="flex flex-wrap items-end gap-2 mb-3">
-        <div class="grow">
-          <label class="block text-sm text-slate-700">Buscar</label>
-          <input id="acc-q" class="w-full border rounded-lg px-3 h-11" placeholder="nombre, DNI, vehículo, dominio, motivo…" />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-700">Desde</label>
-          <input id="acc-desde" type="date" class="border rounded-lg px-3 h-11" />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-700">Hasta</label>
-          <input id="acc-hasta" type="date" class="border rounded-lg px-3 h-11" />
+    <section id="view-accesos" class="fade-in">
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div class="flex flex-wrap gap-3 grow">
+          <div class="grow max-w-md">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
+            <div class="relative">
+              <input id="acc-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="nombre, DNI, vehículo, dominio, motivo…" />
+              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
+            <input id="acc-desde" type="date" class="border rounded-lg px-3 py-2.5" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
+            <input id="acc-hasta" type="date" class="border rounded-lg px-3 py-2.5" />
+          </div>
         </div>
         <div class="flex gap-2">
-          <button id="acc-filtrar" class="px-3 h-11 rounded-lg bg-black text-white">Buscar</button>
-          <button id="acc-limpiar" class="px-3 h-11 rounded-lg border">Limpiar</button>
+          <button id="acc-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
+            <i class="fas fa-filter"></i>
+            <span>Buscar</span>
+          </button>
+          <button id="acc-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-eraser"></i>
+            <span>Limpiar</span>
+          </button>
+          <button id="acc-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>Nuevo Acceso</span>
+          </button>
         </div>
       </div>
-      <div class="overflow-auto border rounded-xl bg-white">
-        <table class="min-w-[1000px] w-full">
-          <thead class="bg-white sticky top-0 border-b">
-            <tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">
-              <th>Nombre</th><th>DNI</th><th>Vehículo</th><th>Dominio</th><th>Motivo</th>
-              <th>F. Ingreso</th><th>H. Ingreso</th><th>F. Salida</th><th>H. Salida</th><th>Creado</th>
-            </tr>
-          </thead>
-          <tbody id="acc-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2">
-            <tr><td colspan="10" class="px-3 py-4 text-slate-500 flex items-center gap-2">
-              <span class="spinner"></span> Cargando…
-            </td></tr>
-          </tbody>
-        </table>
+      
+      <div class="card bg-white overflow-hidden">
+        <div class="overflow-auto">
+          <table class="min-w-[1000px] w-full">
+            <thead class="bg-slate-800 text-white sticky top-0">
+              <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
+                <th>Nombre</th><th>DNI</th><th>Vehículo</th><th>Dominio</th><th>Motivo</th>
+                <th>F. Ingreso</th><th>H. Ingreso</th><th>F. Salida</th><th>H. Salida</th><th>Creado</th>
+              </tr>
+            </thead>
+            <tbody id="acc-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
+              <tr><td colspan="10" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
+                <span class="spinner"></span> <span>Cargando accesos…</span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
     <!-- PAQUETERÍA -->
-    <section id="view-paqueteria" hidden>
-      <div class="flex flex-wrap items-end gap-2 mb-3">
-        <div class="grow">
-          <label class="block text-sm text-slate-700">Buscar</label>
-          <input id="paq-q" class="w-full border rounded-lg px-3 h-11" placeholder="receptor, entregado a, descripción, id, empresa…" />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-700">Desde</label>
-          <input id="paq-desde" type="date" class="border rounded-lg px-3 h-11" />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-700">Hasta</label>
-          <input id="paq-hasta" type="date" class="border rounded-lg px-3 h-11" />
+    <section id="view-paqueteria" hidden class="fade-in">
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div class="flex flex-wrap gap-3 grow">
+          <div class="grow max-w-md">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
+            <div class="relative">
+              <input id="paq-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="receptor, entregado a, descripción, id, empresa…" />
+              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
+            <input id="paq-desde" type="date" class="border rounded-lg px-3 py-2.5" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
+            <input id="paq-hasta" type="date" class="border rounded-lg px-3 py-2.5" />
+          </div>
         </div>
         <div class="flex gap-2">
-          <button id="paq-filtrar" class="px-3 h-11 rounded-lg bg-black text-white">Buscar</button>
-          <button id="paq-limpiar" class="px-3 h-11 rounded-lg border">Limpiar</button>
+          <button id="paq-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
+            <i class="fas fa-filter"></i>
+            <span>Buscar</span>
+          </button>
+          <button id="paq-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-eraser"></i>
+            <span>Limpiar</span>
+          </button>
+          <button id="paq-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>Nuevo Paquete</span>
+          </button>
         </div>
       </div>
-      <div class="overflow-auto border rounded-xl bg-white">
-        <table class="min-w-[1200px] w-full">
-          <thead class="bg-white sticky top-0 border-b">
-            <tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">
-              <th>Receptor</th><th>Empresa</th><th>Remito</th><th>Estado</th><th>Fecha</th><th>Hora</th>
-              <th>Descripción</th><th>ID Nº</th><th>Entregado a</th><th>F. Entrega</th><th>H. Entrega</th><th>Notas</th><th>Creado</th>
-            </tr>
-          </thead>
-          <tbody id="paq-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2">
-            <tr><td colspan="13" class="px-3 py-4 text-slate-500 flex items-center gap-2">
-              <span class="spinner"></span> Cargando…
-            </td></tr>
-          </tbody>
-        </table>
+      
+      <div class="card bg-white overflow-hidden">
+        <div class="overflow-auto">
+          <table class="min-w-[1200px] w-full">
+            <thead class="bg-slate-800 text-white sticky top-0">
+              <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
+                <th>Receptor</th><th>Empresa</th><th>Remito</th><th>Estado</th><th>Fecha</th><th>Hora</th>
+                <th>Descripción</th><th>ID Nº</th><th>Entregado a</th><th>F. Entrega</th><th>H. Entrega</th><th>Notas</th><th>Creado</th>
+              </tr>
+            </thead>
+            <tbody id="paq-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
+              <tr><td colspan="13" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
+                <span class="spinner"></span> <span>Cargando paquetería…</span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
     <!-- PERSONAS -->
-    <section id="view-personas" hidden>
-      <div class="flex flex-wrap items-end gap-2 mb-3">
-        <div class="grow">
-          <label class="block text-sm text-slate-700">Buscar</label>
-          <input id="per-q" class="w-full border rounded-lg px-3 h-11" placeholder="nombre, DNI, teléfono, email…" />
+    <section id="view-personas" hidden class="fade-in">
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div class="flex flex-wrap gap-3 grow">
+          <div class="grow max-w-md">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
+            <div class="relative">
+              <input id="per-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="nombre, DNI, teléfono, email…" />
+              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+            </div>
+          </div>
         </div>
         <div class="flex gap-2">
-          <button id="per-filtrar" class="px-3 h-11 rounded-lg bg-black text-white">Buscar</button>
-          <button id="per-limpiar" class="px-3 h-11 rounded-lg border">Limpiar</button>
+          <button id="per-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
+            <i class="fas fa-filter"></i>
+            <span>Buscar</span>
+          </button>
+          <button id="per-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-eraser"></i>
+            <span>Limpiar</span>
+          </button>
+          <button id="per-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>Nueva Persona</span>
+          </button>
         </div>
       </div>
-      <div class="overflow-auto border rounded-xl bg-white">
-        <table class="min-w-[800px] w-full">
-          <thead class="bg-white sticky top-0 border-b">
-            <tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">
-              <th>Nombre</th><th>DNI</th><th>Teléfono</th><th>Email</th><th>Creado</th>
-            </tr>
-          </thead>
-          <tbody id="per-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2">
-            <tr><td colspan="5" class="px-3 py-4 text-slate-500 flex items-center gap-2">
-              <span class="spinner"></span> Cargando…
-            </td></tr>
-          </tbody>
-        </table>
+      
+      <div class="card bg-white overflow-hidden">
+        <div class="overflow-auto">
+          <table class="min-w-[800px] w-full">
+            <thead class="bg-slate-800 text-white sticky top-0">
+              <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
+                <th>Nombre</th><th>DNI</th><th>Teléfono</th><th>Email</th><th>Creado</th>
+              </tr>
+            </thead>
+            <tbody id="per-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
+              <tr><td colspan="5" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
+                <span class="spinner"></span> <span>Cargando personas…</span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
-    <!-- CONTABLE (genérico si existe) -->
-    <section id="view-contable" hidden>
-      <div class="mb-3 text-slate-600 text-sm">
-        Si existe la tabla <code>contable</code> en Supabase, se mostrará aquí con todas las columnas.
+    <!-- CONTABLE -->
+    <section id="view-contable" hidden class="fade-in">
+      <div class="mb-6 text-slate-600 text-sm bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+        <div class="flex items-start gap-3">
+          <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
+          <div>
+            <p class="font-medium">Información importante</p>
+            <p>Si existe la tabla <code class="bg-yellow-100 px-1 rounded">contable</code> en Supabase, se mostrará aquí con todas las columnas.</p>
+          </div>
+        </div>
       </div>
-      <div class="overflow-auto border rounded-xl bg-white">
-        <table class="min-w-[900px] w-full">
-          <thead id="con-head" class="bg-white sticky top-0 border-b"></thead>
-          <tbody id="con-rows" class="[&>tr>td]:px-3 [&>tr>td]:py-2">
-            <tr><td class="px-3 py-4 text-slate-500 flex items-center gap-2">
-              <span class="spinner"></span> Cargando…
-            </td></tr>
-          </tbody>
-        </table>
+      
+      <div class="flex justify-end mb-4">
+        <button id="con-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
+          <i class="fas fa-plus"></i>
+          <span>Nuevo Registro</span>
+        </button>
+      </div>
+      
+      <div class="card bg-white overflow-hidden">
+        <div class="overflow-auto">
+          <table class="min-w-[900px] w-full">
+            <thead id="con-head" class="bg-slate-800 text-white sticky top-0"></thead>
+            <tbody id="con-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
+              <tr><td class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
+                <span class="spinner"></span> <span>Cargando datos contables…</span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARTE DIARIO -->
+    <section id="view-parte-diario" hidden class="fade-in">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="lg:col-span-2">
+          <div class="card bg-white p-5">
+            <h2 class="text-xl font-bold mb-4 gold-accent">Generar Parte Diario</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Fecha del reporte</label>
+                <input id="pd-fecha" type="date" class="w-full border rounded-lg px-3 py-2.5" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Destinatario WhatsApp</label>
+                <input id="pd-destinatario" type="text" class="w-full border rounded-lg px-3 py-2.5" placeholder="+54911..." />
+              </div>
+            </div>
+            
+            <div class="flex flex-wrap gap-3">
+              <button id="pd-generar" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
+                <i class="fas fa-file-alt"></i>
+                <span>Generar Reporte</span>
+              </button>
+              <button id="pd-enviar" class="px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2">
+                <i class="fab fa-whatsapp"></i>
+                <span>Enviar WhatsApp</span>
+              </button>
+              <button id="pd-copiar" class="px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-2">
+                <i class="fas fa-copy"></i>
+                <span>Copiar Mensaje</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <div class="card bg-white p-5 h-full">
+            <h3 class="text-lg font-bold mb-3 gold-accent">Resumen del Día</h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-door-open text-blue-600"></i>
+                  <span class="font-medium">Accesos</span>
+                </div>
+                <span id="pd-accesos-count" class="text-lg font-bold text-blue-700">0</span>
+              </div>
+              
+              <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-box text-purple-600"></i>
+                  <span class="font-medium">Paquetes</span>
+                </div>
+                <span id="pd-paqueteria-count" class="text-lg font-bold text-purple-700">0</span>
+              </div>
+              
+              <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-users text-green-600"></i>
+                  <span class="font-medium">Personas</span>
+                </div>
+                <span id="pd-personas-count" class="text-lg font-bold text-green-700">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card bg-white p-5">
+        <h3 class="text-lg font-bold mb-3 gold-accent">Mensaje del Parte Diario</h3>
+        <div id="pd-mensaje" class="bg-slate-50 p-4 rounded-lg min-h-[200px] whitespace-pre-line text-slate-700">
+          Genera el reporte para ver el mensaje aquí...
+        </div>
       </div>
     </section>
   </main>
+
+  <!-- MODAL ACCESOS -->
+  <div id="modal-accesos" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
+    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+      <h3 class="text-xl font-bold gold-accent">Nuevo Acceso</h3>
+      <button class="modal-close text-slate-400 hover:text-slate-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    <form id="form-accesos" class="p-5 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+          <input name="nombre" class="w-full border rounded-lg px-3 py-2.5" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">DNI</label>
+          <input name="dni" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Vehículo</label>
+          <input name="vehiculo" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Dominio</label>
+          <input name="dominio" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha Ingreso</label>
+          <input name="f_ing" type="date" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Hora Ingreso</label>
+          <input name="h_ing" type="time" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha Salida</label>
+          <input name="f_sal" type="date" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Hora Salida</label>
+          <input name="h_sal" type="time" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Motivo</label>
+        <textarea name="motivo" class="w-full border rounded-lg px-3 py-2.5" rows="2"></textarea>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
+        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Acceso</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL PAQUETERÍA -->
+  <div id="modal-paqueteria" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
+    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+      <h3 class="text-xl font-bold gold-accent">Nuevo Paquete</h3>
+      <button class="modal-close text-slate-400 hover:text-slate-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    <form id="form-paqueteria" class="p-5 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Receptor</label>
+          <input name="receptor" class="w-full border rounded-lg px-3 py-2.5" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
+          <input name="empresa" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Remito</label>
+          <input name="remito" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+          <select name="estado" class="w-full border rounded-lg px-3 py-2.5">
+            <option value="pendiente">Pendiente</option>
+            <option value="entregado">Entregado</option>
+            <option value="devuelto">Devuelto</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
+          <input name="fecha" type="date" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Hora</label>
+          <input name="hora" type="time" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">ID Nº</label>
+          <input name="id_num" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Entregado a</label>
+          <input name="entregado_a" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha Entrega</label>
+          <input name="fecha_entrega" type="date" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Hora Entrega</label>
+          <input name="hora_entrega" type="time" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
+        <textarea name="descripcion" class="w-full border rounded-lg px-3 py-2.5" rows="2"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Notas</label>
+        <textarea name="notas" class="w-full border rounded-lg px-3 py-2.5" rows="2"></textarea>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
+        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Paquete</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL PERSONAS -->
+  <div id="modal-personas" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
+    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+      <h3 class="text-xl font-bold gold-accent">Nueva Persona</h3>
+      <button class="modal-close text-slate-400 hover:text-slate-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    <form id="form-personas" class="p-5 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+          <input name="nombre" class="w-full border rounded-lg px-3 py-2.5" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">DNI</label>
+          <input name="dni" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
+          <input name="telefono" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+          <input name="email" type="email" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
+        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Persona</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL CONTABLE -->
+  <div id="modal-contable" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
+    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+      <h3 class="text-xl font-bold gold-accent">Nuevo Registro Contable</h3>
+      <button class="modal-close text-slate-400 hover:text-slate-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    <div class="p-5">
+      <p class="text-slate-600 mb-4">Este formulario se generará dinámicamente según las columnas de la tabla contable.</p>
+      <div class="flex justify-end gap-3 pt-2">
+        <button class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
+        <button class="px-4 py-2.5 rounded-lg btn-gold">Guardar Registro</button>
+      </div>
+    </div>
+  </div>
 
 <script>
   // ================== SUPABASE ==================
@@ -179,9 +582,14 @@
   const $ = (s, root=document)=>root.querySelector(s);
   const showMsg = (type, text) => {
     const el = $('#msgBox');
-    el.classList.remove('hidden');
-    el.className = 'text-sm px-3 py-2 rounded border ' + (type==='ok' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-rose-50 text-rose-700 border-rose-200');
-    el.textContent = text;
+    el.classList.remove('hidden', 'msg-success', 'msg-error');
+    el.classList.add(type==='ok' ? 'msg-success' : 'msg-error');
+    el.querySelector('div').textContent = text;
+    
+    // Auto-ocultar después de 5 segundos
+    setTimeout(() => {
+      el.classList.add('hidden');
+    }, 5000);
   };
   const esc = s => (s??'').toString().replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 
@@ -213,6 +621,40 @@
     location.href = 'index.html';
   });
 
+  // ================== MODALES ==================
+  function openModal(modalId) {
+    const modal = $(`#${modalId}`);
+    const overlay = $('#overlay');
+    
+    overlay.style.display = 'block';
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      modal.classList.add('show');
+    }, 10);
+    
+    document.body.classList.add('modal-open');
+  }
+  
+  function closeModal() {
+    const overlay = $('#overlay');
+    const modals = document.querySelectorAll('.modal');
+    
+    overlay.style.opacity = '0';
+    modals.forEach(modal => modal.classList.remove('show'));
+    
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      document.body.classList.remove('modal-open');
+    }, 300);
+  }
+  
+  // Eventos para cerrar modales
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', closeModal);
+  });
+  
+  $('#overlay').addEventListener('click', closeModal);
+
   // ================== TABS ==================
   const tabs = Array.from(document.querySelectorAll('.tab'));
   const views = {
@@ -220,16 +662,25 @@
     paqueteria: $('#view-paqueteria'),
     personas: $('#view-personas'),
     contable: $('#view-contable'),
+    'parte-diario': $('#view-parte-diario'),
   };
+  
   tabs.forEach(b=>{
     b.addEventListener('click', ()=>{
       tabs.forEach(x=> x.classList.toggle('tab-active', x===b));
       Object.values(views).forEach(v=> v.hidden = true);
-      const t = b.dataset.tab; views[t].hidden = false;
+      const t = b.dataset.tab; 
+      views[t].hidden = false;
+      
+      // Animación de entrada
+      views[t].classList.remove('fade-in');
+      setTimeout(() => views[t].classList.add('fade-in'), 10);
+      
       if (t==='accesos') loadAccesos();
       if (t==='paqueteria') loadPaqueteria();
       if (t==='personas') loadPersonas();
       if (t==='contable') loadContable();
+      if (t==='parte-diario') initParteDiario();
     });
   });
 
@@ -242,6 +693,7 @@
     try{
       const { data, error } = await sb.from('accesos').select('*').order('created_at', { ascending:false }).limit(1000);
       if (error) throw error;
+      
       const rows = (data||[]).filter(r=>{
         const text = [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo].filter(Boolean).join(' ').toLowerCase();
         const okQ = !q || text.includes(q);
@@ -249,8 +701,8 @@
         const okD = between(fechaRef, d1, d2);
         return okQ && okD;
       }).map(r=>`
-        <tr class="border-b last:border-0">
-          <td>${esc(r.nombre)}</td>
+        <tr class="border-b last:border-0 hover:bg-yellow-50 transition-colors slide-in">
+          <td class="font-medium">${esc(r.nombre)}</td>
           <td>${esc(r.dni)}</td>
           <td>${esc(r.vehiculo)}</td>
           <td>${esc(r.dominio)}</td>
@@ -259,17 +711,43 @@
           <td>${esc(r.h_ing)}</td>
           <td>${esc(r.f_sal)}</td>
           <td>${esc(r.h_sal)}</td>
-          <td>${esc(r.created_at)}</td>
+          <td class="text-slate-500 text-sm">${esc(r.created_at)}</td>
         </tr>
-      `).join('') || `<tr><td colspan="10" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
+      `).join('') || `<tr><td colspan="10" class="px-4 py-6 text-slate-500 text-center">No se encontraron resultados</td></tr>`;
+      
       $('#acc-rows').innerHTML = rows;
     }catch(e){
-      $('#acc-rows').innerHTML = `<tr><td colspan="10" class="px-3 py-4 text-rose-600">Error: ${esc(e.message||e)}</td></tr>`;
+      $('#acc-rows').innerHTML = `<tr><td colspan="10" class="px-4 py-6 text-rose-600 text-center">Error: ${esc(e.message||e)}</td></tr>`;
       showMsg('err', 'Accesos: ' + (e.message||e));
     }
   }
+  
+  // Formulario de nuevo acceso
+  $('#form-accesos').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+      const { error } = await sb.from('accesos').insert([data]);
+      if (error) throw error;
+      
+      closeModal();
+      showMsg('ok', 'Acceso registrado correctamente');
+      loadAccesos();
+    } catch (error) {
+      showMsg('err', 'Error al guardar acceso: ' + error.message);
+    }
+  });
+  
+  $('#acc-nuevo').addEventListener('click', () => openModal('modal-accesos'));
   $('#acc-filtrar').addEventListener('click', loadAccesos);
-  $('#acc-limpiar').addEventListener('click', ()=>{ $('#acc-q').value=''; $('#acc-desde').value=''; $('#acc-hasta').value=''; loadAccesos(); });
+  $('#acc-limpiar').addEventListener('click', ()=>{ 
+    $('#acc-q').value=''; 
+    $('#acc-desde').value=''; 
+    $('#acc-hasta').value=''; 
+    loadAccesos(); 
+  });
 
   // ================== PAQUETERÍA ==================
   async function loadPaqueteria(){
@@ -280,6 +758,7 @@
     try{
       const { data, error } = await sb.from('paqueteria').select('*').order('created_at', { ascending:false }).limit(1000);
       if (error) throw error;
+      
       const rows = (data||[]).filter(r=>{
         const text = [r.receptor,r.empresa,r.remito,r.estado,r.descripcion,r.id_num,r.entregado_a,r.notas].filter(Boolean).join(' ').toLowerCase();
         const okQ = !q || text.includes(q);
@@ -287,11 +766,15 @@
         const okD = between(fechaRef, d1, d2);
         return okQ && okD;
       }).map(r=>`
-        <tr class="border-b last:border-0">
-          <td>${esc(r.receptor)}</td>
+        <tr class="border-b last:border-0 hover:bg-purple-50 transition-colors slide-in">
+          <td class="font-medium">${esc(r.receptor)}</td>
           <td>${esc(r.empresa)}</td>
           <td>${esc(r.remito)}</td>
-          <td>${esc(r.estado)}</td>
+          <td><span class="px-2 py-1 rounded-full text-xs font-medium ${
+            r.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' : 
+            r.estado === 'entregado' ? 'bg-green-100 text-green-800' : 
+            'bg-red-100 text-red-800'
+          }">${esc(r.estado)}</span></td>
           <td>${esc(r.fecha)}</td>
           <td>${esc(r.hora)}</td>
           <td>${esc(r.descripcion)}</td>
@@ -300,17 +783,43 @@
           <td>${esc(r.fecha_entrega)}</td>
           <td>${esc(r.hora_entrega)}</td>
           <td>${esc(r.notas)}</td>
-          <td>${esc(r.created_at)}</td>
+          <td class="text-slate-500 text-sm">${esc(r.created_at)}</td>
         </tr>
-      `).join('') || `<tr><td colspan="13" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
+      `).join('') || `<tr><td colspan="13" class="px-4 py-6 text-slate-500 text-center">No se encontraron resultados</td></tr>`;
+      
       $('#paq-rows').innerHTML = rows;
     }catch(e){
-      $('#paq-rows').innerHTML = `<tr><td colspan="13" class="px-3 py-4 text-rose-600">Error: ${esc(e.message||e)}</td></tr>`;
+      $('#paq-rows').innerHTML = `<tr><td colspan="13" class="px-4 py-6 text-rose-600 text-center">Error: ${esc(e.message||e)}</td></tr>`;
       showMsg('err', 'Paquetería: ' + (e.message||e));
     }
   }
+  
+  // Formulario de nuevo paquete
+  $('#form-paqueteria').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+      const { error } = await sb.from('paqueteria').insert([data]);
+      if (error) throw error;
+      
+      closeModal();
+      showMsg('ok', 'Paquete registrado correctamente');
+      loadPaqueteria();
+    } catch (error) {
+      showMsg('err', 'Error al guardar paquete: ' + error.message);
+    }
+  });
+  
+  $('#paq-nuevo').addEventListener('click', () => openModal('modal-paqueteria'));
   $('#paq-filtrar').addEventListener('click', loadPaqueteria);
-  $('#paq-limpiar').addEventListener('click', ()=>{ $('#paq-q').value=''; $('#paq-desde').value=''; $('#paq-hasta').value=''; loadPaqueteria(); });
+  $('#paq-limpiar').addEventListener('click', ()=>{ 
+    $('#paq-q').value=''; 
+    $('#paq-desde').value=''; 
+    $('#paq-hasta').value=''; 
+    loadPaqueteria(); 
+  });
 
   // ================== PERSONAS ==================
   async function loadPersonas(){
@@ -318,45 +827,275 @@
     try{
       const { data, error } = await sb.from('personas').select('*').order('created_at', { ascending:false }).limit(1000);
       if (error) throw error;
+      
       const rows = (data||[]).filter(r=>{
         const text = [r.nombre,r.dni,r.telefono,r.email].filter(Boolean).join(' ').toLowerCase();
         return !q || text.includes(q);
       }).map(r=>`
-        <tr class="border-b last:border-0">
-          <td>${esc(r.nombre)}</td>
+        <tr class="border-b last:border-0 hover:bg-green-50 transition-colors slide-in">
+          <td class="font-medium">${esc(r.nombre)}</td>
           <td>${esc(r.dni)}</td>
           <td>${esc(r.telefono)}</td>
           <td>${esc(r.email)}</td>
-          <td>${esc(r.created_at)}</td>
+          <td class="text-slate-500 text-sm">${esc(r.created_at)}</td>
         </tr>
-      `).join('') || `<tr><td colspan="5" class="px-3 py-4 text-slate-500">Sin resultados</td></tr>`;
+      `).join('') || `<tr><td colspan="5" class="px-4 py-6 text-slate-500 text-center">No se encontraron resultados</td></tr>`;
+      
       $('#per-rows').innerHTML = rows;
     }catch(e){
-      $('#per-rows').innerHTML = `<tr><td colspan="5" class="px-3 py-4 text-rose-600">Error: ${esc(e.message||e)}</td></tr>`;
+      $('#per-rows').innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-rose-600 text-center">Error: ${esc(e.message||e)}</td></tr>`;
       showMsg('err', 'Personas: ' + (e.message||e));
     }
   }
-  $('#per-filtrar').addEventListener('click', loadPersonas);
-  $('#per-limpiar').addEventListener('click', ()=>{ $('#per-q').value=''; loadPersonas(); });
-
-  // ================== CONTABLE (si existe) ==================
-  async function loadContable(){
-    const head = $('#con-head'); const body = $('#con-rows');
-    try{
-      const { data, error } = await sb.from('contable').select('*').order('created_at', { ascending:false }).limit(1000);
+  
+  // Formulario de nueva persona
+  $('#form-personas').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+      const { error } = await sb.from('personas').insert([data]);
       if (error) throw error;
-      const cols = data?.length ? Object.keys(data[0]) : [];
-      head.innerHTML = `<tr class="[&>th]:text-left [&>th]:px-3 [&>th]:py-2">${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`;
-      body.innerHTML = (data||[]).map(r=>`
-        <tr class="border-b last:border-0">
+      
+      closeModal();
+      showMsg('ok', 'Persona registrada correctamente');
+      loadPersonas();
+    } catch (error) {
+      showMsg('err', 'Error al guardar persona: ' + error.message);
+    }
+  });
+  
+  $('#per-nuevo').addEventListener('click', () => openModal('modal-personas'));
+  $('#per-filtrar').addEventListener('click', loadPersonas);
+  $('#per-limpiar').addEventListener('click', ()=>{ 
+    $('#per-q').value=''; 
+    loadPersonas(); 
+  });
+
+  // ================== CONTABLE ==================
+  async function loadContable(){
+    const head = $('#con-head'); 
+    const body = $('#con-rows');
+    
+    try{
+      // Verificar si la tabla existe primero
+      const { data, error } = await sb.from('contable').select('*').limit(1);
+      
+      if (error) {
+        // Si la tabla no existe, mostrar mensaje informativo
+        head.innerHTML = '';
+        body.innerHTML = `<tr><td class="px-4 py-8 text-center">
+          <div class="max-w-md mx-auto">
+            <div class="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-slate-800 mb-2">Tabla no encontrada</h3>
+            <p class="text-slate-600">La tabla 'contable' no existe en la base de datos. Contacte al administrador para crearla.</p>
+          </div>
+        </td></tr>`;
+        return;
+      }
+      
+      // Si la tabla existe, cargar los datos
+      const { data: fullData, error: fetchError } = await sb.from('contable').select('*').order('created_at', { ascending:false }).limit(1000);
+      if (fetchError) throw fetchError;
+      
+      const cols = fullData?.length ? Object.keys(fullData[0]) : [];
+      head.innerHTML = `<tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`;
+      
+      body.innerHTML = (fullData||[]).map(r=>`
+        <tr class="border-b last:border-0 hover:bg-blue-50 transition-colors slide-in">
           ${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}
         </tr>
-      `).join('') || `<tr><td class="px-3 py-4 text-slate-500">Sin datos</td></tr>`;
+      `).join('') || `<tr><td class="px-4 py-6 text-slate-500 text-center">No hay datos disponibles</td></tr>`;
     }catch(e){
-      head.innerHTML=''; body.innerHTML = `<tr><td class="px-3 py-4 text-rose-600">Error: ${esc(e.message||e)}</td></tr>`;
+      head.innerHTML=''; 
+      body.innerHTML = `<tr><td class="px-4 py-6 text-rose-600 text-center">Error: ${esc(e.message||e)}</td></tr>`;
       showMsg('err', 'Contable: ' + (e.message||e));
     }
   }
+  
+  $('#con-nuevo').addEventListener('click', () => {
+    // Mostrar mensaje informativo
+    showMsg('err', 'La tabla contable no está disponible actualmente. Contacte al administrador.');
+  });
+
+  // ================== PARTE DIARIO ==================
+  function initParteDiario() {
+    // Establecer fecha actual por defecto
+    const today = new Date().toISOString().split('T')[0];
+    $('#pd-fecha').value = today;
+    
+    // Cargar resumen inicial
+    loadResumenParteDiario();
+  }
+  
+  async function loadResumenParteDiario() {
+    const fecha = $('#pd-fecha').value;
+    if (!fecha) return;
+    
+    try {
+      // Contar accesos
+      const { data: accesos, error: errorAccesos } = await sb
+        .from('accesos')
+        .select('*', { count: 'exact', head: true })
+        .eq('f_ing', fecha);
+      
+      if (errorAccesos) throw errorAccesos;
+      $('#pd-accesos-count').textContent = accesos?.length || 0;
+      
+      // Contar paquetes
+      const { data: paquetes, error: errorPaquetes } = await sb
+        .from('paqueteria')
+        .select('*', { count: 'exact', head: true })
+        .eq('fecha', fecha);
+      
+      if (errorPaquetes) throw errorPaquetes;
+      $('#pd-paqueteria-count').textContent = paquetes?.length || 0;
+      
+      // Contar personas (creadas en esa fecha)
+      const { data: personas, error: errorPersonas } = await sb
+        .from('personas')
+        .select('*', { count: 'exact', head: true })
+        .like('created_at', `${fecha}%`);
+      
+      if (errorPersonas) throw errorPersonas;
+      $('#pd-personas-count').textContent = personas?.length || 0;
+      
+    } catch (error) {
+      showMsg('err', 'Error al cargar resumen: ' + error.message);
+    }
+  }
+  
+  async function generarParteDiario() {
+    const fecha = $('#pd-fecha').value;
+    if (!fecha) {
+      showMsg('err', 'Debe seleccionar una fecha');
+      return;
+    }
+    
+    try {
+      // Obtener datos de accesos
+      const { data: accesos, error: errorAccesos } = await sb
+        .from('accesos')
+        .select('*')
+        .eq('f_ing', fecha)
+        .order('h_ing');
+      
+      if (errorAccesos) throw errorAccesos;
+      
+      // Obtener datos de paquetes
+      const { data: paquetes, error: errorPaquetes } = await sb
+        .from('paqueteria')
+        .select('*')
+        .eq('fecha', fecha)
+        .order('hora');
+      
+      if (errorPaquetes) throw errorPaquetes;
+      
+      // Formatear fecha
+      const fechaFormateada = new Date(fecha).toLocaleDateString('es-AR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      // Generar mensaje
+      let mensaje = `*PARTE DIARIO - SAN ISIDRO*\n\n`;
+      mensaje += `*Fecha:* ${fechaFormateada}\n\n`;
+      
+      // Sección de accesos
+      mensaje += `*ACCESOS (${accesos?.length || 0})*\n`;
+      if (accesos && accesos.length > 0) {
+        accesos.forEach(acc => {
+          mensaje += `• ${acc.nombre} (DNI: ${acc.dni || 'N/A'}) - ${acc.motivo || 'Sin motivo'}\n`;
+          if (acc.vehiculo) mensaje += `  Vehículo: ${acc.vehiculo} (${acc.dominio || 'Sin dominio'})\n`;
+          mensaje += `  Ingreso: ${acc.h_ing || 'N/A'}\n`;
+          if (acc.h_sal) mensaje += `  Salida: ${acc.h_sal}\n`;
+          mensaje += `\n`;
+        });
+      } else {
+        mensaje += `No se registraron accesos hoy.\n\n`;
+      }
+      
+      // Sección de paquetes
+      mensaje += `*PAQUETERÍA (${paquetes?.length || 0})*\n`;
+      if (paquetes && paquetes.length > 0) {
+        paquetes.forEach(paq => {
+          mensaje += `• ${paq.receptor} - ${paq.descripcion || 'Sin descripción'}\n`;
+          mensaje += `  Estado: ${paq.estado}\n`;
+          if (paq.empresa) mensaje += `  Empresa: ${paq.empresa}\n`;
+          if (paq.entregado_a) mensaje += `  Entregado a: ${paq.entregado_a}\n`;
+          mensaje += `\n`;
+        });
+      } else {
+        mensaje += `No se registraron paquetes hoy.\n\n`;
+      }
+      
+      mensaje += `Generado el ${new Date().toLocaleString('es-AR')}`;
+      
+      $('#pd-mensaje').textContent = mensaje;
+      showMsg('ok', 'Parte diario generado correctamente');
+      
+    } catch (error) {
+      showMsg('err', 'Error al generar parte diario: ' + error.message);
+    }
+  }
+  
+  function enviarWhatsApp() {
+    const mensaje = $('#pd-mensaje').textContent;
+    const destinatario = $('#pd-destinatario').value.trim();
+    
+    if (!mensaje || mensaje.includes('Genera el reporte')) {
+      showMsg('err', 'Debe generar el reporte primero');
+      return;
+    }
+    
+    if (!destinatario) {
+      showMsg('err', 'Debe ingresar un número de destinatario');
+      return;
+    }
+    
+    // Formatear número (quitar espacios, guiones, etc.)
+    let numero = destinatario.replace(/\D/g, '');
+    if (!numero.startsWith('549') && numero.startsWith('54')) {
+      numero = '549' + numero.substring(2);
+    } else if (!numero.startsWith('54')) {
+      numero = '549' + numero;
+    }
+    
+    // Codificar mensaje para URL
+    const mensajeCodificado = encodeURIComponent(mensaje);
+    
+    // Abrir WhatsApp Web
+    window.open(`https://wa.me/${numero}?text=${mensajeCodificado}`, '_blank');
+  }
+  
+  function copiarMensaje() {
+    const mensaje = $('#pd-mensaje').textContent;
+    
+    if (!mensaje || mensaje.includes('Genera el reporte')) {
+      showMsg('err', 'Debe generar el reporte primero');
+      return;
+    }
+    
+    // Copiar al portapapeles
+    navigator.clipboard.writeText(mensaje)
+      .then(() => {
+        showMsg('ok', 'Mensaje copiado al portapapeles');
+      })
+      .catch(err => {
+        showMsg('err', 'Error al copiar mensaje: ' + err);
+      });
+  }
+  
+  // Eventos del parte diario
+  $('#pd-fecha').addEventListener('change', loadResumenParteDiario);
+  $('#pd-generar').addEventListener('click', generarParteDiario);
+  $('#pd-enviar').addEventListener('click', enviarWhatsApp);
+  $('#pd-copiar').addEventListener('click', copiarMensaje);
 
   // ================== INIT ==================
   // Arranca en Accesos
