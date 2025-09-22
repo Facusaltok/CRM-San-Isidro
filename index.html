@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CRM — Acceso</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#fff}
+    .spinner{width:16px;height:16px;border-radius:50%;border:2px solid #999;border-top-color:transparent;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body class="bg-white min-h-screen flex items-center justify-center">
@@ -34,55 +36,92 @@
       <button id="recover" class="text-sm text-slate-600 hover:underline">¿Olvidaste tu contraseña?</button>
     </div>
 
-    <button id="login" class="w-full h-11 rounded-lg bg-black text-white font-semibold">Ingresar</button>
+    <button id="login" class="w-full h-11 rounded-lg bg-black text-white font-semibold flex items-center justify-center gap-2">
+      <span>Ingresar</span><span id="spin" class="spinner" style="display:none"></span>
+    </button>
+
+    <div class="mt-4 pt-3 border-t">
+      <button id="magic" class="w-full h-11 rounded-lg border font-semibold">Enviarme link mágico</button>
+      <p class="text-xs text-slate-500 mt-2">Si el password falla, probá el link mágico para confirmar que el correo llega y el Auth responde.</p>
+    </div>
+
+    <details class="mt-4 text-xs text-slate-500">
+      <summary>Diagnóstico</summary>
+      <pre id="diag" class="whitespace-pre-wrap mt-2"></pre>
+    </details>
   </div>
 
   <script>
-    // === Credenciales de tu proyecto Supabase ===
+    // === Credenciales reales de tu proyecto ===
     const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 
     const email = document.getElementById('email');
     const password = document.getElementById('password');
     const loginBtn = document.getElementById('login');
+    const magicBtn = document.getElementById('magic');
     const msg = document.getElementById('msg');
     const toggle = document.getElementById('toggle');
-
-    toggle.addEventListener('click', () => {
-      password.type = password.type === 'password' ? 'text' : 'password';
-    });
+    const spin = document.getElementById('spin');
+    const diag = document.getElementById('diag');
 
     function show(type, text){
       msg.className = 'mb-3 text-sm px-3 py-2 rounded ' + (type==='ok' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-rose-50 text-rose-700 border border-rose-200');
       msg.textContent = text; msg.classList.remove('hidden');
     }
+    function setLoading(v){ loginBtn.disabled = v; spin.style.display = v ? 'inline-block' : 'none'; }
+    function setDiag(o){ try{ diag.textContent = (typeof o==='string')? o : JSON.stringify(o,null,2); }catch{ diag.textContent = String(o); } }
 
-    document.getElementById('recover').addEventListener('click', async () => {
-      if(!email.value){ show('err','Ingresá tu correo para recuperar la contraseña.'); return; }
-      const { error } = await sb.auth.resetPasswordForEmail(email.value, { redirectTo: location.origin + '/dashboard.html' });
-      if (error) return show('err', error.message);
-      show('ok','Te enviamos un correo con el enlace de recuperación.');
+    toggle.addEventListener('click', () => {
+      password.type = password.type === 'password' ? 'text' : 'password';
     });
 
+    // Login con email+password
     loginBtn.addEventListener('click', async () => {
-      msg.classList.add('hidden');
-      if (!email.value || !password.value) return show('err','Completá correo y contraseña.');
-      loginBtn.disabled = true; loginBtn.textContent = 'Ingresando…';
+      msg.classList.add('hidden'); setDiag('');
+      if (!email.value || !password.value){ show('err','Completá correo y contraseña.'); return; }
+      setLoading(true);
       try{
-        const { error } = await sb.auth.signInWithPassword({ email: email.value, password: password.value });
+        const { data, error } = await sb.auth.signInWithPassword({ email: email.value, password: password.value });
+        setDiag({stage:'signInWithPassword', data, error});
         if (error) throw error;
         location.href = 'dashboard.html';
       }catch(e){
         show('err', e.message || 'No se pudo iniciar sesión.');
       }finally{
-        loginBtn.disabled = false; loginBtn.textContent = 'Ingresar';
+        setLoading(false);
       }
     });
 
-    // Si ya hay sesión -> ir al dashboard
+    // Enviar Magic Link
+    magicBtn.addEventListener('click', async () => {
+      msg.classList.add('hidden'); setDiag('');
+      if (!email.value){ show('err','Ingresá tu correo para enviarte el link.'); return; }
+      try{
+        const { data, error } = await sb.auth.signInWithOtp({ email: email.value, options: { emailRedirectTo: location.origin + '/dashboard.html' }});
+        setDiag({stage:'signInWithOtp', data, error});
+        if (error) throw error;
+        show('ok','Revisá tu correo y abrí el enlace. Volvés acá logueado.');
+      }catch(e){
+        show('err', e.message || 'No se pudo enviar el link.');
+      }
+    });
+
+    // Recuperar contraseña
+    document.getElementById('recover').addEventListener('click', async () => {
+      msg.classList.add('hidden'); setDiag('');
+      if(!email.value){ show('err','Ingresá tu correo para recuperar la contraseña.'); return; }
+      const { data, error } = await sb.auth.resetPasswordForEmail(email.value, { redirectTo: location.origin + '/dashboard.html' });
+      setDiag({stage:'resetPasswordForEmail', data, error});
+      if (error) return show('err', error.message);
+      show('ok','Te enviamos un correo con el enlace de recuperación.');
+    });
+
+    // Sesión existente => dashboard
     (async () => {
-      const { data } = await sb.auth.getSession();
+      const { data, error } = await sb.auth.getSession();
+      setDiag({stage:'getSession', data, error});
       if (data?.session) location.replace('dashboard.html');
     })();
   </script>
