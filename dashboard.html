@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CRM San Isidro — Dashboard</title>
+<title>CRM — Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -11,2084 +14,1353 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-  /* Variables de color */
-  :root {
-    --gold: #d4af37;
-    --gold-light: #f0e6c2;
-    --gold-dark: #b8941f;
-    --gray-dark: #1e293b;
-    --gray-light: #f8fafc;
+  :root{ color-scheme: light; }
+  body{ 
+    background:#f8fafc; 
+    position:relative; 
+    overflow-x:hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   
-  /* Overlay/z-index por si usás modales */
-  #overlay{position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(4px); z-index:9998; display:none; opacity:0; transition: opacity 0.3s ease;}
-  .modal{position:fixed; left:50%; top:10vh; transform:translateX(-50%); z-index:10000; isolation:isolate; opacity:0; transition: opacity 0.3s ease, transform 0.3s ease; max-width:90%; width:600px; max-height:80vh; overflow-y:auto;}
-  .modal.show{opacity:1; transform:translateX(-50%) translateY(0);}
-  body.modal-open{overflow:hidden}
-  .suggest{z-index:10001}
+  /* Efectos de fondo */
+  .gold-glow{ 
+    pointer-events:none; 
+    position:fixed; 
+    inset:-20% -20% auto auto; 
+    width:70vmax; 
+    height:70vmax; 
+    border-radius:50%;
+    background: radial-gradient(closest-side, rgba(245,158,11,.08), transparent 70%); 
+    animation: floatGlow 16s ease-in-out infinite alternate; 
+    filter: blur(12px); 
+    z-index:0; 
+  }
+  .gold-ribbon{ 
+    pointer-events:none; 
+    position:fixed; 
+    left:-10%; 
+    top:40%; 
+    width:120vmax; 
+    height:200px;
+    background: linear-gradient(90deg, transparent, rgba(245,158,11,.05), transparent); 
+    transform: rotate(-6deg); 
+    animation: shimmer 10s linear infinite; 
+    z-index:0; 
+  }
   
-  /* Tab activo */
-  .tab{position:relative; transition: all 0.2s ease; border-bottom: 3px solid transparent;}
-  .tab:hover{background-color: var(--gold-light);}
-  .tab-active{background: linear-gradient(to bottom, var(--gold-light), white); font-weight:600; border-bottom-color: var(--gold); color: var(--gray-dark);}
+  @keyframes floatGlow{ 
+    from{ transform: translate(0,0) scale(1) } 
+    to{ transform: translate(-6%,4%) scale(1.05) } 
+  }
   
-  /* Spinner */
-  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid #999;border-top-color:var(--gold);animation:spin .8s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes shimmer{ 
+    0%{ background-position:-200% 0 } 
+    100%{ background-position:200% 0 } 
+  }
   
-  /* Botones dorados */
-  .btn-gold{background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: white; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(212, 175, 55, 0.3);}
-  .btn-gold:hover{background: linear-gradient(135deg, var(--gold-dark), var(--gold)); transform: translateY(-2px); box-shadow: 0 6px 8px rgba(212, 175, 55, 0.4);}
+  .app-layer{ 
+    position:relative; 
+    z-index:1; 
+  }
+
+  /* Estética general mejorada */
+  .tab{
+    padding:.65rem 1rem;
+    border-radius:.8rem;
+    border:1px solid #e2e8f0;
+    background:#ffffff;
+    color:#475569;
+    transition: all .25s ease;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
   
-  /* Tarjetas */
-  .card{border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease;}
-  .card:hover{transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.12);}
+  .tab:hover{ 
+    transform: translateY(-2px); 
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+    background: #f8fafc;
+  }
   
-  /* Animaciones */
-  .fade-in{animation: fadeIn 0.5s ease forwards;}
-  @keyframes fadeIn{from{opacity:0; transform: translateY(10px);} to{opacity:1; transform: translateY(0);}}
+  .tab.active{
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color:#ffffff;
+    border-color:#d97706;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+  }
   
-  /* Header mejorado */
-  header{background: linear-gradient(90deg, var(--gray-dark), #334155); border-bottom: 3px solid var(--gold);}
+  .chip{
+    border:1px solid #e2e8f0;
+    border-radius:999px;
+    padding:.2rem .7rem;
+    font-size:.75rem;
+    transition: all .2s ease;
+    background: #ffffff;
+    color: #475569;
+    font-weight: 500;
+  }
   
-  /* Tablas */
-  table{border-collapse: separate; border-spacing: 0;}
-  th{background-color: var(--gray-dark); color: white; font-weight:600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;}
-  tr{transition: background-color 0.2s ease;}
-  tr:hover{background-color: var(--gold-light);}
+  .chip:hover{ 
+    background:#f1f5f9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
   
-  /* Filas alternadas */
-  .row-blank { background-color: #ffffff; }
-  .row-gold { background-color: #fff8e6; }
+  .kpi{
+    border:1px solid #e2e8f0;
+    border-radius:16px;
+    background:#ffffff;
+    padding:16px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
   
-  /* Inputs */
-  input, select, textarea{border-radius: 8px; border: 1px solid #cbd5e1; transition: border-color 0.2s ease, box-shadow 0.2s ease;}
-  input:focus, select:focus, textarea:focus{border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2); outline: none;}
+  .kpi:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+  }
   
-  /* Mensajes */
-  .msg-success{background-color: #dcfce7; color: #166534; border-color: #bbf7d0;}
-  .msg-error{background-color: #fee2e2; color: #b91c1c; border-color: #fecaca;}
+  .table-wrap{
+    max-height:70vh; 
+    overflow:auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
   
-  /* Animación de entrada */
-  .slide-in{animation: slideIn 0.4s ease forwards;}
-  @keyframes slideIn{from{opacity:0; transform: translateX(-20px);} to{opacity:1; transform: translateX(0);}}
+  .modal-body{
+    max-height:75vh; 
+    overflow:auto;
+  }
   
-  /* Decoración dorada */
-  .gold-accent{position: relative;}
-  .gold-accent::after{content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent);}
+  .modal-footer-shadow{
+    box-shadow:0 -8px 20px rgba(0,0,0,0.05);
+    border-radius: 0 0 16px 16px;
+  }
   
-  /* KPIs */
-  .kpi{border:1px solid rgb(226 232 240);border-radius:14px;background:#fff;padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.06)}
+  .btn{
+    padding:.6rem 1rem;
+    border-radius:.8rem;
+    border:1px solid #e2e8f0;
+    background:#ffffff;
+    color:#475569;
+    transition: all .25s ease;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
   
-  /* Leyenda de seguridad */
-  .secure-badge{display:flex;align-items:center;gap:.55rem;padding:.55rem .8rem;border:1px dashed var(--gold);border-radius:12px;background:linear-gradient(180deg,#fff, #fffaf3)}
-  .lock{width:18px;height:18px;border:2px solid #111827;border-radius:4px; position:relative}
-  .lock:before{content:""; position:absolute; left:50%; transform:translateX(-50%); top:-8px; width:10px; height:8px; border:2px solid #111827; border-bottom:none; border-radius:8px 8px 0 0}
-  .pulse{ animation:pulse 2s ease-in-out infinite}
-  @keyframes pulse{0%{opacity:1}50%{opacity:.55}100%{opacity:1}}
+  .btn:hover{ 
+    transform: translateY(-2px); 
+    box-shadow:0 8px 15px rgba(0,0,0,0.08);
+    background: #f8fafc;
+  }
   
+  .btn-gold{
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color:#ffffff;
+    border-color:#d97706;
+    box-shadow: 0 4px 10px rgba(245,158,11,0.3);
+  }
+  
+  .btn-gold:hover{ 
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: translateY(-2px);
+    box-shadow:0 8px 15px rgba(245,158,11,0.4);
+  }
+  
+  .label{
+    display:block;
+    font-size:.75rem;
+    color:#64748b;
+    margin-bottom:.3rem;
+    font-weight: 600;
+  }
+  
+  .input{
+    width:100%;
+    padding:.7rem .9rem;
+    border:1px solid #cbd5e1;
+    border-radius:.75rem;
+    outline:none;
+    transition:border-color .2s ease, box-shadow .2s ease;
+    background: #ffffff;
+    color: #334155;
+    font-weight: 500;
+  }
+  
+  .input:focus{ 
+    border-color:#f59e0b; 
+    box-shadow:0 0 0 4px rgba(245,158,11,.15);
+  }
+  
+  .section{
+    border:1px solid #e2e8f0;
+    border-radius:16px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.03);
+    background: #ffffff;
+    overflow: hidden;
+  }
+  
+  .section summary{
+    cursor:pointer;
+    list-style:none;
+    padding:.8rem 1rem;
+    border-bottom:1px solid #e2e8f0;
+    background:#f8fafc;
+    border-radius:16px 16px 0 0;
+    font-weight: 600;
+    color: #334155;
+    transition: background-color 0.2s ease;
+  }
+  
+  .section summary:hover {
+    background: #f1f5f9;
+  }
+  
+  .section .content{
+    padding:1rem;
+  }
+  
+  .suggest{
+    position:absolute; 
+    z-index:20; 
+    background:#ffffff; 
+    border:1px solid #e2e8f0; 
+    border-radius:12px; 
+    box-shadow:0 16px 32px rgba(0,0,0,.12); 
+    max-height:220px; 
+    overflow:auto; 
+    width:100%
+  }
+  
+  .suggest li{
+    padding:.6rem .8rem; 
+    cursor:pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .suggest li:hover{
+    background:#fff7ed
+  }
+  
+  .note{
+    font-size:.78rem;
+    color:#64748b;
+  }
+  
+  .badge{
+    font-size:.72rem;
+    border:1px solid #e2e8f0;
+    border-radius:999px;
+    padding:.2rem .6rem;
+    background: #ffffff;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  /* Filas: blanco / dorado suave + animación */
+  .row-fade{ 
+    animation: fadeInUp .35s ease both
+  }
+  
+  @keyframes fadeInUp{ 
+    from{ opacity:0; transform: translateY(8px)} 
+    to{ opacity:1; transform: translateY(0)} 
+  }
+  
+  .row-gold{ 
+    background:#fffbeb; 
+  }
+  
+  .row-blank{ 
+    background:#ffffff 
+  }
+
   /* Cabecera sticky para tablas largas */
-  thead.sticky-head th{ position: sticky; top:0; background:#fdfaf5; z-index:2; box-shadow:0 1px 0 #e5e7eb}
+  thead.sticky-head th{ 
+    position: sticky; 
+    top:0; 
+    background:#fdfaf5; 
+    z-index:2; 
+    box-shadow:0 2px 5px rgba(0,0,0,0.05);
+  }
+  
+  /* Mejoras en el header */
+  header {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border-bottom: 3px solid #f59e0b;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+  
+  /* Mejoras en la sección principal */
+  main > section {
+    background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+  
+  /* Mejoras en el modal */
+  #modal > div {
+    background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  }
+  
+  /* Animaciones y transiciones mejoradas */
+  .fade-in {
+    animation: fadeIn 0.5s ease forwards;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Efectos hover en filas de tabla */
+  tbody tr {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+  
+  tbody tr:hover {
+    background-color: #fffbeb;
+    transform: scale(1.005);
+  }
+  
+  /* Botones de acción mejorados */
+  .action-btn {
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .edit-btn {
+    background-color: #3b82f6;
+    color: white;
+    border: 1px solid #3b82f6;
+  }
+  
+  .edit-btn:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  }
+  
+  .delete-btn {
+    background-color: #ef4444;
+    color: white;
+    border: 1px solid #ef4444;
+  }
+  
+  .delete-btn:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  }
 </style>
 </head>
-<body class="bg-gray-50 text-slate-900">
-  <div id="overlay"></div>
-
-  <!-- HEADER -->
-  <header class="flex items-center justify-between px-6 py-4 text-white sticky top-0 z-10 shadow-lg">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-        <i class="fas fa-building text-white"></i>
+<body class="min-h-screen text-slate-800">
+  <div class="gold-glow"></div><div class="gold-ribbon"></div>
+  <div class="app-layer">
+    <header class="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-900 font-extrabold flex items-center justify-center shadow-lg">
+          <i class="fas fa-building"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold leading-tight text-white">San Isidro</h1>
+          <p class="text-xs text-amber-100">Panel de Control</p>
+        </div>
       </div>
-      <h1 class="text-2xl font-bold gold-accent">CRM San Isidro</h1>
-    </div>
-    <div class="flex items-center gap-4">
-      <div class="hidden md:flex items-center gap-2 text-sm">
-        <i class="fas fa-user-circle text-yellow-300"></i>
-        <span id="whoami" class="text-yellow-100"></span>
+      <div class="flex items-center gap-3">
+        <button id="refreshBtn" class="btn flex items-center gap-2">
+          <i class="fas fa-sync-alt"></i>
+          <span>Actualizar</span>
+        </button>
+        <button id="exportBtn"  class="btn btn-gold flex items-center gap-2">
+          <i class="fas fa-file-pdf"></i>
+          <span>Exportar PDF</span>
+        </button>
+        <button id="exportCsvBtn" class="btn flex items-center gap-2">
+          <i class="fas fa-file-csv"></i>
+          <span>Exportar CSV</span>
+        </button>
+        <button id="logoutBtn"  class="btn flex items-center gap-2">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Salir</span>
+        </button>
       </div>
-      <button id="logoutBtn" class="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center gap-2">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Salir</span>
-      </button>
-    </div>
-  </header>
+    </header>
 
-  <!-- MENSAJES GLOBALES -->
-  <section class="px-4 pt-4 fade-in">
-    <div id="msgBox" class="hidden text-sm px-4 py-3 rounded-lg border flex items-start gap-2">
-      <i class="fas fa-info-circle mt-0.5"></i>
-      <div class="flex-1"></div>
-    </div>
-  </section>
+    <main class="max-w-6xl mx-auto px-4 pb-24">
+      <nav class="flex gap-3 mb-6">
+        <button data-tab="accesos"    class="tab active flex items-center gap-2">
+          <i class="fas fa-door-open"></i>
+          <span>Accesos</span>
+        </button>
+        <button data-tab="paqueteria" class="tab flex items-center gap-2">
+          <i class="fas fa-box"></i>
+          <span>Paquetería</span>
+        </button>
+        <button data-tab="contable"   class="tab flex items-center gap-2">
+          <i class="fas fa-calculator"></i>
+          <span>Contable</span>
+        </button>
+        <button data-tab="agenda"     class="tab flex items-center gap-2">
+          <i class="fas fa-calendar-alt"></i>
+          <span>Agenda</span>
+        </button>
+        <button data-tab="parte"      class="tab flex items-center gap-2">
+          <i class="fas fa-clipboard-list"></i>
+          <span>Parte diario</span>
+        </button>
+      </nav>
 
-  <!-- Leyenda de seguridad -->
-  <div class="px-4 pt-2">
-    <div class="secure-badge mb-4 shadow-sm">
-      <span class="lock pulse"></span>
-      <p class="text-sm text-slate-700 leading-snug">
-        Tus datos están <b>encriptados</b> en tránsito (TLS) y en reposo (AES-256). Acceso protegido por <b>roles</b> y <b>autenticación segura</b>.
-      </p>
-    </div>
-  </div>
+      <section class="rounded-2xl bg-white border border-slate-200 shadow-xl p-6">
+        <div class="flex items-end gap-4 flex-wrap mb-6">
+          <div>
+            <label class="label">Desde</label>
+            <input id="fDesde" type="date" class="input">
+          </div>
+          <div>
+            <label class="label">Hasta</label>
+            <input id="fHasta" type="date" class="input">
+          </div>
 
-  <!-- TABS -->
-  <nav class="px-4 pt-2 border-b bg-white sticky top-[72px] z-10 shadow-sm">
-    <div class="flex gap-1 overflow-x-auto">
-      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2 tab-active" data-tab="accesos">
-        <i class="fas fa-door-open text-yellow-600"></i>
-        <span>Accesos</span>
-      </button>
-      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2" data-tab="paqueteria">
-        <i class="fas fa-box text-yellow-600"></i>
-        <span>Paquetería</span>
-      </button>
-      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2" data-tab="personas">
-        <i class="fas fa-users text-yellow-600"></i>
-        <span>Personas</span>
-      </button>
-      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2" data-tab="contable">
-        <i class="fas fa-calculator text-yellow-600"></i>
-        <span>Contable</span>
-      </button>
-      <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2" data-tab="parte-diario">
-        <i class="fas fa-clipboard-list text-yellow-600"></i>
-        <span>Parte Diario</span>
-      </button>
-    </div>
-  </nav>
+          <div id="wrapAsignado" class="hidden">
+            <label class="label">Asignado a</label>
+            <div class="flex gap-2 items-center">
+              <select id="asignado" class="input" style="width:auto">
+                <option>Todos</option>
+                <option>Amalia</option>
+                <option>Valentino</option>
+                <option>Otros</option>
+              </select>
+              <button class="chip" data-quick="Amalia">Amalia</button>
+              <button class="chip" data-quick="Valentino">Valentino</button>
+              <button class="chip" data-quick="Otros">Otros</button>
+            </div>
+          </div>
 
-  <!-- VIEWS -->
-  <main class="p-4 space-y-8">
-
-    <!-- ACCESOS -->
-    <section id="view-accesos" class="fade-in">
-      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div class="flex flex-wrap gap-3 grow">
-          <div class="grow max-w-md">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
+          <div class="flex-1 min-w-[280px]">
+            <label class="label">Buscar</label>
             <div class="relative">
-              <input id="acc-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="nombre, DNI, vehículo, dominio, motivo…" />
+              <input id="q" type="text" placeholder="Texto libre (nombre, apellido, DNI, etc.)" class="input pl-10">
               <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
             </div>
-            <div class="note mt-1 text-xs text-slate-500" id="acc-hint">Sugerencia: buscá por <b>nombre, apellido o DNI</b> para ver el <b>total de horas</b>.</div>
+            <div class="note mt-1" id="extraHint"></div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
-            <input id="acc-desde" type="date" class="border rounded-lg px-3 py-2.5" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
-            <input id="acc-hasta" type="date" class="border rounded-lg px-3 py-2.5" />
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <button id="acc-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
-            <i class="fas fa-filter"></i>
+
+          <button id="newBtn" class="btn btn-gold flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>Nuevo</span>
+          </button>
+          <button id="filterBtn" class="btn flex items-center gap-2">
+            <i class="fas fa-search"></i>
             <span>Buscar</span>
           </button>
-          <button id="acc-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+          <button id="clearBtn" class="btn flex items-center gap-2">
             <i class="fas fa-eraser"></i>
             <span>Limpiar</span>
           </button>
-          <button id="acc-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+          <button id="showAllBtn" class="btn flex items-center gap-2">
             <i class="fas fa-list"></i>
             <span>Mostrar todo</span>
           </button>
-          <button id="acc-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
-            <i class="fas fa-plus"></i>
-            <span>Nuevo Acceso</span>
-          </button>
         </div>
-      </div>
-      
-      <!-- KPI HORAS (solo Accesos) -->
-      <div id="accesosKpi" class="kpi mt-4 mb-4">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <div class="text-xs text-slate-500">Total horas (lista filtrada)</div>
-            <div id="k_horas" class="text-lg font-semibold">—</div>
-          </div>
-          <span id="k_horas_badge" class="badge">Accesos</span>
-        </div>
-      </div>
-      
-      <div class="card bg-white overflow-hidden">
-        <div class="overflow-auto">
-          <table class="min-w-[1000px] w-full">
-            <thead class="bg-slate-800 text-white sticky-head">
-              <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
-                <th>Nombre</th><th>DNI</th><th>Vehículo</th><th>Dominio</th><th>Motivo</th>
-                <th>F. Ingreso</th><th>H. Ingreso</th><th>F. Salida</th><th>H. Salida</th><th>Horas</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="acc-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
-              <tr><td colspan="11" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
-                <span class="spinner"></span> <span>Cargando accesos…</span>
-              </td></tr>
-            </tbody>
-          </table>
-          <p id="acc-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
-          <p id="acc-err" class="text-center text-red-500 py-2"></p>
-        </div>
-        <div class="flex justify-center mt-4">
-          <button id="acc-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
-        </div>
-      </div>
-    </section>
 
-    <!-- PAQUETERÍA -->
-    <section id="view-paqueteria" hidden class="fade-in">
-      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div class="flex flex-wrap gap-3 grow">
-          <div class="grow max-w-md">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
-            <div class="relative">
-              <input id="paq-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="receptor, entregado a, descripción, id, empresa…" />
-              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+        <div id="contableKpis" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 hidden">
+          <div class="kpi">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <i class="fas fa-arrow-up text-green-600"></i>
+              </div>
+              <div>
+                <div class="text-xs text-slate-500">Ingresos</div>
+                <div id="k_ing" class="text-xl font-bold">—</div>
+              </div>
             </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
-            <input id="paq-desde" type="date" class="border rounded-lg px-3 py-2.5" />
+          <div class="kpi">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <i class="fas fa-arrow-down text-red-600"></i>
+              </div>
+              <div>
+                <div class="text-xs text-slate-500">Egresos</div>
+                <div id="k_egr" class="text-xl font-bold">—</div>
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
-            <input id="paq-hasta" type="date" class="border rounded-lg px-3 py-2.5" />
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <button id="paq-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
-            <i class="fas fa-filter"></i>
-            <span>Buscar</span>
-          </button>
-          <button id="paq-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-eraser"></i>
-            <span>Limpiar</span>
-          </button>
-          <button id="paq-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-list"></i>
-            <span>Mostrar todo</span>
-          </button>
-          <button id="paq-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
-            <i class="fas fa-plus"></i>
-            <span>Nuevo Paquete</span>
-          </button>
-        </div>
-      </div>
-      
-      <div class="card bg-white overflow-hidden">
-        <div class="overflow-auto">
-          <table class="min-w-[1200px] w-full">
-            <thead class="bg-slate-800 text-white sticky-head">
-              <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
-                <th>Receptor</th><th>Empresa</th><th>Remito</th><th>Estado</th><th>Fecha</th><th>Hora</th>
-                <th>Descripción</th><th>ID Nº</th><th>Entregado a</th><th>F. Entrega</th><th>H. Entrega</th><th>Notas</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="paq-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
-              <tr><td colspan="13" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
-                <span class="spinner"></span> <span>Cargando paquetería…</span>
-              </td></tr>
-            </tbody>
-          </table>
-          <p id="paq-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
-          <p id="paq-err" class="text-center text-red-500 py-2"></p>
-        </div>
-        <div class="flex justify-center mt-4">
-          <button id="paq-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- PERSONAS -->
-    <section id="view-personas" hidden class="fade-in">
-      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div class="flex flex-wrap gap-3 grow">
-          <div class="grow max-w-md">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
-            <div class="relative">
-              <input id="per-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="nombre, DNI, teléfono, email…" />
-              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+          <div class="kpi">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <i class="fas fa-wallet text-blue-600"></i>
+              </div>
+              <div>
+                <div class="text-xs text-slate-500">Saldo</div>
+                <div id="k_saldo" class="text-xl font-bold">—</div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="flex gap-2">
-          <button id="per-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
-            <i class="fas fa-filter"></i>
-            <span>Buscar</span>
-          </button>
-          <button id="per-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-eraser"></i>
-            <span>Limpiar</span>
-          </button>
-          <button id="per-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-list"></i>
-            <span>Mostrar todo</span>
-          </button>
-          <button id="per-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
-            <i class="fas fa-plus"></i>
-            <span>Nueva Persona</span>
-          </button>
-        </div>
-      </div>
-      
-      <div class="card bg-white overflow-hidden">
-        <div class="overflow-auto">
-          <table class="min-w-[800px] w-full">
-            <thead class="bg-slate-800 text-white sticky-head">
-              <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
-                <th>Nombre</th><th>DNI</th><th>Teléfono</th><th>Email</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="per-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
-              <tr><td colspan="5" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
-                <span class="spinner"></span> <span>Cargando personas…</span>
-              </td></tr>
-            </tbody>
-          </table>
-          <p id="per-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
-          <p id="per-err" class="text-center text-red-500 py-2"></p>
-        </div>
-        <div class="flex justify-center mt-4">
-          <button id="per-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
-        </div>
-      </div>
-    </section>
 
-    <!-- CONTABLE -->
-    <section id="view-contable" hidden class="fade-in">
-      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div class="flex flex-wrap gap-3 grow">
-          <div class="grow max-w-md">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
-            <div class="relative">
-              <input id="con-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="tipo, concepto, comprobante…" />
-              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+        <!-- KPI HORAS (solo Accesos) -->
+        <div id="accesosKpi" class="kpi mt-6 hidden">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <i class="fas fa-clock text-amber-600"></i>
+              </div>
+              <div>
+                <div class="text-xs text-slate-500">Total horas (lista filtrada)</div>
+                <div id="k_horas" class="text-xl font-bold">—</div>
+              </div>
             </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
-            <input id="con-desde" type="date" class="border rounded-lg px-3 py-2.5" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
-            <input id="con-hasta" type="date" class="border rounded-lg px-3 py-2.5" />
+            <span id="k_horas_badge" class="badge bg-amber-100 text-amber-800">Accesos</span>
           </div>
         </div>
-        <div class="flex gap-2">
-          <button id="con-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
-            <i class="fas fa-filter"></i>
-            <span>Buscar</span>
-          </button>
-          <button id="con-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-eraser"></i>
-            <span>Limpiar</span>
-          </button>
-          <button id="con-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-list"></i>
-            <span>Mostrar todo</span>
-          </button>
-          <button id="con-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
-            <i class="fas fa-plus"></i>
-            <span>Nuevo Registro</span>
-          </button>
-          <button id="con-export-pdf" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-file-pdf"></i>
-            <span>PDF</span>
-          </button>
-          <button id="con-export-csv" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-file-csv"></i>
-            <span>CSV</span>
-          </button>
-        </div>
-      </div>
-      
-      <div id="contableKpis" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <div class="kpi"><div class="text-xs text-slate-500">Ingresos</div><div id="k_ing" class="text-lg font-semibold">—</div></div>
-        <div class="kpi"><div class="text-xs text-slate-500">Egresos</div><div id="k_egr" class="text-lg font-semibold">—</div></div>
-        <div class="kpi"><div class="text-xs text-slate-500">Saldo</div><div id="k_saldo" class="text-lg font-semibold">—</div></div>
-      </div>
-      
-      <div class="card bg-white overflow-hidden">
-        <div class="overflow-auto">
-          <table class="min-w-[900px] w-full">
-            <thead id="con-head" class="bg-slate-800 text-white sticky-head"></thead>
-            <tbody id="con-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
-              <tr><td class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
-                <span class="spinner"></span> <span>Cargando datos contables…</span>
-              </td></tr>
-            </tbody>
+
+        <div class="table-wrap mt-6 bg-white rounded-xl overflow-hidden">
+          <table class="min-w-full">
+            <thead id="thead" class="text-sm text-slate-700 sticky-head"></thead>
+            <tbody id="rows" class="text-sm"></tbody>
           </table>
-          <p id="con-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
-          <p id="con-err" class="text-center text-red-500 py-2"></p>
+          <p id="empty" class="text-center text-slate-500 py-8 hidden">Sin registros</p>
+          <p id="err" class="text-center text-red-500 py-3"></p>
         </div>
-        <div class="flex justify-center mt-4">
-          <button id="con-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
-        </div>
-      </div>
-    </section>
 
-    <!-- PARTE DIARIO -->
-    <section id="view-parte-diario" hidden class="fade-in">
-      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div class="flex flex-wrap gap-3 grow">
-          <div class="grow max-w-md">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
-            <div class="relative">
-              <input id="pd-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="fecha, cabina, amt, puesto hudson, otros…" />
-              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
-            <input id="pd-desde" type="date" class="border rounded-lg px-3 py-2.5" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
-            <input id="pd-hasta" type="date" class="border rounded-lg px-3 py-2.5" />
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <button id="pd-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
-            <i class="fas fa-filter"></i>
-            <span>Buscar</span>
-          </button>
-          <button id="pd-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-eraser"></i>
-            <span>Limpiar</span>
-          </button>
-          <button id="pd-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
-            <i class="fas fa-list"></i>
-            <span>Mostrar todo</span>
-          </button>
-          <button id="pd-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
-            <i class="fas fa-plus"></i>
-            <span>Nuevo Parte</span>
+        <div class="flex justify-center mt-6">
+          <button id="loadMoreBtn" class="btn hidden flex items-center gap-2">
+            <i class="fas fa-plus-circle"></i>
+            <span>Cargar más</span>
           </button>
         </div>
-      </div>
-      
-      <div class="card bg-white overflow-hidden">
-        <div class="overflow-auto">
-          <table class="min-w-[900px] w-full">
-            <thead class="bg-slate-800 text-white sticky-head">
-              <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
-                <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Caja chica</th><th>Resumen</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="pd-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
-              <tr><td colspan="6" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
-                <span class="spinner"></span> <span>Cargando partes diarios…</span>
-              </td></tr>
-            </tbody>
-          </table>
-          <p id="pd-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
-          <p id="pd-err" class="text-center text-red-500 py-2"></p>
-        </div>
-        <div class="flex justify-center mt-4">
-          <button id="pd-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
-        </div>
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
 
-  <!-- MODAL ACCESOS -->
-  <div id="modal-accesos" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
-    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
-      <h3 class="text-xl font-bold gold-accent">Nuevo Acceso</h3>
-      <button class="modal-close text-slate-400 hover:text-slate-600">
-        <i class="fas fa-times text-xl"></i>
-      </button>
-    </div>
-    <form id="form-accesos" class="p-5 space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="relative">
-          <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-          <input name="nombre" id="acc-nombre" class="w-full border rounded-lg px-3 py-2.5" required autocomplete="off" />
-          <ul id="suggest_acc-nombre" class="suggest hidden"></ul>
-        </div>
-        <div class="relative">
-          <label class="block text-sm font-medium text-slate-700 mb-1">DNI</label>
-          <input name="dni" id="acc-dni" class="w-full border rounded-lg px-3 py-2.5" autocomplete="off" />
-          <ul id="suggest_acc-dni" class="suggest hidden"></ul>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Vehículo</label>
-          <input name="vehiculo" id="acc-vehiculo" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Dominio</label>
-          <input name="dominio" id="acc-dominio" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha Ingreso</label>
-          <input name="f_ing" type="date" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Hora Ingreso</label>
-          <input name="h_ing" type="time" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha Salida</label>
-          <input name="f_sal" type="date" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Hora Salida</label>
-          <input name="h_sal" type="time" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Motivo</label>
-        <textarea name="motivo" class="w-full border rounded-lg px-3 py-2.5" rows="2"></textarea>
-      </div>
-      <div class="flex justify-end gap-3 pt-2">
-        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
-        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Acceso</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- MODAL PAQUETERÍA -->
-  <div id="modal-paqueteria" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
-    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
-      <h3 class="text-xl font-bold gold-accent">Nuevo Paquete</h3>
-      <button class="modal-close text-slate-400 hover:text-slate-600">
-        <i class="fas fa-times text-xl"></i>
-      </button>
-    </div>
-    <form id="form-paqueteria" class="p-5 space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Receptor</label>
-          <input name="receptor" class="w-full border rounded-lg px-3 py-2.5" required />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
-          <input name="empresa" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Remito</label>
-          <input name="remito" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Estado</label>
-          <select name="estado" class="w-full border rounded-lg px-3 py-2.5">
-            <option value="pendiente">Pendiente</option>
-            <option value="entregado">Entregado</option>
-            <option value="devuelto">Devuelto</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-          <input name="fecha" type="date" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Hora</label>
-          <input name="hora" type="time" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">ID Nº</label>
-          <input name="id_num" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Entregado a</label>
-          <input name="entregado_a" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha Entrega</label>
-          <input name="fecha_entrega" type="date" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Hora Entrega</label>
-          <input name="hora_entrega" type="time" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
-        <textarea name="descripcion" class="w-full border rounded-lg px-3 py-2.5" rows="2"></textarea>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Notas</label>
-        <textarea name="notas" class="w-full border rounded-lg px-3 py-2.5" rows="2"></textarea>
-      </div>
-      <div class="flex justify-end gap-3 pt-2">
-        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
-        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Paquete</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- MODAL PERSONAS -->
-  <div id="modal-personas" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
-    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
-      <h3 class="text-xl font-bold gold-accent">Nueva Persona</h3>
-      <button class="modal-close text-slate-400 hover:text-slate-600">
-        <i class="fas fa-times text-xl"></i>
-      </button>
-    </div>
-    <form id="form-personas" class="p-5 space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-          <input name="nombre" class="w-full border rounded-lg px-3 py-2.5" required />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">DNI</label>
-          <input name="dni" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
-          <input name="telefono" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-          <input name="email" type="email" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-      </div>
-      <div class="flex justify-end gap-3 pt-2">
-        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
-        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Persona</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- MODAL CONTABLE -->
-  <div id="modal-contable" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
-    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
-      <h3 class="text-xl font-bold gold-accent">Nuevo Registro Contable</h3>
-      <button class="modal-close text-slate-400 hover:text-slate-600">
-        <i class="fas fa-times text-xl"></i>
-      </button>
-    </div>
-    <form id="form-contable" class="p-5 space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
-          <select name="tipo" class="w-full border rounded-lg px-3 py-2.5">
-            <option value="Ingreso">Ingreso</option>
-            <option value="Egreso">Egreso</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Concepto</label>
-          <input name="concepto" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Monto (ARS)</label>
-          <input name="monto" type="number" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-          <input name="fecha" type="date" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Comprobante (imagen)</label>
-        <input name="file" type="file" class="w-full border rounded-lg px-3 py-2.5" />
-      </div>
-      <div class="flex justify-end gap-3 pt-2">
-        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
-        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Registro</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- MODAL PARTE DIARIO -->
-  <div id="modal-parte-diario" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
-    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
-      <h3 class="text-xl font-bold gold-accent">Nuevo Parte Diario</h3>
-      <button class="modal-close text-slate-400 hover:text-slate-600">
-        <i class="fas fa-times text-xl"></i>
-      </button>
-    </div>
-    <form id="form-parte-diario" class="p-5 space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha *</label>
-          <input name="fecha" type="date" class="w-full border rounded-lg px-3 py-2.5" required />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Hora inicio</label>
-          <input name="hora_inicio" type="time" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Hora fin</label>
-          <input name="hora_fin" type="time" class="w-full border rounded-lg px-3 py-2.5" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Caja chica (ARS)</label>
-          <input name="caja_chica" type="number" class="w-full border rounded-lg px-3 py-2.5" />
-          <div class="note mt-1" id="caja_preview"></div>
-        </div>
-      </div>
-      
-      <details class="section border border-slate-200 rounded-lg" open>
-        <summary class="flex items-center justify-between p-3 cursor-pointer list-none bg-slate-50 rounded-t-lg">
-          <span class="font-medium">Operativo</span>
-          <span class="note">click para plegar</span>
-        </summary>
-        <div class="content p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-1">CABINA</label>
-            <textarea name="cabina" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-1">AMT</label>
-            <textarea name="amt" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-1">PUESTO HUDSON</label>
-            <textarea name="puesto_hudson" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+      <div class="w-full max-w-5xl rounded-2xl bg-white border border-slate-200 p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+          <h3 id="modalTitle" class="text-xl font-bold text-slate-800">Nuevo</h3>
+          <div class="flex gap-2">
+            <button id="closeModal" class="btn flex items-center gap-2">
+              <i class="fas fa-times"></i>
+              <span>Cerrar</span>
+            </button>
           </div>
         </div>
-      </details>
-      
-      <details class="section border border-slate-200 rounded-lg" open>
-        <summary class="flex items-center justify-between p-3 cursor-pointer list-none bg-slate-50 rounded-t-lg">
-          <span class="font-medium">Otros</span>
-          <span class="note">click para plegar</span>
-        </summary>
-        <div class="content p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-1">OTROS</label>
-            <textarea name="otros" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-1">AGENDA (texto)</label>
-            <textarea name="agenda_texto" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
+        <form id="form" class="grid md:grid-cols-2 gap-4 modal-body"></form>
+        <div class="mt-6 flex justify-between items-center gap-4 pt-4 border-t modal-footer-shadow">
+          <div id="hint" class="text-sm text-slate-500"></div>
+          <div class="flex gap-3">
+            <button id="saveBtn" class="btn btn-gold flex items-center gap-2">
+              <i class="fas fa-save"></i>
+              <span>Guardar</span>
+            </button>
           </div>
         </div>
-      </details>
-      
-      <div class="flex flex-wrap gap-2 mt-2">
-        <span class="note">Atajos: </span>
-        <button type="button" class="chip px-3 py-1 border rounded-full text-sm" onclick="fillNow('hora_inicio')">Inicio = ahora</button>
-        <button type="button" class="chip px-3 py-1 border rounded-full text-sm" onclick="fillNow('hora_fin')">Fin = ahora</button>
-        <button type="button" class="chip px-3 py-1 border rounded-full text-sm" onclick="copyAgendaDelDia()">Pegar agenda del día</button>
       </div>
-      
-      <div class="flex justify-end gap-3 pt-2">
-        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
-        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Parte</button>
-      </div>
-    </form>
+    </div>
   </div>
 
 <script>
-  // ================== SUPABASE ==================
-  const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
-  const sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+const sb = supabase.createClient(
+  "https://ecmjxpnpdgmvnxmbciur.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis"
+);
 
-  // ================== UTILS ==================
-  const $ = (s, root=document)=>root.querySelector(s);
-  const showMsg = (type, text) => {
-    const el = $('#msgBox');
-    el.classList.remove('hidden', 'msg-success', 'msg-error');
-    el.classList.add(type==='ok' ? 'msg-success' : 'msg-error');
-    el.querySelector('div').textContent = text;
-    
-    // Auto-ocultar después de 5 segundos
-    setTimeout(() => {
-      el.classList.add('hidden');
-    }, 5000);
+/** WhatsApp */
+const WHATSAPP_MODE  = 'chooser';
+const WHATSAPP_PHONE = '54911XXXXXXXX';
+
+const tabs = {
+  accesos: {
+    table: "accesos",
+    head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal","Horas",""],
+    fields: [
+      {k:"nombre",   l:"Persona",   t:"text", r:true, autocomplete: "personas"},
+      {k:"dni",      l:"DNI",       t:"text", autocomplete: "personas"},
+      {k:"vehiculo", l:"Vehículo",  t:"text"},
+      {k:"dominio",  l:"Dominio",   t:"text"},
+      {k:"motivo",   l:"Motivo",    t:"text"},
+      {k:"f_ing",    l:"Fecha ingreso", t:"date"},
+      {k:"h_ing",    l:"Hora ingreso",  t:"time"},
+      {k:"f_sal",    l:"Fecha salida",  t:"date"},
+      {k:"h_sal",    l:"Hora salida",   t:"time"}
+    ],
+    row: r => {
+      const horas = calcHoras(r);
+      return [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo,r.f_ing,r.h_ing,r.f_sal,r.h_sal, horas!=null?horas.toFixed(2):"—", actions(r.id)]
+    },
+    showHorasKpi: true
+  },
+  paqueteria: {
+    table: "paqueteria",
+    head: ["Receptor","Descripción","N° ID","Estado","Fecha","Hora","Entregado a","F. Entrega","H. Entrega","Notas",""],
+    fields: [
+      {k:"receptor",    l:"Receptor", t:"text", r:true},
+      {k:"descripcion", l:"Descripción", t:"text", r:true},
+      {k:"id_num",      l:"N° ID", t:"text"},
+      {k:"estado",      l:"Estado", t:"select", p:["en cabina","entregado"], r:true},
+      {k:"fecha",       l:"Fecha",    t:"date"},
+      {k:"hora",        l:"Hora",     t:"time"},
+      {k:"entregado_a", l:"Entregado a", t:"text"},
+      {k:"fecha_entrega", l:"Fecha de entrega", t:"date"},
+      {k:"hora_entrega",  l:"Hora de entrega",  t:"time"},
+      {k:"notas",       l:"Notas",    t:"textarea"},
+    ],
+    row: r => [
+      r.receptor, r.descripcion, r.id_num, r.estado, r.fecha, r.hora,
+      r.entregado_a || "—", r.fecha_entrega || "—", r.hora_entrega || "—",
+      r.notas || "", actions(r.id)
+    ]
+  },
+  contable: {
+    table: "movimientos",
+    head: ["Tipo","Concepto","Monto","Fecha","Comprobante",""],
+    fields: [
+      {k:"tipo",     l:"Tipo",     t:"select", p:["Ingreso","Egreso"], r:true},
+      {k:"concepto", l:"Concepto", t:"text", r:true},
+      {k:"monto",    l:"Monto (ARS)", t:"number", r:true},
+      {k:"fecha",    l:"Fecha",    t:"date"},
+      {k:"file",     l:"Comprobante (imagen)", t:"file"},   // virtual
+    ],
+    row: r => [r.tipo,r.concepto,formatMoney(r.monto),r.fecha, r.url ? `<a class="underline text-amber-600" target="_blank" href="${r.url}">Ver</a>`:"—", actions(r.id)],
+    kpis: true
+  },
+  agenda: {
+    table: "agenda_dom",
+    head: ["Asignado","Tarea","Fecha","Hora","Estado","Notas",""],
+    fields: [
+      {k:"asignado_a", l:"Asignado a", t:"select", p:["Amalia","Valentino","Otros"], r:true},
+      {k:"tarea",      l:"Tarea",   t:"text", r:true},
+      {k:"fecha",      l:"Fecha",   t:"date", r:true},
+      {k:"hora",       l:"Hora",    t:"time"},
+      {k:"estado",     l:"Estado",  t:"select", p:["pendiente","confirmado","completado","cancelado"], r:true},
+      {k:"notas",      l:"Notas",   t:"textarea"},
+    ],
+    row: r => [r.asignado_a, r.tarea, r.fecha, r.hora||"--:--", r.estado, r.notas||"", actions(r.id)],
+    agendaFilter: true
+  },
+  parte: {
+    table: "parte_diario",
+    head: ["Fecha","Inicio","Fin","Caja chica","Resumen",""],
+    fields: [
+      {k:"fecha",       l:"Fecha", t:"date", r:true},
+      {k:"hora_inicio", l:"Hora inicio", t:"time"},
+      {k:"hora_fin",    l:"Hora fin", t:"time"},
+      {k:"caja_chica",  l:"Caja chica (ARS)", t:"number"},
+      {k:"cabina",         l:"CABINA", t:"textarea"},
+      {k:"amt",            l:"AMT", t:"textarea"},
+      {k:"puesto_hudson",  l:"PUESTO HUDSON", t:"textarea"},
+      {k:"c1", l:"Chofer C-1", t:"text"},
+      {k:"c2", l:"Chofer C-2", t:"text"},
+      {k:"c3", l:"Chofer C-3", t:"text"},
+      {k:"c4", l:"Chofer C-4", t:"text"},
+      {k:"v_trailblazer", l:"Trailblazer", t:"text"},
+      {k:"v_amarok",      l:"Amarok", t:"text"},
+      {k:"v_sw4",         l:"SW4", t:"text"},
+      {k:"v_corolla",     l:"Toyota Corolla", t:"text"},
+      {k:"v_q5",          l:"Q5", t:"text"},
+      {k:"v_q7",          l:"Q7", t:"text"},
+      {k:"fam1", l:"Familia #1", t:"text"},
+      {k:"fam2", l:"Familia #2", t:"text"},
+      {k:"fam3", l:"Familia #3", t:"text"},
+      {k:"fam4", l:"Familia #4", t:"text"},
+      {k:"fam5", l:"Familia #5", t:"text"},
+      {k:"empleadas", l:"Empleadas domésticas (una por línea)", t:"textarea"},
+      {k:"niniera",   l:"Niñera", t:"text"},
+      {k:"tec_camaras",  l:"Sistemas de cámaras", t:"text"},
+      {k:"tec_cerco",    l:"Cerco eléctrico", t:"text"},
+      {k:"tec_portones", l:"Portones (detalle)", t:"text"},
+      {k:"prof_jardinero",  l:"Jardinero", t:"text"},
+      {k:"prof_piletero",   l:"Piletero", t:"text"},
+      {k:"prof_paisajistas",l:"Paisajistas", t:"text"},
+      {k:"prof_fumigador",  l:"Fumigador", t:"text"},
+      {k:"prof_floristas",  l:"Floristas", t:"text"},
+      {k:"amigos_sra",      l:"Amigos de la Sra. (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+      {k:"amigos_isabella", l:"Amigos de Isabella (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+      {k:"amigos_angie",    l:"Amigos de Angie (Nombre / DNI / Vehículos / Dominio)", t:"textarea"},
+      {k:"elementos", l:"Elementos asignados (una por línea)", t:"textarea"},
+      {k:"otros",     l:"OTROS", t:"textarea"},
+      {k:"agenda_texto", l:"AGENDA (texto)", t:"textarea"},
+    ],
+    row: r => [r.fecha, r.hora_inicio||"--:--", r.hora_fin||"--:--", formatMoney(r.caja_chica), (r.cabina||r.otros||"").toString().slice(0,60)+"…", actions(r.id)]
+  }
+};
+
+const thead = byId("thead"), rows = byId("rows"), empty = byId("empty"), errEl = byId("err");
+const wrapAsignado = byId("wrapAsignado"), selAsignado = byId("asignado");
+const contKpis = byId("contableKpis");
+const kpiHoras = byId("accesosKpi"), kHorasVal = byId("k_horas"), kHorasBadge = byId("k_horas_badge");
+const extraHint = byId("extraHint");
+
+let current = "accesos", editingId = null;
+
+/* Paginación */
+const PAGE_SIZE = 200;
+let page = 0;
+let lastBatchCount = 0;
+function resetPaging(){ page = 0; lastBatchCount = 0; byId('loadMoreBtn')?.classList.add('hidden'); }
+function canLoadMore(){ return lastBatchCount === PAGE_SIZE; }
+
+/* ===== Ordenamiento centralizado (descendente) ===== */
+function applyOrdering(q){
+  switch (current){
+    case 'contable':
+      return q
+        .order('fecha', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    case 'paqueteria':
+      return q
+        .order('fecha', { ascending: false, nullsFirst: false })
+        .order('hora',  { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    case 'accesos':
+      return q
+        .order('f_ing', { ascending: false, nullsFirst: false })
+        .order('h_ing', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    case 'agenda':
+      return q
+        .order('fecha', { ascending: false, nullsFirst: false })
+        .order('hora',  { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    default:
+      return q.order('created_at', { ascending: false });
+  }
+}
+
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (!data?.session) { location.replace("./index.html"); return; }
+
+  extraHint.innerHTML = 'Sugerencia: buscá por <b>nombre, apellido o DNI</b> para ver el <b>total de horas</b>.';
+
+  byId("fDesde").value = "";
+  byId("fHasta").value = "";
+  buildHead(); toggleExtras(); resetPaging(); await load();
+})();
+
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", async ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    current = b.dataset.tab; editingId=null;
+    buildHead(); toggleExtras(); resetPaging(); await load(true);
+  });
+});
+document.querySelectorAll('[data-quick]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ selAsignado.value = btn.dataset.quick; resetPaging(); load(true); });
+});
+byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
+
+byId("refreshBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
+byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
+byId("exportBtn").addEventListener("click", exportPDF);
+byId("exportCsvBtn").addEventListener("click", exportCSV);
+byId("clearBtn").addEventListener("click", async ()=>{
+  byId("fDesde").value=""; byId("fHasta").value=""; selAsignado.value="Todos"; byId("q").value="";
+  resetPaging(); await load(true);
+});
+byId("showAllBtn").addEventListener("click", async ()=>{
+  byId("fDesde").value=""; byId("fHasta").value="";
+  selAsignado.value="Todos"; byId("q").value="";
+  resetPaging(); await load(true);
+});
+byId("loadMoreBtn").addEventListener("click", async ()=>{ page += 1; await load(false); });
+
+const modal = byId("modal"), form = byId("form"), hint = byId("hint");
+byId("newBtn").addEventListener("click", () => openModal());
+byId("closeModal").addEventListener("click", ()=>modal.classList.add("hidden"));
+byId("saveBtn").addEventListener("click", save);
+
+function toggleExtras(){
+  wrapAsignado.classList.toggle("hidden", tabs[current].agendaFilter!==true);
+  contKpis.classList.toggle("hidden", tabs[current].kpis!==true);
+  kpiHoras.classList.toggle("hidden", tabs[current].showHorasKpi!==true);
+  kHorasBadge.textContent = current === "accesos" ? "Accesos" : "";
+}
+function buildHead(){
+  thead.innerHTML = `<tr class="border-b border-slate-200">${tabs[current].head.map(h=>`<th class="text-left py-3 px-4 font-semibold">${h}</th>`).join("")}</tr>`;
+}
+
+/* ===== Búsqueda: server-side cuando hay texto ===== */
+function filterLocal(list){
+  const q = byId("q").value.trim().toLowerCase();
+  if (!q) return list;
+  return list; // con texto, se filtra en Supabase (ver load)
+}
+function buildSearchOr(current, q){
+  const map = {
+    accesos:    ["nombre","dni","vehiculo","dominio","motivo"],
+    paqueteria: ["receptor","descripcion","id_num","estado","entregado_a","notas"],
+    contable:   ["tipo","concepto"],
+    agenda:     ["asignado_a","tarea","estado","notas"],
+    parte:      ["cabina","amt","puesto_hudson","otros","agenda_texto"]
   };
-  const esc = s => (s??'').toString().replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+  const fields = map[current] || [];
+  const like = fields.map(f => `${f}.ilike.%${q}%`).join(",");
+  return like;
+}
 
-  function toDate(v){ return v ? new Date(v) : null; }
-  function endOfDayStr(v){ return v ? (v + "T23:59:59") : null; }
-  function between(dateStr, d1, d2){
-    if (!dateStr) return true;
-    const t = new Date(dateStr);
-    if (d1 && t < d1) return false;
-    if (d2 && t > d2) return false;
-    return true;
+function actions(id){
+  return `<div class="flex gap-2">
+    <button class="action-btn edit-btn" onclick="editRow('${id}')">
+      <i class="fas fa-edit mr-1"></i>Editar
+    </button>
+    <button class="action-btn delete-btn" onclick="deleteRow('${id}')">
+      <i class="fas fa-trash-alt mr-1"></i>Eliminar
+    </button>
+  </div>`;
+}
+
+/* ====== Cálculo horas Accesos ====== */
+function calcHoras(r){
+  if (!r?.f_ing || !r?.h_ing || !r?.f_sal || !r?.h_sal) return null;
+  const start = new Date(`${r.f_ing}T${r.h_ing}`);
+  const end   = new Date(`${r.f_sal}T${r.h_sal}`);
+  const ms = end - start;
+  if (isNaN(ms) || ms < 0) return null;
+  return ms / 3600000;
+}
+function totalHoras(list){
+  let t=0; for(const r of list){ const h = calcHoras(r); if(h!=null) t+=h; }
+  return t;
+}
+
+window.editRow = async function(id){
+  editingId = id;
+  const { data, error } = await sb.from(tabs[current].table).select("*").eq("id", id).single();
+  if (error){ alert(error.message); return; }
+  openModal(data);
+}
+window.deleteRow = async function(id){
+  const name = nice(current);
+  if (!confirm(`¿Eliminar este registro de ${name}? Esta acción no se puede deshacer.`)) return;
+  const { error } = await sb.from(tabs[current].table).delete().eq('id', id);
+  if (error){ alert("Eliminar: " + error.message); return; }
+  await load(true);
+};
+
+let __rowStripeIndex = 0; // para alternar blanco / dorado
+
+async function load(clearBefore = true){
+  if (clearBefore) { rows.innerHTML=""; resetPaging(); __rowStripeIndex = 0; }
+  empty.classList.add("hidden"); errEl.textContent="";
+
+  const desde = byId("fDesde").value, hasta = byId("fHasta").value;
+  const qText = byId("q").value.trim();
+
+  // Base query sin orden inicial
+  let q = sb.from(tabs[current].table)
+            .select("*", { count: "exact", head: false });
+
+  // Fechas por tabla
+  const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
+  if (desde) q = q.gte(dateCol, desde);
+  if (hasta) q = q.lte(dateCol, hasta);
+
+  // Filtro asignado (Agenda)
+  if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
+
+  // Filtro en servidor
+  if (qText){
+    const orStr = buildSearchOr(current, qText);
+    if (orStr) q = q.or(orStr);
   }
 
-  // ================== SESIÓN ==================
-  (async () => {
-    try{
-      const { data, error } = await sb.auth.getSession();
-      if (error) showMsg('err', 'Auth error: ' + (error.message||error));
-      if (!data?.session) return location.replace('index.html');
-      $('#whoami').textContent = data.session.user?.email || '';
-      
-      // Restaurar estado después de verificar sesión
-      restoreState();
-    }catch(e){
-      showMsg('err', 'No se pudo verificar la sesión.');
+  // Orden centralizado (desc)
+  q = applyOrdering(q);
+
+  // Paginación
+  const from = page * PAGE_SIZE;
+  const to   = from + PAGE_SIZE - 1;
+  q = q.range(from, to);
+
+  const { data, error } = await q;
+  if (error){ errEl.textContent = error.message; byId('loadMoreBtn').classList.add('hidden'); return; }
+
+  const list = qText ? (data||[]) : filterLocal(data||[]);
+  lastBatchCount = (data||[]).length;
+
+  // KPI horas (Accesos)
+  if (current === "accesos" && clearBefore) {
+    const th = totalHoras(list);
+    kHorasVal.textContent = th ? `${th.toFixed(2)} h` : "—";
+  }
+
+  if (clearBefore && !list.length){
+    empty.classList.remove("hidden");
+    if(current==="contable") updateKpis([]);
+    byId('loadMoreBtn').classList.add('hidden');
+    return;
+  }
+
+  for (const r of list){
+    const arr = tabs[current].row(r);
+    const t = arr.map((v,i)=> {
+      const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
+      return `<td class="py-3 px-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
+    }).join("");
+
+    // Alternancia de filas + animación
+    const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
+    rows.insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${t}</tr>`);
+    __rowStripeIndex++;
+  }
+
+  if (current==="contable" && clearBefore) updateKpis(list);
+
+  byId('loadMoreBtn').classList.toggle('hidden', !canLoadMore());
+}
+function updateKpis(list){
+  let ing=0,egr=0; for(const r of list){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
+  byId('k_ing').textContent   = formatMoney(ing);
+  byId('k_egr').textContent   = formatMoney(egr);
+  byId('k_saldo').textContent = formatMoney(ing-egr);
+}
+
+async function kpiSaldoHasta(fechaISO){
+  const { data, error } = await sb.from('movimientos').select('monto,tipo').lte('fecha', fechaISO);
+  if (error) return 0;
+  let ing=0,egr=0;
+  for(const r of (data||[])){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); else if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
+  return ing - egr;
+}
+async function textoAgendaDelDia(fechaISO){
+  const { data, error } = await sb.from('agenda_dom').select('asignado_a,tarea,hora,estado').eq('fecha', fechaISO).order('hora',{ascending:true});
+  if (error) return "";
+  if (!data?.length) return "";
+  const fmt = (h)=> h ? h.slice(0,5) : "--:--";
+  let out = `Agenda ${fechaISO.split('-').reverse().join('/')}\n`;
+  for (const r of data){ out += `• ${r.asignado_a}: ${fmt(r.hora)} — ${r.tarea} [${r.estado}]\n`; }
+  return out.trim();
+}
+
+/* ===== Modal ===== */
+async function openModal(data=null){
+  byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + nice(current);
+  form.innerHTML=""; hint.innerHTML="";
+
+  if (current==="parte"){
+    renderParteForm(data);
+  } else {
+    for (const f of tabs[current].fields){
+      form.insertAdjacentHTML("beforeend", fieldHTML(f, data? data[f.k] : null));
     }
-  })();
-
-  // Logout
-  $('#logoutBtn').addEventListener('click', async () => {
-    try{ await sb.auth.signOut(); }catch(e){}
-    location.href = 'index.html';
-  });
-
-  // ================== MODALES ==================
-  function openModal(modalId) {
-    const modal = $(`#${modalId}`);
-    const overlay = $('#overlay');
-    
-    overlay.style.display = 'block';
-    setTimeout(() => {
-      overlay.style.opacity = '1';
-      modal.classList.add('show');
-    }, 10);
-    
-    document.body.classList.add('modal-open');
-    
-    // Si es modal de parte diario, actualizar vista previa de caja chica
-    if (modalId === 'modal-parte-diario') {
-      updateCajaPreview();
-    }
-  }
-  
-  function closeModal() {
-    const overlay = $('#overlay');
-    const modals = document.querySelectorAll('.modal');
-    
-    overlay.style.opacity = '0';
-    modals.forEach(modal => modal.classList.remove('show'));
-    
-    setTimeout(() => {
-      overlay.style.display = 'none';
-      document.body.classList.remove('modal-open');
-    }, 300);
-  }
-  
-  // Eventos para cerrar modales
-  document.querySelectorAll('.modal-close').forEach(btn => {
-    btn.addEventListener('click', closeModal);
-  });
-  
-  $('#overlay').addEventListener('click', closeModal);
-
-  // ================== PERSISTENCIA DE ESTADO ==================
-  function persistState(){
-    // Obtener tab activo
-    const activeTab = document.querySelector('.tab-active');
-    const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
-    
-    try{
-      localStorage.setItem('crm-tab', currentTab);
-      
-      // Guardar filtros según el tab activo
-      if (currentTab === 'accesos') {
-        localStorage.setItem('crm-acc-desde', $('#acc-desde')?.value || '');
-        localStorage.setItem('crm-acc-hasta', $('#acc-hasta')?.value || '');
-        localStorage.setItem('crm-acc-q', $('#acc-q')?.value || '');
-      } else if (currentTab === 'paqueteria') {
-        localStorage.setItem('crm-paq-desde', $('#paq-desde')?.value || '');
-        localStorage.setItem('crm-paq-hasta', $('#paq-hasta')?.value || '');
-        localStorage.setItem('crm-paq-q', $('#paq-q')?.value || '');
-      } else if (currentTab === 'personas') {
-        localStorage.setItem('crm-per-q', $('#per-q')?.value || '');
-      } else if (currentTab === 'contable') {
-        localStorage.setItem('crm-con-desde', $('#con-desde')?.value || '');
-        localStorage.setItem('crm-con-hasta', $('#con-hasta')?.value || '');
-        localStorage.setItem('crm-con-q', $('#con-q')?.value || '');
-      } else if (currentTab === 'parte-diario') {
-        localStorage.setItem('crm-pd-desde', $('#pd-desde')?.value || '');
-        localStorage.setItem('crm-pd-hasta', $('#pd-hasta')?.value || '');
-        localStorage.setItem('crm-pd-q', $('#pd-q')?.value || '');
-      }
-    }catch(e){}
-  }
-  
-  function restoreState(){
-    try{
-      const t = localStorage.getItem('crm-tab');
-      if (t) {
-        const tabBtn = document.querySelector(`[data-tab="${t}"]`);
-        if (tabBtn) {
-          document.querySelectorAll('.tab').forEach(x=>x.classList.remove('tab-active'));
-          tabBtn.classList.add('tab-active');
-          
-          // Ocultar todas las vistas
-          Object.values(views).forEach(v=> v.hidden = true);
-          views[t].hidden = false;
-          
-          // Cargar datos según el tab
-          if (t==='accesos') loadAccesos();
-          if (t==='paqueteria') loadPaqueteria();
-          if (t==='personas') loadPersonas();
-          if (t==='contable') loadContable();
-          if (t==='parte-diario') loadParteDiario();
-        }
-      }
-      
-      // Restaurar filtros según el tab activo
-      const activeTab = document.querySelector('.tab-active');
-      const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
-      
-      if (currentTab === 'accesos') {
-        const d = localStorage.getItem('crm-acc-desde'); if (d!==null) $('#acc-desde').value = d;
-        const h = localStorage.getItem('crm-acc-hasta'); if (h!==null) $('#acc-hasta').value = h;
-        const q = localStorage.getItem('crm-acc-q');     if (q!==null) $('#acc-q').value = q;
-      } else if (currentTab === 'paqueteria') {
-        const d = localStorage.getItem('crm-paq-desde'); if (d!==null) $('#paq-desde').value = d;
-        const h = localStorage.getItem('crm-paq-hasta'); if (h!==null) $('#paq-hasta').value = h;
-        const q = localStorage.getItem('crm-paq-q');     if (q!==null) $('#paq-q').value = q;
-      } else if (currentTab === 'personas') {
-        const q = localStorage.getItem('crm-per-q');     if (q!==null) $('#per-q').value = q;
-      } else if (currentTab === 'contable') {
-        const d = localStorage.getItem('crm-con-desde'); if (d!==null) $('#con-desde').value = d;
-        const h = localStorage.getItem('crm-con-hasta'); if (h!==null) $('#con-hasta').value = h;
-        const q = localStorage.getItem('crm-con-q');     if (q!==null) $('#con-q').value = q;
-      } else if (currentTab === 'parte-diario') {
-        const d = localStorage.getItem('crm-pd-desde'); if (d!==null) $('#pd-desde').value = d;
-        const h = localStorage.getItem('crm-pd-hasta'); if (h!==null) $('#pd-hasta').value = h;
-        const q = localStorage.getItem('crm-pd-q');     if (q!==null) $('#pd-q').value = q;
-      }
-    }catch(e){}
-  }
-  
-  // Agregar event listeners para persistir estado
-  ['acc-desde','acc-hasta','acc-q','paq-desde','paq-hasta','paq-q','per-q','con-desde','con-hasta','con-q','pd-desde','pd-hasta','pd-q'].forEach(id=>{
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', persistState);
-      el.addEventListener('change', persistState);
-    }
-  });
-  
-  // Persistir cuando cambia el tab
-  document.querySelectorAll("[data-tab]").forEach(b=>{
-    b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
-  });
-
-  // ================== ATAJOS DE TECLADO ==================
-  document.addEventListener('keydown', (e)=>{
-    // Foco en búsqueda con /
-    if (e.key === '/' && !e.ctrlKey && !e.metaKey){
-      const activeTab = document.querySelector('.tab-active');
-      const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
-      
-      let qInput;
-      if (currentTab === 'accesos') qInput = $('#acc-q');
-      else if (currentTab === 'paqueteria') qInput = $('#paq-q');
-      else if (currentTab === 'personas') qInput = $('#per-q');
-      else if (currentTab === 'contable') qInput = $('#con-q');
-      else if (currentTab === 'parte-diario') qInput = $('#pd-q');
-      
-      if (qInput){ 
-        e.preventDefault(); 
-        qInput.focus(); 
-        qInput.select(); 
-      }
-    }
-    
-    // Nuevo con Ctrl+N
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
-      e.preventDefault(); 
-      const activeTab = document.querySelector('.tab-active');
-      const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
-      
-      if (currentTab === 'accesos') $('#acc-nuevo')?.click();
-      else if (currentTab === 'paqueteria') $('#paq-nuevo')?.click();
-      else if (currentTab === 'personas') $('#per-nuevo')?.click();
-      else if (currentTab === 'contable') $('#con-nuevo')?.click();
-      else if (currentTab === 'parte-diario') $('#pd-nuevo')?.click();
-    }
-    
-    // Buscar con Ctrl+F
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
-      e.preventDefault();
-      const activeTab = document.querySelector('.tab-active');
-      const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
-      
-      if (currentTab === 'accesos') $('#acc-filtrar')?.click();
-      else if (currentTab === 'paqueteria') $('#paq-filtrar')?.click();
-      else if (currentTab === 'personas') $('#per-filtrar')?.click();
-      else if (currentTab === 'contable') $('#con-filtrar')?.click();
-      else if (currentTab === 'parte-diario') $('#pd-filtrar')?.click();
-    }
-    
-    // Cerrar modal con Escape
-    if (e.key === 'Escape'){
-      if (!document.body.classList.contains('modal-open')) return;
-      closeModal();
-    }
-  });
-
-  // ================== VISTA PREVIA DE CAJA CHICA ==================
-  function updateCajaPreview(){
-    const el = $('#form-parte-diario input[name="caja_chica"]');
-    const pv = $('#caja_preview');
-    if (el && pv){
-      const val = Number(el.value || 0);
-      if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
-      try{
-        pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
-      }catch(e){ pv.textContent = ""; }
-    }
-  }
-  
-  window.addEventListener('input', (e)=>{
-    if (e.target && e.target.name === 'caja_chica'){ updateCajaPreview(); }
-  });
-
-  // ================== TABS ==================
-  const tabs = Array.from(document.querySelectorAll('.tab'));
-  const views = {
-    accesos: $('#view-accesos'),
-    paqueteria: $('#view-paqueteria'),
-    personas: $('#view-personas'),
-    contable: $('#view-contable'),
-    'parte-diario': $('#view-parte-diario'),
-  };
-  
-  tabs.forEach(b=>{
-    b.addEventListener('click', ()=>{
-      tabs.forEach(x=> x.classList.toggle('tab-active', x===b));
-      Object.values(views).forEach(v=> v.hidden = true);
-      const t = b.dataset.tab; 
-      views[t].hidden = false;
-      
-      // Animación de entrada
-      views[t].classList.remove('fade-in');
-      setTimeout(() => views[t].classList.add('fade-in'), 10);
-      
-      if (t==='accesos') loadAccesos();
-      if (t==='paqueteria') loadPaqueteria();
-      if (t==='personas') loadPersonas();
-      if (t==='contable') loadContable();
-      if (t==='parte-diario') loadParteDiario();
-    });
-  });
-
-  // ================== PAGINACIÓN ==================
-  const PAGE_SIZE = 200;
-  let page = {
-    accesos: 0,
-    paqueteria: 0,
-    personas: 0,
-    contable: 0,
-    'parte-diario': 0
-  };
-  let lastBatchCount = {
-    accesos: 0,
-    paqueteria: 0,
-    personas: 0,
-    contable: 0,
-    'parte-diario': 0
-  };
-  
-  function resetPaging(tab) {
-    page[tab] = 0;
-    lastBatchCount[tab] = 0;
-    $(`#${tab}-loadMoreBtn`)?.classList.add('hidden');
-  }
-  
-  function canLoadMore(tab) {
-    return lastBatchCount[tab] === PAGE_SIZE;
-  }
-
-  // ================== ORDENAMIENTO ==================
-  function applyOrdering(q, tab) {
-    switch (tab) {
-      case 'contable':
-        return q
-          .order('fecha', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false });
-      case 'paqueteria':
-        return q
-          .order('fecha', { ascending: false, nullsFirst: false })
-          .order('hora',  { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false });
-      case 'accesos':
-        return q
-          .order('f_ing', { ascending: false, nullsFirst: false })
-          .order('h_ing', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false });
-      case 'parte-diario':
-        return q
-          .order('fecha', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false });
-      default:
-        return q.order('created_at', { ascending: false });
-    }
-  }
-
-  // ================== ACCESOS ==================
-  let __rowStripeIndex = {
-    accesos: 0,
-    paqueteria: 0,
-    personas: 0,
-    contable: 0,
-    'parte-diario': 0
-  };
-  
-  function calcHoras(r){
-    if (!r?.f_ing || !r?.h_ing || !r?.f_sal || !r?.h_sal) return null;
-    const start = new Date(`${r.f_ing}T${r.h_ing}`);
-    const end   = new Date(`${r.f_sal}T${r.h_sal}`);
-    const ms = end - start;
-    if (isNaN(ms) || ms < 0) return null;
-    return ms / 3600000;
-  }
-  
-  function totalHoras(list){
-    let t=0; for(const r of list){ const h = calcHoras(r); if(h!=null) t+=h; }
-    return t;
-  }
-  
-  async function loadAccesos(clearBefore = true){
-    if (clearBefore) { 
-      $('#acc-rows').innerHTML = ""; 
-      resetPaging('accesos'); 
-      __rowStripeIndex.accesos = 0; 
-    }
-    $('#acc-empty').classList.add("hidden"); 
-    $('#acc-err').textContent = "";
-
-    const q = $('#acc-q').value.trim();
-    const d1 = toDate($('#acc-desde').value);
-    const d2 = endOfDayStr($('#acc-hasta').value) ? new Date(endOfDayStr($('#acc-hasta').value)) : null;
-
-    try{
-      let query = sb.from('accesos').select("*", { count: "exact", head: false });
-      
-      // Fechas
-      if (d1) query = query.gte('f_ing', $('#acc-desde').value);
-      if (d2) query = query.lte('f_ing', $('#acc-hasta').value);
-      
-      // Búsqueda en servidor
-      if (q) {
-        const orStr = `nombre.ilike.%${q}%,dni.ilike.%${q}%,vehiculo.ilike.%${q}%,dominio.ilike.%${q}%,motivo.ilike.%${q}%`;
-        query = query.or(orStr);
-      }
-      
-      // Ordenamiento
-      query = applyOrdering(query, 'accesos');
-      
-      // Paginación
-      const from = page.accesos * PAGE_SIZE;
-      const to   = from + PAGE_SIZE - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      
-      const list = data || [];
-      lastBatchCount.accesos = list.length;
-      
-      // KPI horas
-      if (clearBefore) {
-        const th = totalHoras(list);
-        $('#k_horas').textContent = th ? `${th.toFixed(2)} h` : "—";
-      }
-      
-      if (clearBefore && !list.length){
-        $('#acc-empty').classList.remove("hidden");
-        $('#acc-loadMoreBtn').classList.add('hidden');
-        return;
-      }
-      
-      for (const r of list) {
-        const horas = calcHoras(r);
-        const acciones = `
-          <div class="flex gap-2">
-            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editAcceso('${r.id}')">Editar</button>
-            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deleteAcceso('${r.id}')">Eliminar</button>
-          </div>
-        `;
-        
-        const t = [
-          r.nombre, r.dni, r.vehiculo, r.dominio, r.motivo, 
-          r.f_ing, r.h_ing, r.f_sal, r.h_sal, 
-          horas!=null?horas.toFixed(2):"—", acciones
-        ];
-        
-        const row = t.map((v,i)=> {
-          const isRaw = i === t.length - 1;
-          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
-        }).join("");
-
-        // Alternancia de filas + animación
-        const stripeClass = (__rowStripeIndex.accesos % 2 === 0) ? 'row-blank' : 'row-gold';
-        $('#acc-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
-        __rowStripeIndex.accesos++;
-      }
-      
-      $('#acc-loadMoreBtn').classList.toggle('hidden', !canLoadMore('accesos'));
-    }catch(e){
-      $('#acc-err').textContent = e.message || e;
-      $('#acc-loadMoreBtn').classList.add('hidden');
-    }
-  }
-  
-  // Formulario de nuevo acceso
-  $('#form-accesos').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    
-    try {
-      // Autocompletar persona si existe
-      if (data.nombre || data.dni) {
-        try{
-          await sb.rpc('upsert_persona', {
-            p_nombre: data.nombre || null,
-            p_dni: data.dni || null,
-            p_telefono: null,
-            p_email: null
-          });
-        }catch(e){ console.warn(e); }
-      }
-      
-      const { error } = await sb.from('accesos').insert([data]);
-      if (error) throw error;
-      
-      closeModal();
-      showMsg('ok', 'Acceso registrado correctamente');
-      loadAccesos(true);
-    } catch (error) {
-      showMsg('err', 'Error al guardar acceso: ' + error.message);
-    }
-  });
-  
-  $('#acc-nuevo').addEventListener('click', () => openModal('modal-accesos'));
-  $('#acc-filtrar').addEventListener('click', () => loadAccesos(true));
-  $('#acc-limpiar').addEventListener('click', ()=>{ 
-    $('#acc-q').value=''; 
-    $('#acc-desde').value=''; 
-    $('#acc-hasta').value=''; 
-    loadAccesos(true); 
-  });
-  $('#acc-mostrar-todo').addEventListener('click', () => {
-    $('#acc-q').value=''; 
-    $('#acc-desde').value=''; 
-    $('#acc-hasta').value=''; 
-    loadAccesos(true);
-  });
-  $('#acc-loadMoreBtn').addEventListener('click', () => {
-    page.accesos += 1;
-    loadAccesos(false);
-  });
-  
-  // Autocomplete Personas
-  function attachPersonAutocomplete(){
-    const nameEl = $('#acc-nombre');
-    const dniEl  = $('#acc-dni');
-    const vehEl  = $('#acc-vehiculo');
-    const domEl  = $('#acc-dominio');
-    const sugName = $('#suggest_acc-nombre');
-    const sugDni  = $('#suggest_acc-dni');
-
-    const renderSug = (ul, items) => {
-      if (!items?.length){ ul.classList.add('hidden'); ul.innerHTML = ""; return; }
-      ul.innerHTML = items.map(p => `<li data-json='${JSON.stringify(p)}'>${esc(p.nombre||'')} — <span class="text-slate-500">${esc(p.dni||'')}</span></li>`).join("");
-      ul.classList.remove('hidden');
-      [...ul.querySelectorAll('li')].forEach(li=>{
-        li.addEventListener('click', async ()=>{
-          const p = JSON.parse(li.getAttribute('data-json'));
-          if (nameEl) nameEl.value = p.nombre || "";
-          if (dniEl)  dniEl.value  = p.dni || "";
-          try{
-            let q = sb.from('accesos').select('vehiculo,dominio,created_at').order('created_at',{ascending:false}).limit(1);
-            if (p.dni) q = q.eq('dni', p.dni);
-            else if (p.nombre) q = q.ilike('nombre', p.nombre);
-            const { data, error } = await q;
-            if (!error && data && data[0]){
-              if (vehEl && !vehEl.value) vehEl.value = data[0].vehiculo || '';
-              if (domEl && !domEl.value) domEl.value = data[0].dominio || '';
-            }
-          }catch(e){ console.warn(e); }
-          sugName?.classList.add('hidden'); sugDni?.classList.add('hidden');
-        });
-      });
-    };
-
-    let t1, t2;
-    nameEl?.addEventListener('input', async ()=>{
-      clearTimeout(t1);
-      t1 = setTimeout(async ()=>{
-        const q = nameEl.value.trim();
-        if (!q){ renderSug(sugName, []); return; }
-        const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
-        if (error){ console.warn(error); return; }
-        renderSug(sugName, data);
-      }, 220);
-    });
-    dniEl?.addEventListener('input', async ()=>{
-      clearTimeout(t2);
-      t2 = setTimeout(async ()=>{
-        const q = dniEl.value.trim();
-        if (!q){ renderSug(sugDni, []); return; }
-        const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('dni', `%${q}%`).limit(10);
-        if (error){ console.warn(error); return; }
-        renderSug(sugDni, data);
-      }, 220);
-    });
-
-    document.addEventListener('click', (e)=>{
-      if (!sugName?.contains(e.target) && e.target!==nameEl) sugName?.classList.add('hidden');
-      if (!sugDni?.contains(e.target)  && e.target!==dniEl)  sugDni?.classList.add('hidden');
-    });
-  }
-  
-  // Inicializar autocompletado cuando se abre el modal
-  const __openModalOrig = openModal;
-  openModal = function(modalId) {
-    __openModalOrig(modalId);
-    if (modalId === 'modal-accesos') {
+    if (current==="accesos"){
+      hint.innerHTML = 'Tip: escribí <b>nombre, apellido o DNI</b> para autocompletar desde <i>Personas</i>.';
       attachPersonAutocomplete();
     }
   }
-  
-  window.editAcceso = async function(id) {
-    try {
-      const { data, error } = await sb.from('accesos').select("*").eq("id", id).single();
-      if (error) throw error;
-      
-      // Llenar formulario
-      const form = $('#form-accesos');
-      for (const [key, value] of Object.entries(data)) {
-        const input = form.querySelector(`[name="${key}"]`);
-        if (input) input.value = value || '';
-      }
-      
-      openModal('modal-accesos');
-    } catch (error) {
-      showMsg('err', 'Error al cargar acceso: ' + error.message);
-    }
-  }
-  
-  window.deleteAcceso = async function(id) {
-    if (!confirm('¿Eliminar este acceso? Esta acción no se puede deshacer.')) return;
-    
-    try {
-      const { error } = await sb.from('accesos').delete().eq('id', id);
-      if (error) throw error;
-      
-      showMsg('ok', 'Acceso eliminado correctamente');
-      loadAccesos(true);
-    } catch (error) {
-      showMsg('err', 'Error al eliminar acceso: ' + error.message);
+
+  if (current==="parte"){
+    hint.innerHTML = 'Secciones plegables con autocompletados. WhatsApp se abre al guardar.';
+    if (!editingId) {
+      const hoy = new Date().toISOString().slice(0,10);
+      const d = byId("f_fecha"); if (d) d.value = hoy;
+      const saldo = await kpiSaldoHasta(hoy);
+      const c = byId('f_caja_chica'); if (c && (c.value==="" || c.value===null)) c.value = String(saldo.toFixed(2));
+      const ag = await textoAgendaDelDia(hoy);
+      const a = byId('f_agenda_texto'); if (a && !a.value) a.value = ag;
     }
   }
 
-  // ================== PAQUETERÍA ==================
-  async function loadPaqueteria(clearBefore = true){
-    if (clearBefore) { 
-      $('#paq-rows').innerHTML = ""; 
-      resetPaging('paqueteria'); 
-      __rowStripeIndex.paqueteria = 0; 
-    }
-    $('#paq-empty').classList.add("hidden"); 
-    $('#paq-err').textContent = "";
+  modal.classList.remove("hidden");
+}
 
-    const q = $('#paq-q').value.trim();
-    const d1 = toDate($('#paq-desde').value);
-    const d2 = endOfDayStr($('#paq-hasta').value) ? new Date(endOfDayStr($('#paq-hasta').value)) : null;
-
-    try{
-      let query = sb.from('paqueteria').select("*", { count: "exact", head: false });
-      
-      // Fechas
-      if (d1) query = query.gte('fecha', $('#paq-desde').value);
-      if (d2) query = query.lte('fecha', $('#paq-hasta').value);
-      
-      // Búsqueda en servidor
-      if (q) {
-        const orStr = `receptor.ilike.%${q}%,empresa.ilike.%${q}%,remito.ilike.%${q}%,descripcion.ilike.%${q}%,id_num.ilike.%${q}%,entregado_a.ilike.%${q}%,notas.ilike.%${q}%`;
-        query = query.or(orStr);
-      }
-      
-      // Ordenamiento
-      query = applyOrdering(query, 'paqueteria');
-      
-      // Paginación
-      const from = page.paqueteria * PAGE_SIZE;
-      const to   = from + PAGE_SIZE - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      
-      const list = data || [];
-      lastBatchCount.paqueteria = list.length;
-      
-      if (clearBefore && !list.length){
-        $('#paq-empty').classList.remove("hidden");
-        $('#paq-loadMoreBtn').classList.add('hidden');
-        return;
-      }
-      
-      for (const r of list) {
-        const acciones = `
-          <div class="flex gap-2">
-            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editPaquete('${r.id}')">Editar</button>
-            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deletePaquete('${r.id}')">Eliminar</button>
-          </div>
-        `;
-        
-        const t = [
-          r.receptor, r.empresa, r.remito, r.estado, r.fecha, r.hora,
-          r.descripcion, r.id_num, r.entregado_a, r.fecha_entrega, r.hora_entrega,
-          r.notas || "", acciones
-        ];
-        
-        const row = t.map((v,i)=> {
-          const isRaw = i === t.length - 1;
-          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
-        }).join("");
-
-        // Alternancia de filas + animación
-        const stripeClass = (__rowStripeIndex.paqueteria % 2 === 0) ? 'row-blank' : 'row-gold';
-        $('#paq-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
-        __rowStripeIndex.paqueteria++;
-      }
-      
-      $('#paq-loadMoreBtn').classList.toggle('hidden', !canLoadMore('paqueteria'));
-    }catch(e){
-      $('#paq-err').textContent = e.message || e;
-      $('#paq-loadMoreBtn').classList.add('hidden');
-    }
+function fieldHTML(f, value){
+  const base = `class="input"`; const v = value ?? "";
+  if (f.t==="select")  return `<div><label class="label">${f.l}${f.r?" *":""}</label><select id="f_${f.k}" ${base}>${(f.p||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select></div>`;
+  if (f.t==="textarea")return `<div class="md:col-span-2"><label class="label">${f.l}${f.r?" *":""}</label><textarea id="f_${f.k}" rows="3" ${base}>${v??""}</textarea></div>`;
+  if (f.autocomplete === "personas"){
+    return `<div class="relative">
+      <label class="label">${f.l}${f.r?" *":""}</label>
+      <input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base} autocomplete="off" placeholder="${f.k==='nombre'?'Ej: Juan Pérez':''}">
+      <ul id="suggest_${f.k}" class="suggest hidden"></ul>
+    </div>`;
   }
-  
-  // Formulario de nuevo paquete
-  $('#form-paqueteria').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    
-    try {
-      const { error } = await sb.from('paqueteria').insert([data]);
-      if (error) throw error;
-      
-      closeModal();
-      showMsg('ok', 'Paquete registrado correctamente');
-      loadPaqueteria(true);
-    } catch (error) {
-      showMsg('err', 'Error al guardar paquete: ' + error.message);
-    }
-  });
-  
-  $('#paq-nuevo').addEventListener('click', () => openModal('modal-paqueteria'));
-  $('#paq-filtrar').addEventListener('click', () => loadPaqueteria(true));
-  $('#paq-limpiar').addEventListener('click', ()=>{ 
-    $('#paq-q').value=''; 
-    $('#paq-desde').value=''; 
-    $('#paq-hasta').value=''; 
-    loadPaqueteria(true); 
-  });
-  $('#paq-mostrar-todo').addEventListener('click', () => {
-    $('#paq-q').value=''; 
-    $('#paq-desde').value=''; 
-    $('#paq-hasta').value=''; 
-    loadPaqueteria(true);
-  });
-  $('#paq-loadMoreBtn').addEventListener('click', () => {
-    page.paqueteria += 1;
-    loadPaqueteria(false);
-  });
-  
-  window.editPaquete = async function(id) {
-    try {
-      const { data, error } = await sb.from('paqueteria').select("*").eq("id", id).single();
-      if (error) throw error;
-      
-      // Llenar formulario
-      const form = $('#form-paqueteria');
-      for (const [key, value] of Object.entries(data)) {
-        const input = form.querySelector(`[name="${key}"]`);
-        if (input) input.value = value || '';
-      }
-      
-      openModal('modal-paqueteria');
-    } catch (error) {
-      showMsg('err', 'Error al cargar paquete: ' + error.message);
-    }
-  }
-  
-  window.deletePaquete = async function(id) {
-    if (!confirm('¿Eliminar este paquete? Esta acción no se puede deshacer.')) return;
-    
-    try {
-      const { error } = await sb.from('paqueteria').delete().eq('id', id);
-      if (error) throw error;
-      
-      showMsg('ok', 'Paquete eliminado correctamente');
-      loadPaqueteria(true);
-    } catch (error) {
-      showMsg('err', 'Error al eliminar paquete: ' + error.message);
-    }
-  }
+  return `<div><label class="label">${f.l}${f.r?" *":""}</label><input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base}></div>`;
+}
 
-  // ================== PERSONAS ==================
-  async function loadPersonas(clearBefore = true){
-    if (clearBefore) { 
-      $('#per-rows').innerHTML = ""; 
-      resetPaging('personas'); 
-      __rowStripeIndex.personas = 0; 
-    }
-    $('#per-empty').classList.add("hidden"); 
-    $('#per-err').textContent = "";
+/* ===== Parte Diario — UI pro (secciones) ===== */
+function sec(title, inner){
+  return `<details class="section" open>
+    <summary class="flex items-center justify-between">
+      <span class="font-medium">${title}</span>
+      <span class="note">click para plegar</span>
+    </summary>
+    <div class="content grid md:grid-cols-2 gap-4">${inner}</div>
+  </details>`;
+}
+function renderParteForm(data){
+  const top =
+  `<div class="grid md:grid-cols-4 gap-4 md:col-span-2">
+      <div class="md:col-span-1"><label class="label">Fecha *</label><input id="f_fecha" type="date" class="input" value="${data?.fecha??''}"></div>
+      <div><label class="label">Hora inicio</label><input id="f_hora_inicio" type="time" class="input" value="${data?.hora_inicio??''}"></div>
+      <div><label class="label">Hora fin</label><input id="f_hora_fin" type="time" class="input" value="${data?.hora_fin??''}"></div>
+      <div><label class="label">Caja chica (ARS)</label><input id="f_caja_chica" type="number" class="input" value="${data?.caja_chica??''}"><div class="note mt-1" id="caja_preview"></div></div>
+   </div>`;
 
-    const q = $('#per-q').value.trim();
-    
-    try{
-      let query = sb.from('personas').select("*", { count: "exact", head: false });
-      
-      // Búsqueda en servidor
-      if (q) {
-        const orStr = `nombre.ilike.%${q}%,dni.ilike.%${q}%,telefono.ilike.%${q}%,email.ilike.%${q}%`;
-        query = query.or(orStr);
-      }
-      
-      // Ordenamiento
-      query = query.order('created_at', { ascending: false });
-      
-      // Paginación
-      const from = page.personas * PAGE_SIZE;
-      const to   = from + PAGE_SIZE - 1;
-      query = query.range(from, to);
+  const op = 
+    `<div class="md:col-span-2"><label class="label">CABINA</label><textarea id="f_cabina" rows="3" class="input">${data?.cabina??""}</textarea></div>
+     <div class="md:col-span-2"><label class="label">AMT</label><textarea id="f_amt" rows="3" class="input">${data?.amt??""}</textarea></div>
+     <div class="md:col-span-2"><label class="label">PUESTO HUDSON</label><textarea id="f_puesto_hudson" rows="3" class="input">${data?.puesto_hudson??""}</textarea></div>`;
 
-      const { data, error, count } = await query;
-      if (error) throw error;
-      
-      const list = data || [];
-      lastBatchCount.personas = list.length;
-      
-      if (clearBefore && !list.length){
-        $('#per-empty').classList.remove("hidden");
-        $('#per-loadMoreBtn').classList.add('hidden');
-        return;
-      }
-      
-      for (const r of list) {
-        const acciones = `
-          <div class="flex gap-2">
-            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editPersona('${r.id}')">Editar</button>
-            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deletePersona('${r.id}')">Eliminar</button>
-          </div>
-        `;
-        
-        const t = [r.nombre, r.dni, r.telefono, r.email, acciones];
-        
-        const row = t.map((v,i)=> {
-          const isRaw = i === t.length - 1;
-          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
-        }).join("");
+  const choferes =
+    `<div><label class="label">Chofer C-1</label><input id="f_c1" class="input" value="${data?.c1??''}"></div>
+     <div><label class="label">Chofer C-2</label><input id="f_c2" class="input" value="${data?.c2??''}"></div>
+     <div><label class="label">Chofer C-3</label><input id="f_c3" class="input" value="${data?.c3??''}"></div>
+     <div><label class="label">Chofer C-4</label><input id="f_c4" class="input" value="${data?.c4??''}"></div>`;
 
-        // Alternancia de filas + animación
-        const stripeClass = (__rowStripeIndex.personas % 2 === 0) ? 'row-blank' : 'row-gold';
-        $('#per-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
-        __rowStripeIndex.personas++;
-      }
-      
-      $('#per-loadMoreBtn').classList.toggle('hidden', !canLoadMore('personas'));
-    }catch(e){
-      $('#per-err').textContent = e.message || e;
-      $('#per-loadMoreBtn').classList.add('hidden');
-    }
-  }
-  
-  // Formulario de nueva persona
-  $('#form-personas').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    
-    try {
-      const { error } = await sb.from('personas').insert([data]);
-      if (error) throw error;
-      
-      closeModal();
-      showMsg('ok', 'Persona registrada correctamente');
-      loadPersonas(true);
-    } catch (error) {
-      showMsg('err', 'Error al guardar persona: ' + error.message);
-    }
-  });
-  
-  $('#per-nuevo').addEventListener('click', () => openModal('modal-personas'));
-  $('#per-filtrar').addEventListener('click', () => loadPersonas(true));
-  $('#per-limpiar').addEventListener('click', ()=>{ 
-    $('#per-q').value=''; 
-    loadPersonas(true); 
-  });
-  $('#per-mostrar-todo').addEventListener('click', () => {
-    $('#per-q').value=''; 
-    loadPersonas(true);
-  });
-  $('#per-loadMoreBtn').addEventListener('click', () => {
-    page.personas += 1;
-    loadPersonas(false);
-  });
-  
-  window.editPersona = async function(id) {
-    try {
-      const { data, error } = await sb.from('personas').select("*").eq("id", id).single();
-      if (error) throw error;
-      
-      // Llenar formulario
-      const form = $('#form-personas');
-      for (const [key, value] of Object.entries(data)) {
-        const input = form.querySelector(`[name="${key}"]`);
-        if (input) input.value = value || '';
-      }
-      
-      openModal('modal-personas');
-    } catch (error) {
-      showMsg('err', 'Error al cargar persona: ' + error.message);
-    }
-  }
-  
-  window.deletePersona = async function(id) {
-    if (!confirm('¿Eliminar esta persona? Esta acción no se puede deshacer.')) return;
-    
-    try {
-      const { error } = await sb.from('personas').delete().eq('id', id);
-      if (error) throw error;
-      
-      showMsg('ok', 'Persona eliminada correctamente');
-      loadPersonas(true);
-    } catch (error) {
-      showMsg('err', 'Error al eliminar persona: ' + error.message);
-    }
-  }
+  const vehiculos =
+    `<div><label class="label">Trailblazer</label><input id="f_v_trailblazer" class="input" value="${data?.v_trailblazer??''}"></div>
+     <div><label class="label">Amarok</label><input id="f_v_amarok" class="input" value="${data?.v_amarok??''}"></div>
+     <div><label class="label">SW4</label><input id="f_v_sw4" class="input" value="${data?.v_sw4??''}"></div>
+     <div><label class="label">Toyota Corolla</label><input id="f_v_corolla" class="input" value="${data?.v_corolla??''}"></div>
+     <div><label class="label">Q5</label><input id="f_v_q5" class="input" value="${data?.v_q5??''}"></div>
+     <div><label class="label">Q7</label><input id="f_v_q7" class="input" value="${data?.v_q7??''}"></div>`;
 
-  // ================== CONTABLE ==================
-  async function loadContable(clearBefore = true){
-    if (clearBefore) { 
-      $('#con-rows').innerHTML = ""; 
-      resetPaging('contable'); 
-      __rowStripeIndex.contable = 0; 
-    }
-    $('#con-empty').classList.add("hidden"); 
-    $('#con-err').textContent = "";
+  const familia =
+    `<div><label class="label">Familia #1</label><input id="f_fam1" class="input" value="${data?.fam1??''}"></div>
+     <div><label class="label">Familia #2</label><input id="f_fam2" class="input" value="${data?.fam2??''}"></div>
+     <div><label class="label">Familia #3</label><input id="f_fam3" class="input" value="${data?.fam3??''}"></div>
+     <div><label class="label">Familia #4</label><input id="f_fam4" class="input" value="${data?.fam4??''}"></div>
+     <div><label class="label">Familia #5</label><input id="f_fam5" class="input" value="${data?.fam5??''}"></div>`;
 
-    const q = $('#con-q').value.trim();
-    const d1 = toDate($('#con-desde').value);
-    const d2 = endOfDayStr($('#con-hasta').value) ? new Date(endOfDayStr($('#con-hasta').value)) : null;
+  const domes =
+    `<div class="md:col-span-2"><label class="label">Empleadas domésticas (una por línea)</label><textarea id="f_empleadas" rows="3" class="input">${data?.empleadas??""}</textarea></div>
+     <div><label class="label">Niñera</label><input id="f_niniera" class="input" value="${data?.niniera??''}"></div>`;
 
-    try{
-      let query = sb.from('movimientos').select("*", { count: "exact", head: false });
-      
-      // Fechas
-      if (d1) query = query.gte('fecha', $('#con-desde').value);
-      if (d2) query = query.lte('fecha', $('#con-hasta').value);
-      
-      // Búsqueda en servidor
-      if (q) {
-        const orStr = `tipo.ilike.%${q}%,concepto.ilike.%${q}%`;
-        query = query.or(orStr);
-      }
-      
-      // Ordenamiento
-      query = applyOrdering(query, 'contable');
-      
-      // Paginación
-      const from = page.contable * PAGE_SIZE;
-      const to   = from + PAGE_SIZE - 1;
-      query = query.range(from, to);
+  const tec =
+    `<div><label class="label">Sistemas de cámaras</label><input id="f_tec_camaras" class="input" value="${data?.tec_camaras??''}"></div>
+     <div><label class="label">Cerco eléctrico</label><input id="f_tec_cerco" class="input" value="${data?.tec_cerco??''}"></div>
+     <div class="md:col-span-2"><label class="label">Portones (detalle)</label><input id="f_tec_portones" class="input" value="${data?.tec_portones??''}"></div>`;
 
-      const { data, error, count } = await query;
-      if (error) throw error;
-      
-      const list = data || [];
-      lastBatchCount.contable = list.length;
-      
-      // KPIs
-      if (clearBefore) {
-        let ing=0, egr=0; 
-        for(const r of list){ 
-          if(r.tipo==="Ingreso") ing+=Number(r.monto||0); 
-          if(r.tipo==="Egreso") egr+=Number(r.monto||0); 
-        }
-        $('#k_ing').textContent = formatMoney(ing);
-        $('#k_egr').textContent = formatMoney(egr);
-        $('#k_saldo').textContent = formatMoney(ing-egr);
-      }
-      
-      if (clearBefore && !list.length){
-        $('#con-empty').classList.remove("hidden");
-        $('#con-loadMoreBtn').classList.add('hidden');
-        return;
-      }
-      
-      // Construir encabezado dinámicamente
-      if (clearBefore && list.length > 0) {
-        const cols = Object.keys(list[0]).filter(col => col !== 'id' && col !== 'user_id' && col !== 'created_at');
-        $('#con-head').innerHTML = `<tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
-          ${cols.map(c => `<th>${esc(c)}</th>`).join('')}
-          <th>Acciones</th>
-        </tr>`;
-      }
-      
-      for (const r of list) {
-        const acciones = `
-          <div class="flex gap-2">
-            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editContable('${r.id}')">Editar</button>
-            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deleteContable('${r.id}')">Eliminar</button>
-          </div>
-        `;
-        
-        const cols = Object.keys(r).filter(col => col !== 'id' && col !== 'user_id' && col !== 'created_at');
-        const t = cols.map(col => {
-          if (col === 'url' && r[col]) {
-            return `<a class="underline text-amber-700" target="_blank" href="${r[col]}">Ver</a>`;
+  const prof =
+    `<div><label class="label">Jardinero</label><input id="f_prof_jardinero" class="input" value="${data?.prof_jardinero??''}"></div>
+     <div><label class="label">Piletero</label><input id="f_prof_piletero" class="input" value="${data?.prof_piletero??''}"></div>
+     <div><label class="label">Paisajistas</label><input id="f_prof_paisajistas" class="input" value="${data?.prof_paisajistas??''}"></div>
+     <div><label class="label">Fumigador</label><input id="f_prof_fumigador" class="input" value="${data?.prof_fumigador??''}"></div>
+     <div><label class="label">Floristas</label><input id="f_prof_floristas" class="input" value="${data?.prof_floristas??''}"></div>`;
+
+  const invitados =
+    `<div class="md:col-span-2"><label class="label">Amigos de la Sra.</label><textarea id="f_amigos_sra" rows="3" class="input">${data?.amigos_sra??""}</textarea></div>
+     <div class="md:col-span-2"><label class="label">Amigos de Isabella</label><textarea id="f_amigos_isabella" rows="3" class="input">${data?.amigos_isabella??""}</textarea></div>
+     <div class="md:col-span-2"><label class="label">Amigos de Angie</label><textarea id="f_amigos_angie" rows="3" class="input">${data?.amigos_angie??""}</textarea></div>`;
+
+  const otros =
+    `<div class="md:col-span-2"><label class="label">Elementos asignados (una por línea)</label><textarea id="f_elementos" rows="3" class="input">${data?.elementos??""}</textarea></div>
+     <div class="md:col-span-2"><label class="label">OTROS</label><textarea id="f_otros" rows="3" class="input">${data?.otros??""}</textarea></div>
+     <div class="md:col-span-2"><label class="label">AGENDA (texto)</label><textarea id="f_agenda_texto" rows="3" class="input">${data?.agenda_texto??""}</textarea></div>`;
+
+  form.insertAdjacentHTML("beforeend", top);
+  form.insertAdjacentHTML("beforeend", sec("Operativo", op));
+  form.insertAdjacentHTML("beforeend", sec("Choferes", choferes));
+  form.insertAdjacentHTML("beforeend", sec("Vehículos", vehiculos));
+  form.insertAdjacentHTML("beforeend", sec("Familia en la quinta", familia));
+  form.insertAdjacentHTML("beforeend", sec("Personal doméstico", domes));
+  form.insertAdjacentHTML("beforeend", sec("Sistemas técnicos", tec));
+  form.insertAdjacentHTML("beforeend", sec("Profesionales", prof));
+  form.insertAdjacentHTML("beforeend", sec("Amigos / Invitados", invitados));
+  form.insertAdjacentHTML("beforeend", sec("Otros y Agenda", otros));
+
+  const quick = document.createElement('div');
+  quick.className = "md:col-span-2 flex flex-wrap gap-2 mt-2";
+  quick.innerHTML = `
+    <span class="note">Atajos: </span>
+    <button type="button" class="chip" onclick="fillNow('f_hora_inicio')">Inicio = ahora</button>
+    <button type="button" class="chip" onclick="fillNow('f_hora_fin')">Fin = ahora</button>
+    <button type="button" class="chip" onclick="copyAgendaDelDia()">Pegar agenda del día</button>
+  `;
+  form.appendChild(quick);
+}
+window.fillNow = (id) => { const el = byId(id); if (!el) return; const d = new Date(); el.value = d.toTimeString().slice(0,5); };
+window.copyAgendaDelDia = async () => {
+  const d = byId('f_fecha')?.value; if (!d) return;
+  const txt = await textoAgendaDelDia(d); if (!txt) return;
+  const a = byId('f_agenda_texto'); if (a) a.value = txt;
+};
+
+/* ===== Autocomplete Personas ===== */
+function attachPersonAutocomplete(){
+  const nameEl = byId('f_nombre');
+  const dniEl  = byId('f_dni');
+  const vehEl  = byId('f_vehiculo');
+  const domEl  = byId('f_dominio');
+  const sugName = byId('suggest_nombre');
+  const sugDni  = byId('suggest_dni');
+
+  const renderSug = (ul, items) => {
+    if (!items?.length){ ul.classList.add('hidden'); ul.innerHTML = ""; return; }
+    ul.innerHTML = items.map(p => `<li data-json='${JSON.stringify(p)}'>${esc(p.nombre||'')} — <span class="text-slate-500">${esc(p.dni||'')}</span></li>`).join("");
+    ul.classList.remove('hidden');
+    [...ul.querySelectorAll('li')].forEach(li=>{
+      li.addEventListener('click', async ()=>{
+        const p = JSON.parse(li.getAttribute('data-json'));
+        if (nameEl) nameEl.value = p.nombre || "";
+        if (dniEl)  dniEl.value  = p.dni || "";
+        try{
+          let q = sb.from('accesos').select('vehiculo,dominio,created_at').order('created_at',{ascending:false}).limit(1);
+          if (p.dni) q = q.eq('dni', p.dni);
+          else if (p.nombre) q = q.ilike('nombre', p.nombre);
+          const { data, error } = await q;
+          if (!error && data && data[0]){
+            if (vehEl && !vehEl.value) vehEl.value = data[0].vehiculo || '';
+            if (domEl && !domEl.value) domEl.value = data[0].dominio || '';
           }
-          return esc(r[col] ?? "");
-        });
-        t.push(acciones);
-        
-        const row = t.map((v,i)=> {
-          const isRaw = i === t.length - 1;
-          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : (v ?? "")}</td>`;
-        }).join("");
-
-        // Alternancia de filas + animación
-        const stripeClass = (__rowStripeIndex.contable % 2 === 0) ? 'row-blank' : 'row-gold';
-        $('#con-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
-        __rowStripeIndex.contable++;
-      }
-      
-      $('#con-loadMoreBtn').classList.toggle('hidden', !canLoadMore('contable'));
-    }catch(e){
-      $('#con-err').textContent = e.message || e;
-      $('#con-loadMoreBtn').classList.add('hidden');
-    }
-  }
-  
-  // Formulario de nuevo registro contable
-  $('#form-contable').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    
-    try {
-      // Obtener usuario actual
-      const { data: userData } = await sb.auth.getUser();
-      const uid = userData?.user?.id;
-      if (!uid) throw new Error('Sesión expirada');
-      
-      data.user_id = uid;
-      
-      // Subir archivo si existe
-      const fi = e.target.querySelector('input[name="file"]');
-      if (fi && fi.files && fi.files.length){
-        const file = fi.files[0];
-        const path = `${uid}/${Date.now()}_${file.name}`;
-        const up = await sb.storage.from("tickets").upload(path, file, { upsert: false });
-        if (up.error) throw up.error;
-        const { data: pub } = sb.storage.from("tickets").getPublicUrl(path);
-        data.url = pub?.publicUrl || null;
-      }
-      
-      const { error } = await sb.from('movimientos').insert([data]);
-      if (error) throw error;
-      
-      closeModal();
-      showMsg('ok', 'Registro contable guardado correctamente');
-      loadContable(true);
-    } catch (error) {
-      showMsg('err', 'Error al guardar registro: ' + error.message);
-    }
-  });
-  
-  $('#con-nuevo').addEventListener('click', () => openModal('modal-contable'));
-  $('#con-filtrar').addEventListener('click', () => loadContable(true));
-  $('#con-limpiar').addEventListener('click', ()=>{ 
-    $('#con-q').value=''; 
-    $('#con-desde').value=''; 
-    $('#con-hasta').value=''; 
-    loadContable(true); 
-  });
-  $('#con-mostrar-todo').addEventListener('click', () => {
-    $('#con-q').value=''; 
-    $('#con-desde').value=''; 
-    $('#con-hasta').value=''; 
-    loadContable(true);
-  });
-  $('#con-loadMoreBtn').addEventListener('click', () => {
-    page.contable += 1;
-    loadContable(false);
-  });
-  
-  // Exportación PDF
-  $('#con-export-pdf').addEventListener('click', () => {
-    const head = [...document.querySelectorAll('#con-head th')].map(th => th.textContent.trim()).slice(0,-1);
-    let body = [...document.querySelectorAll('#con-rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
-
-    if (!body.length){ 
-      showMsg('err', 'No hay datos para exportar.'); 
-      return; 
-    }
-
-    const { jsPDF } = window.jspdf; 
-    const doc = new jsPDF({ unit:'pt', format:'a4' });
-    const title = `CRM — Contable`;
-    doc.setFontSize(14); 
-    doc.text(title, 40, 40);
-
-    const startY = 60;
-    doc.autoTable({ 
-      startY, 
-      head:[head], 
-      body, 
-      styles:{ fontSize:9, cellPadding:4 }, 
-      headStyles:{ fillColor:[245,158,11] }, 
-      theme:'striped' 
+        }catch(e){ console.warn(e); }
+        sugName?.classList.add('hidden'); sugDni?.classList.add('hidden');
+      });
     });
-    doc.save(`Contable_${new Date().toISOString().slice(0,10)}.pdf`);
+  };
+
+  let t1, t2;
+  nameEl?.addEventListener('input', async ()=>{
+    clearTimeout(t1);
+    t1 = setTimeout(async ()=>{
+      const q = nameEl.value.trim();
+      if (!q){ renderSug(sugName, []); return; }
+      // Permite "nombre apellido" también
+      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
+      if (error){ console.warn(error); return; }
+      renderSug(sugName, data);
+    }, 220);
   });
-  
-  // Exportación CSV
-  $('#con-export-csv').addEventListener('click', () => {
-    const head = [...document.querySelectorAll('#con-head th')].map(th => th.textContent.trim()).slice(0, -1);
-    const rowsData = [...document.querySelectorAll('#con-rows tr')].map(tr => [...tr.children].slice(0, -1).map(td => td.innerText.replaceAll("\n"," ").trim()));
-    
-    if (!rowsData.length){ 
-      showMsg('err', 'No hay datos para exportar.'); 
-      return; 
-    }
-    
-    const escCSV = (v) => { 
-      const s = String(v ?? ""); 
-      return /[",\n;]/.test(s) ? `"${s.replaceAll('"','""')}"` : s; 
-    };
-    const csv = [head.map(escCSV).join(";")].concat(rowsData.map(r => r.map(escCSV).join(";"))).join("\n");
-    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"}); 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); 
-    a.href = url; 
-    a.download = `Contable_${new Date().toISOString().slice(0,10)}.csv`; 
-    document.body.appendChild(a); 
-    a.click(); 
-    a.remove(); 
-    URL.revokeObjectURL(url);
+  dniEl?.addEventListener('input', async ()=>{
+    clearTimeout(t2);
+    t2 = setTimeout(async ()=>{
+      const q = dniEl.value.trim();
+      if (!q){ renderSug(sugDni, []); return; }
+      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('dni', `%${q}%`).limit(10);
+      if (error){ console.warn(error); return; }
+      renderSug(sugDni, data);
+    }, 220);
   });
-  
-  window.editContable = async function(id) {
-    try {
-      const { data, error } = await sb.from('movimientos').select("*").eq("id", id).single();
-      if (error) throw error;
-      
-      // Llenar formulario
-      const form = $('#form-contable');
-      for (const [key, value] of Object.entries(data)) {
-        const input = form.querySelector(`[name="${key}"]`);
-        if (input) input.value = value || '';
-      }
-      
-      openModal('modal-contable');
-    } catch (error) {
-      showMsg('err', 'Error al cargar registro: ' + error.message);
-    }
-  }
-  
-  window.deleteContable = async function(id) {
-    if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
-    
-    try {
-      const { error } = await sb.from('movimientos').delete().eq('id', id);
-      if (error) throw error;
-      
-      showMsg('ok', 'Registro eliminado correctamente');
-      loadContable(true);
-    } catch (error) {
-      showMsg('err', 'Error al eliminar registro: ' + error.message);
-    }
+
+  document.addEventListener('click', (e)=>{
+    if (!sugName?.contains(e.target) && e.target!==nameEl) sugName?.classList.add('hidden');
+    if (!sugDni?.contains(e.target)  && e.target!==dniEl)  sugDni?.classList.add('hidden');
+  });
+}
+
+async function save(ev){
+  ev?.preventDefault?.();
+  const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
+  const def = tabs[current]; let payload = { user_id: uid };
+
+  const PARTE_VIRTUAL = new Set([
+    "c1","c2","c3","c4","v_trailblazer","v_amarok","v_sw4","v_corolla","v_q5","v_q7",
+    "fam1","fam2","fam3","fam4","fam5","empleadas","niniera",
+    "tec_camaras","tec_cerco","tec_portones","prof_jardinero","prof_piletero","prof_paisajistas","prof_fumigador","prof_floristas",
+    "amigos_sra","amigos_isabella","amigos_angie","elementos"
+  ]);
+
+  for (const f of def.fields){
+    if (f.k === "file") continue;
+    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue;
+    const el = byId(`f_${f.k}`); if (!el) continue;
+    let v = el.value;
+    if (f.t==="number" && v!=="") v = Number(v);
+    if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
+    if (v==="") v = null;
+    payload[f.k] = v;
   }
 
-  // ================== PARTE DIARIO ==================
-  async function loadParteDiario(clearBefore = true){
-    if (clearBefore) { 
-      $('#pd-rows').innerHTML = ""; 
-      resetPaging('parte-diario'); 
-      __rowStripeIndex['parte-diario'] = 0; 
-    }
-    $('#pd-empty').classList.add("hidden"); 
-    $('#pd-err').textContent = "";
+  if (current==="parte"){
+    payload.choferes = [val('f_c1'),val('f_c2'),val('f_c3'),val('f_c4')].filter(x=>x && x.trim());
+    payload.novedades_vehiculos = clean({
+      "Trailblazer": val('f_v_trailblazer'),
+      "Amarok": val('f_v_amarok'),
+      "SW4": val('f_v_sw4'),
+      "Toyota Corolla": val('f_v_corolla'),
+      "Q5": val('f_v_q5'),
+      "Q7": val('f_v_q7'),
+    });
+    payload.familia_en_quinta = clean({ "1":val('f_fam1'), "2":val('f_fam2'), "3":val('f_fam3'), "4":val('f_fam4'), "5":val('f_fam5') });
+    payload.personal_domestico = clean({ "empleadas": (val('f_empleadas')||"").split('\n').map(s=>s.trim()).filter(Boolean), "niniera": val('f_niniera') });
+    payload.sistemas_tecnicos = clean({ "camaras": val('f_tec_camaras'), "cerco": val('f_tec_cerco'), "portones": val('f_tec_portones') });
+    payload.profesionales = clean({ "jardinero": val('f_prof_jardinero'), "piletero": val('f_prof_piletero'), "paisajistas": val('f_prof_paisajistas'), "fumigador": val('f_prof_fumigador'), "floristas": val('f_prof_floristas') });
+    payload.invitados = clean({ "amigos_sra": val('f_amigos_sra'), "amigos_isabella": val('f_amigos_isabella'), "amigos_angie": val('f_amigos_angie') });
+    payload.elementos_asignados = (val('f_elementos')||"").split('\n').map(s=>s.trim()).filter(Boolean);
+  }
 
-    const q = $('#pd-q').value.trim();
-    const d1 = toDate($('#pd-desde').value);
-    const d2 = endOfDayStr($('#pd-hasta').value) ? new Date(endOfDayStr($('#pd-hasta').value)) : null;
-
+  if (current==="accesos"){
     try{
-      let query = sb.from('parte_diario').select("*", { count: "exact", head: false });
-      
-      // Fechas
-      if (d1) query = query.gte('fecha', $('#pd-desde').value);
-      if (d2) query = query.lte('fecha', $('#pd-hasta').value);
-      
-      // Búsqueda en servidor
-      if (q) {
-        const orStr = `cabina.ilike.%${q}%,amt.ilike.%${q}%,puesto_hudson.ilike.%${q}%,otros.ilike.%${q}%,agenda_texto.ilike.%${q}%`;
-        query = query.or(orStr);
-      }
-      
-      // Ordenamiento
-      query = applyOrdering(query, 'parte-diario');
-      
-      // Paginación
-      const from = page['parte-diario'] * PAGE_SIZE;
-      const to   = from + PAGE_SIZE - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      
-      const list = data || [];
-      lastBatchCount['parte-diario'] = list.length;
-      
-      if (clearBefore && !list.length){
-        $('#pd-empty').classList.remove("hidden");
-        $('#pd-loadMoreBtn').classList.add('hidden');
-        return;
-      }
-      
-      for (const r of list) {
-        const acciones = `
-          <div class="flex gap-2">
-            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editParteDiario('${r.id}')">Editar</button>
-            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deleteParteDiario('${r.id}')">Eliminar</button>
-          </div>
-        `;
-        
-        const resumen = (r.cabina || r.otros || "").toString().slice(0,60) + "...";
-        const t = [r.fecha, r.hora_inicio || "--:--", r.hora_fin || "--:--", formatMoney(r.caja_chica), resumen, acciones];
-        
-        const row = t.map((v,i)=> {
-          const isRaw = i === t.length - 1;
-          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : (v ?? "")}</td>`;
-        }).join("");
-
-        // Alternancia de filas + animación
-        const stripeClass = (__rowStripeIndex['parte-diario'] % 2 === 0) ? 'row-blank' : 'row-gold';
-        $('#pd-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
-        __rowStripeIndex['parte-diario']++;
-      }
-      
-      $('#pd-loadMoreBtn').classList.toggle('hidden', !canLoadMore('parte-diario'));
-    }catch(e){
-      $('#pd-err').textContent = e.message || e;
-      $('#pd-loadMoreBtn').classList.add('hidden');
-    }
+      await sb.rpc('upsert_persona', {
+        p_nombre: val('f_nombre') || null,
+        p_dni:    val('f_dni')    || null,
+        p_telefono: null,
+        p_email:    null
+      });
+    }catch(e){ console.warn(e); }
   }
-  
-  // Formulario de nuevo parte diario
-  $('#form-parte-diario').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    
-    try {
-      // Obtener usuario actual
-      const { data: userData } = await sb.auth.getUser();
-      const uid = userData?.user?.id;
-      if (!uid) throw new Error('Sesión expirada');
-      
-      data.user_id = uid;
-      
-      const { error } = await sb.from('parte_diario').insert([data]);
-      if (error) throw error;
-      
-      closeModal();
-      showMsg('ok', 'Parte diario guardado correctamente');
-      loadParteDiario(true);
-    } catch (error) {
-      showMsg('err', 'Error al guardar parte diario: ' + error.message);
-    }
-  });
-  
-  $('#pd-nuevo').addEventListener('click', () => openModal('modal-parte-diario'));
-  $('#pd-filtrar').addEventListener('click', () => loadParteDiario(true));
-  $('#pd-limpiar').addEventListener('click', ()=>{ 
-    $('#pd-q').value=''; 
-    $('#pd-desde').value=''; 
-    $('#pd-hasta').value=''; 
-    loadParteDiario(true); 
-  });
-  $('#pd-mostrar-todo').addEventListener('click', () => {
-    $('#pd-q').value=''; 
-    $('#pd-desde').value=''; 
-    $('#pd-hasta').value=''; 
-    loadParteDiario(true);
-  });
-  $('#pd-loadMoreBtn').addEventListener('click', () => {
-    page['parte-diario'] += 1;
-    loadParteDiario(false);
-  });
-  
-  window.fillNow = (id) => { 
-    const el = document.querySelector(`#form-parte-diario [name="${id}"]`); 
-    if (!el) return; 
-    const d = new Date(); 
-    el.value = d.toTimeString().slice(0,5); 
-  };
-  
-  window.copyAgendaDelDia = async () => {
-    const d = document.querySelector('#form-parte-diario [name="fecha"]')?.value; 
-    if (!d) return;
-    
-    try {
-      const { data, error } = await sb.from('agenda_dom').select('asignado_a,tarea,hora,estado').eq('fecha', d).order('hora',{ascending:true});
-      if (error) throw error;
-      
-      if (!data?.length) return;
-      
-      const fmt = (h)=> h ? h.slice(0,5) : "--:--";
-      let out = `Agenda ${d.split('-').reverse().join('/')}\n`;
-      for (const r of data){ 
-        out += `• ${r.asignado_a}: ${fmt(r.hora)} — ${r.tarea} [${r.estado}]\n`; 
-      }
-      
-      const a = document.querySelector('#form-parte-diario [name="agenda_texto"]'); 
-      if (a) a.value = out.trim();
-    } catch (error) {
-      showMsg('err', 'Error al obtener agenda: ' + error.message);
-    }
-  };
-  
-  window.editParteDiario = async function(id) {
-    try {
-      const { data, error } = await sb.from('parte_diario').select("*").eq("id", id).single();
-      if (error) throw error;
-      
-      // Llenar formulario
-      const form = $('#form-parte-diario');
-      for (const [key, value] of Object.entries(data)) {
-        const input = form.querySelector(`[name="${key}"]`);
-        if (input) input.value = value || '';
-      }
-      
-      openModal('modal-parte-diario');
-    } catch (error) {
-      showMsg('err', 'Error al cargar parte diario: ' + error.message);
-    }
-  }
-  
-  window.deleteParteDiario = async function(id) {
-    if (!confirm('¿Eliminar este parte diario? Esta acción no se puede deshacer.')) return;
-    
-    try {
-      const { error } = await sb.from('parte_diario').delete().eq('id', id);
-      if (error) throw error;
-      
-      showMsg('ok', 'Parte diario eliminado correctamente');
-      loadParteDiario(true);
-    } catch (error) {
-      showMsg('err', 'Error al eliminar parte diario: ' + error.message);
+
+  if (current==="contable"){
+    const fi = byId("f_file");
+    if (fi && fi.files && fi.files.length){
+      const file = fi.files[0];
+      const path = `${uid}/${Date.now()}_${file.name}`;
+      const up = await sb.storage.from("tickets").upload(path, file, { upsert: false });
+      if (up.error){ alert("Upload: " + up.error.message); return; }
+      const { data: pub } = sb.storage.from("tickets").getPublicUrl(path);
+      payload.url = pub?.publicUrl || null;
     }
   }
 
-  // ================== UTILIDADES ==================
-  function formatMoney(n){ 
-    const x = Number(n||0); 
-    return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); 
+  let resp;
+  if (editingId){ resp = await sb.from(def.table).update(payload).eq('id', editingId);
+  } else { resp = await sb.from(def.table).insert(payload); }
+  if (resp.error){ alert("Guardar: " + resp.error.message); return; }
+
+  if (current==="parte"){
+    const { data: row } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if (row?.id){
+      const { data, error } = await sb.from('parte_diario_whatsapp').select('mensaje').eq('id', row.id).single();
+      if (!error && data?.mensaje){
+        const msg = encodeURIComponent(data.mensaje);
+        if (WHATSAPP_MODE === 'direct'){
+          const phone = (WHATSAPP_PHONE || "").replace(/\D/g,'');
+          const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
+          window.open(url, '_blank');
+        } else {
+          const url = `https://api.whatsapp.com/send?text=${msg}`;
+          window.open(url, '_blank');
+        }
+      }
+    }
   }
 
-  // ================== INIT ==================
-  // Arranca en Accesos
-  // La carga inicial se hace después de restaurar el estado en la verificación de sesión
+  editingId = null;
+  modal.classList.add("hidden");
+  await load(true);
+}
+
+/* ===== Exportaciones ===== */
+function exportPDF(){
+  const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", agenda:"Agenda", parte:"Parte Diario"};
+  let head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
+  let body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
+
+  if (!body.length){ alert("No hay datos para exportar."); return; }
+
+  let resumenHoras = "";
+  if (current==="accesos"){
+    const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].map(td => td.innerText));
+    const horas = rowsData.map(r => parseFloat(r[r.length-2].replace(',', '.'))).filter(n => !isNaN(n));
+    const total = horas.reduce((a,b)=>a+b,0);
+    resumenHoras = `Total de horas (lista): ${total.toFixed(2)} h`;
+  }
+
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const title = `CRM — ${map[current]}`;
+  doc.setFontSize(14); doc.text(title, 40, 40);
+  if (resumenHoras) { doc.setFontSize(11); doc.text(resumenHoras, 40, 58); }
+
+  const startY = resumenHoras ? 72 : 60;
+  doc.autoTable({ startY, head:[head], body, styles:{ fontSize:9, cellPadding:4 }, headStyles:{ fillColor:[245,158,11] }, theme:'striped' });
+  doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+function exportCSV(){
+  const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0, -1);
+  const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0, -1).map(td => td.innerText.replaceAll("\n"," ").trim()));
+  if (!rowsData.length){ alert("No hay datos para exportar."); return; }
+  const escCSV = (v) => { const s = String(v ?? ""); return /[",\n;]/.test(s) ? `"${s.replaceAll('"','""')}"` : s; };
+  const csv = [head.map(escCSV).join(";")].concat(rowsData.map(r => r.map(escCSV).join(";"))).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"}); const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); const map = {accesos:"Accesos", paqueteria:"Paqueteria", contable:"Contable", agenda:"Agenda", parte:"Parte_Diario"};
+  a.href = url; a.download = `${map[current]}_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+/* ===== Utils ===== */
+function byId(id){ return document.getElementById(id); }
+function esc(v){ return (""+v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); }
+function nice(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function clean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
+function val(id){ const el=byId(id); return el? (el.value||null) : null; }
+
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
 </script>
 </body>
 </html>
