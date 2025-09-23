@@ -6,6 +6,8 @@
 <title>CRM San Isidro — Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
@@ -55,6 +57,10 @@
   tr{transition: background-color 0.2s ease;}
   tr:hover{background-color: var(--gold-light);}
   
+  /* Filas alternadas */
+  .row-blank { background-color: #ffffff; }
+  .row-gold { background-color: #fff8e6; }
+  
   /* Inputs */
   input, select, textarea{border-radius: 8px; border: 1px solid #cbd5e1; transition: border-color 0.2s ease, box-shadow 0.2s ease;}
   input:focus, select:focus, textarea:focus{border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2); outline: none;}
@@ -70,6 +76,19 @@
   /* Decoración dorada */
   .gold-accent{position: relative;}
   .gold-accent::after{content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent);}
+  
+  /* KPIs */
+  .kpi{border:1px solid rgb(226 232 240);border-radius:14px;background:#fff;padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.06)}
+  
+  /* Leyenda de seguridad */
+  .secure-badge{display:flex;align-items:center;gap:.55rem;padding:.55rem .8rem;border:1px dashed var(--gold);border-radius:12px;background:linear-gradient(180deg,#fff, #fffaf3)}
+  .lock{width:18px;height:18px;border:2px solid #111827;border-radius:4px; position:relative}
+  .lock:before{content:""; position:absolute; left:50%; transform:translateX(-50%); top:-8px; width:10px; height:8px; border:2px solid #111827; border-bottom:none; border-radius:8px 8px 0 0}
+  .pulse{ animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%{opacity:1}50%{opacity:.55}100%{opacity:1}}
+  
+  /* Cabecera sticky para tablas largas */
+  thead.sticky-head th{ position: sticky; top:0; background:#fdfaf5; z-index:2; box-shadow:0 1px 0 #e5e7eb}
 </style>
 </head>
 <body class="bg-gray-50 text-slate-900">
@@ -103,8 +122,18 @@
     </div>
   </section>
 
+  <!-- Leyenda de seguridad -->
+  <div class="px-4 pt-2">
+    <div class="secure-badge mb-4 shadow-sm">
+      <span class="lock pulse"></span>
+      <p class="text-sm text-slate-700 leading-snug">
+        Tus datos están <b>encriptados</b> en tránsito (TLS) y en reposo (AES-256). Acceso protegido por <b>roles</b> y <b>autenticación segura</b>.
+      </p>
+    </div>
+  </div>
+
   <!-- TABS -->
-  <nav class="px-4 pt-4 border-b bg-white sticky top-[72px] z-10 shadow-sm">
+  <nav class="px-4 pt-2 border-b bg-white sticky top-[72px] z-10 shadow-sm">
     <div class="flex gap-1 overflow-x-auto">
       <button class="tab px-4 py-3 rounded-t-lg flex items-center gap-2 tab-active" data-tab="accesos">
         <i class="fas fa-door-open text-yellow-600"></i>
@@ -142,6 +171,7 @@
               <input id="acc-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="nombre, DNI, vehículo, dominio, motivo…" />
               <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
             </div>
+            <div class="note mt-1 text-xs text-slate-500" id="acc-hint">Sugerencia: buscá por <b>nombre, apellido o DNI</b> para ver el <b>total de horas</b>.</div>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
@@ -161,6 +191,10 @@
             <i class="fas fa-eraser"></i>
             <span>Limpiar</span>
           </button>
+          <button id="acc-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-list"></i>
+            <span>Mostrar todo</span>
+          </button>
           <button id="acc-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
             <i class="fas fa-plus"></i>
             <span>Nuevo Acceso</span>
@@ -168,21 +202,37 @@
         </div>
       </div>
       
+      <!-- KPI HORAS (solo Accesos) -->
+      <div id="accesosKpi" class="kpi mt-4 mb-4">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <div class="text-xs text-slate-500">Total horas (lista filtrada)</div>
+            <div id="k_horas" class="text-lg font-semibold">—</div>
+          </div>
+          <span id="k_horas_badge" class="badge">Accesos</span>
+        </div>
+      </div>
+      
       <div class="card bg-white overflow-hidden">
         <div class="overflow-auto">
           <table class="min-w-[1000px] w-full">
-            <thead class="bg-slate-800 text-white sticky top-0">
+            <thead class="bg-slate-800 text-white sticky-head">
               <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
                 <th>Nombre</th><th>DNI</th><th>Vehículo</th><th>Dominio</th><th>Motivo</th>
-                <th>F. Ingreso</th><th>H. Ingreso</th><th>F. Salida</th><th>H. Salida</th><th>Creado</th>
+                <th>F. Ingreso</th><th>H. Ingreso</th><th>F. Salida</th><th>H. Salida</th><th>Horas</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody id="acc-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
-              <tr><td colspan="10" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
+              <tr><td colspan="11" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
                 <span class="spinner"></span> <span>Cargando accesos…</span>
               </td></tr>
             </tbody>
           </table>
+          <p id="acc-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
+          <p id="acc-err" class="text-center text-red-500 py-2"></p>
+        </div>
+        <div class="flex justify-center mt-4">
+          <button id="acc-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
         </div>
       </div>
     </section>
@@ -216,6 +266,10 @@
             <i class="fas fa-eraser"></i>
             <span>Limpiar</span>
           </button>
+          <button id="paq-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-list"></i>
+            <span>Mostrar todo</span>
+          </button>
           <button id="paq-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
             <i class="fas fa-plus"></i>
             <span>Nuevo Paquete</span>
@@ -226,10 +280,10 @@
       <div class="card bg-white overflow-hidden">
         <div class="overflow-auto">
           <table class="min-w-[1200px] w-full">
-            <thead class="bg-slate-800 text-white sticky top-0">
+            <thead class="bg-slate-800 text-white sticky-head">
               <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
                 <th>Receptor</th><th>Empresa</th><th>Remito</th><th>Estado</th><th>Fecha</th><th>Hora</th>
-                <th>Descripción</th><th>ID Nº</th><th>Entregado a</th><th>F. Entrega</th><th>H. Entrega</th><th>Notas</th><th>Creado</th>
+                <th>Descripción</th><th>ID Nº</th><th>Entregado a</th><th>F. Entrega</th><th>H. Entrega</th><th>Notas</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody id="paq-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
@@ -238,6 +292,11 @@
               </td></tr>
             </tbody>
           </table>
+          <p id="paq-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
+          <p id="paq-err" class="text-center text-red-500 py-2"></p>
+        </div>
+        <div class="flex justify-center mt-4">
+          <button id="paq-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
         </div>
       </div>
     </section>
@@ -263,6 +322,10 @@
             <i class="fas fa-eraser"></i>
             <span>Limpiar</span>
           </button>
+          <button id="per-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-list"></i>
+            <span>Mostrar todo</span>
+          </button>
           <button id="per-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
             <i class="fas fa-plus"></i>
             <span>Nueva Persona</span>
@@ -273,9 +336,9 @@
       <div class="card bg-white overflow-hidden">
         <div class="overflow-auto">
           <table class="min-w-[800px] w-full">
-            <thead class="bg-slate-800 text-white sticky top-0">
+            <thead class="bg-slate-800 text-white sticky-head">
               <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
-                <th>Nombre</th><th>DNI</th><th>Teléfono</th><th>Email</th><th>Creado</th>
+                <th>Nombre</th><th>DNI</th><th>Teléfono</th><th>Email</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody id="per-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
@@ -284,114 +347,147 @@
               </td></tr>
             </tbody>
           </table>
+          <p id="per-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
+          <p id="per-err" class="text-center text-red-500 py-2"></p>
+        </div>
+        <div class="flex justify-center mt-4">
+          <button id="per-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
         </div>
       </div>
     </section>
 
     <!-- CONTABLE -->
     <section id="view-contable" hidden class="fade-in">
-      <div class="mb-6 text-slate-600 text-sm bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-        <div class="flex items-start gap-3">
-          <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
-          <div>
-            <p class="font-medium">Información importante</p>
-            <p>Si existe la tabla <code class="bg-yellow-100 px-1 rounded">contable</code> en Supabase, se mostrará aquí con todas las columnas.</p>
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div class="flex flex-wrap gap-3 grow">
+          <div class="grow max-w-md">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
+            <div class="relative">
+              <input id="con-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="tipo, concepto, comprobante…" />
+              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+            </div>
           </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
+            <input id="con-desde" type="date" class="border rounded-lg px-3 py-2.5" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
+            <input id="con-hasta" type="date" class="border rounded-lg px-3 py-2.5" />
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="con-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
+            <i class="fas fa-filter"></i>
+            <span>Buscar</span>
+          </button>
+          <button id="con-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-eraser"></i>
+            <span>Limpiar</span>
+          </button>
+          <button id="con-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-list"></i>
+            <span>Mostrar todo</span>
+          </button>
+          <button id="con-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>Nuevo Registro</span>
+          </button>
+          <button id="con-export-pdf" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-file-pdf"></i>
+            <span>PDF</span>
+          </button>
+          <button id="con-export-csv" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-file-csv"></i>
+            <span>CSV</span>
+          </button>
         </div>
       </div>
       
-      <div class="flex justify-end mb-4">
-        <button id="con-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
-          <i class="fas fa-plus"></i>
-          <span>Nuevo Registro</span>
-        </button>
+      <div id="contableKpis" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="kpi"><div class="text-xs text-slate-500">Ingresos</div><div id="k_ing" class="text-lg font-semibold">—</div></div>
+        <div class="kpi"><div class="text-xs text-slate-500">Egresos</div><div id="k_egr" class="text-lg font-semibold">—</div></div>
+        <div class="kpi"><div class="text-xs text-slate-500">Saldo</div><div id="k_saldo" class="text-lg font-semibold">—</div></div>
       </div>
       
       <div class="card bg-white overflow-hidden">
         <div class="overflow-auto">
           <table class="min-w-[900px] w-full">
-            <thead id="con-head" class="bg-slate-800 text-white sticky top-0"></thead>
+            <thead id="con-head" class="bg-slate-800 text-white sticky-head"></thead>
             <tbody id="con-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
               <tr><td class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
                 <span class="spinner"></span> <span>Cargando datos contables…</span>
               </td></tr>
             </tbody>
           </table>
+          <p id="con-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
+          <p id="con-err" class="text-center text-red-500 py-2"></p>
+        </div>
+        <div class="flex justify-center mt-4">
+          <button id="con-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
         </div>
       </div>
     </section>
 
     <!-- PARTE DIARIO -->
     <section id="view-parte-diario" hidden class="fade-in">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div class="lg:col-span-2">
-          <div class="card bg-white p-5">
-            <h2 class="text-xl font-bold mb-4 gold-accent">Generar Parte Diario</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Fecha del reporte</label>
-                <input id="pd-fecha" type="date" class="w-full border rounded-lg px-3 py-2.5" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Destinatario WhatsApp</label>
-                <input id="pd-destinatario" type="text" class="w-full border rounded-lg px-3 py-2.5" placeholder="+54911..." />
-              </div>
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div class="flex flex-wrap gap-3 grow">
+          <div class="grow max-w-md">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
+            <div class="relative">
+              <input id="pd-q" class="w-full border rounded-lg px-3 py-2.5 pl-10" placeholder="fecha, cabina, amt, puesto hudson, otros…" />
+              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
             </div>
-            
-            <div class="flex flex-wrap gap-3">
-              <button id="pd-generar" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
-                <i class="fas fa-file-alt"></i>
-                <span>Generar Reporte</span>
-              </button>
-              <button id="pd-enviar" class="px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2">
-                <i class="fab fa-whatsapp"></i>
-                <span>Enviar WhatsApp</span>
-              </button>
-              <button id="pd-copiar" class="px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-2">
-                <i class="fas fa-copy"></i>
-                <span>Copiar Mensaje</span>
-              </button>
-            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
+            <input id="pd-desde" type="date" class="border rounded-lg px-3 py-2.5" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
+            <input id="pd-hasta" type="date" class="border rounded-lg px-3 py-2.5" />
           </div>
         </div>
-        
-        <div>
-          <div class="card bg-white p-5 h-full">
-            <h3 class="text-lg font-bold mb-3 gold-accent">Resumen del Día</h3>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-door-open text-blue-600"></i>
-                  <span class="font-medium">Accesos</span>
-                </div>
-                <span id="pd-accesos-count" class="text-lg font-bold text-blue-700">0</span>
-              </div>
-              
-              <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-box text-purple-600"></i>
-                  <span class="font-medium">Paquetes</span>
-                </div>
-                <span id="pd-paqueteria-count" class="text-lg font-bold text-purple-700">0</span>
-              </div>
-              
-              <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-users text-green-600"></i>
-                  <span class="font-medium">Personas</span>
-                </div>
-                <span id="pd-personas-count" class="text-lg font-bold text-green-700">0</span>
-              </div>
-            </div>
-          </div>
+        <div class="flex gap-2">
+          <button id="pd-filtrar" class="px-4 py-2.5 rounded-lg bg-black text-white flex items-center gap-2">
+            <i class="fas fa-filter"></i>
+            <span>Buscar</span>
+          </button>
+          <button id="pd-limpiar" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-eraser"></i>
+            <span>Limpiar</span>
+          </button>
+          <button id="pd-mostrar-todo" class="px-4 py-2.5 rounded-lg border flex items-center gap-2">
+            <i class="fas fa-list"></i>
+            <span>Mostrar todo</span>
+          </button>
+          <button id="pd-nuevo" class="px-4 py-2.5 rounded-lg btn-gold flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>Nuevo Parte</span>
+          </button>
         </div>
       </div>
       
-      <div class="card bg-white p-5">
-        <h3 class="text-lg font-bold mb-3 gold-accent">Mensaje del Parte Diario</h3>
-        <div id="pd-mensaje" class="bg-slate-50 p-4 rounded-lg min-h-[200px] whitespace-pre-line text-slate-700">
-          Genera el reporte para ver el mensaje aquí...
+      <div class="card bg-white overflow-hidden">
+        <div class="overflow-auto">
+          <table class="min-w-[900px] w-full">
+            <thead class="bg-slate-800 text-white sticky-head">
+              <tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
+                <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Caja chica</th><th>Resumen</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="pd-rows" class="[&>tr>td]:px-4 [&>tr>td]:py-3">
+              <tr><td colspan="6" class="px-4 py-6 text-slate-500 flex items-center justify-center gap-2">
+                <span class="spinner"></span> <span>Cargando partes diarios…</span>
+              </td></tr>
+            </tbody>
+          </table>
+          <p id="pd-empty" class="text-center text-slate-500 py-6 hidden">Sin registros</p>
+          <p id="pd-err" class="text-center text-red-500 py-2"></p>
+        </div>
+        <div class="flex justify-center mt-4">
+          <button id="pd-loadMoreBtn" class="px-4 py-2 rounded-lg border hidden">Cargar más</button>
         </div>
       </div>
     </section>
@@ -407,21 +503,23 @@
     </div>
     <form id="form-accesos" class="p-5 space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+        <div class="relative">
           <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-          <input name="nombre" class="w-full border rounded-lg px-3 py-2.5" required />
+          <input name="nombre" id="acc-nombre" class="w-full border rounded-lg px-3 py-2.5" required autocomplete="off" />
+          <ul id="suggest_acc-nombre" class="suggest hidden"></ul>
         </div>
-        <div>
+        <div class="relative">
           <label class="block text-sm font-medium text-slate-700 mb-1">DNI</label>
-          <input name="dni" class="w-full border rounded-lg px-3 py-2.5" />
+          <input name="dni" id="acc-dni" class="w-full border rounded-lg px-3 py-2.5" autocomplete="off" />
+          <ul id="suggest_acc-dni" class="suggest hidden"></ul>
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Vehículo</label>
-          <input name="vehiculo" class="w-full border rounded-lg px-3 py-2.5" />
+          <input name="vehiculo" id="acc-vehiculo" class="w-full border rounded-lg px-3 py-2.5" />
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Dominio</label>
-          <input name="dominio" class="w-full border rounded-lg px-3 py-2.5" />
+          <input name="dominio" id="acc-dominio" class="w-full border rounded-lg px-3 py-2.5" />
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Fecha Ingreso</label>
@@ -563,13 +661,118 @@
         <i class="fas fa-times text-xl"></i>
       </button>
     </div>
-    <div class="p-5">
-      <p class="text-slate-600 mb-4">Este formulario se generará dinámicamente según las columnas de la tabla contable.</p>
-      <div class="flex justify-end gap-3 pt-2">
-        <button class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
-        <button class="px-4 py-2.5 rounded-lg btn-gold">Guardar Registro</button>
+    <form id="form-contable" class="p-5 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
+          <select name="tipo" class="w-full border rounded-lg px-3 py-2.5">
+            <option value="Ingreso">Ingreso</option>
+            <option value="Egreso">Egreso</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Concepto</label>
+          <input name="concepto" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Monto (ARS)</label>
+          <input name="monto" type="number" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
+          <input name="fecha" type="date" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
       </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Comprobante (imagen)</label>
+        <input name="file" type="file" class="w-full border rounded-lg px-3 py-2.5" />
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
+        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Registro</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL PARTE DIARIO -->
+  <div id="modal-parte-diario" class="modal bg-white rounded-xl shadow-2xl border border-yellow-200">
+    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+      <h3 class="text-xl font-bold gold-accent">Nuevo Parte Diario</h3>
+      <button class="modal-close text-slate-400 hover:text-slate-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
     </div>
+    <form id="form-parte-diario" class="p-5 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Fecha *</label>
+          <input name="fecha" type="date" class="w-full border rounded-lg px-3 py-2.5" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Hora inicio</label>
+          <input name="hora_inicio" type="time" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Hora fin</label>
+          <input name="hora_fin" type="time" class="w-full border rounded-lg px-3 py-2.5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Caja chica (ARS)</label>
+          <input name="caja_chica" type="number" class="w-full border rounded-lg px-3 py-2.5" />
+          <div class="note mt-1" id="caja_preview"></div>
+        </div>
+      </div>
+      
+      <details class="section border border-slate-200 rounded-lg" open>
+        <summary class="flex items-center justify-between p-3 cursor-pointer list-none bg-slate-50 rounded-t-lg">
+          <span class="font-medium">Operativo</span>
+          <span class="note">click para plegar</span>
+        </summary>
+        <div class="content p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">CABINA</label>
+            <textarea name="cabina" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">AMT</label>
+            <textarea name="amt" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">PUESTO HUDSON</label>
+            <textarea name="puesto_hudson" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
+          </div>
+        </div>
+      </details>
+      
+      <details class="section border border-slate-200 rounded-lg" open>
+        <summary class="flex items-center justify-between p-3 cursor-pointer list-none bg-slate-50 rounded-t-lg">
+          <span class="font-medium">Otros</span>
+          <span class="note">click para plegar</span>
+        </summary>
+        <div class="content p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">OTROS</label>
+            <textarea name="otros" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">AGENDA (texto)</label>
+            <textarea name="agenda_texto" rows="3" class="w-full border rounded-lg px-3 py-2.5"></textarea>
+          </div>
+        </div>
+      </details>
+      
+      <div class="flex flex-wrap gap-2 mt-2">
+        <span class="note">Atajos: </span>
+        <button type="button" class="chip px-3 py-1 border rounded-full text-sm" onclick="fillNow('hora_inicio')">Inicio = ahora</button>
+        <button type="button" class="chip px-3 py-1 border rounded-full text-sm" onclick="fillNow('hora_fin')">Fin = ahora</button>
+        <button type="button" class="chip px-3 py-1 border rounded-full text-sm" onclick="copyAgendaDelDia()">Pegar agenda del día</button>
+      </div>
+      
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-lg border">Cancelar</button>
+        <button type="submit" class="px-4 py-2.5 rounded-lg btn-gold">Guardar Parte</button>
+      </div>
+    </form>
   </div>
 
 <script>
@@ -610,6 +813,9 @@
       if (error) showMsg('err', 'Auth error: ' + (error.message||error));
       if (!data?.session) return location.replace('index.html');
       $('#whoami').textContent = data.session.user?.email || '';
+      
+      // Restaurar estado después de verificar sesión
+      restoreState();
     }catch(e){
       showMsg('err', 'No se pudo verificar la sesión.');
     }
@@ -633,6 +839,11 @@
     }, 10);
     
     document.body.classList.add('modal-open');
+    
+    // Si es modal de parte diario, actualizar vista previa de caja chica
+    if (modalId === 'modal-parte-diario') {
+      updateCajaPreview();
+    }
   }
   
   function closeModal() {
@@ -654,6 +865,171 @@
   });
   
   $('#overlay').addEventListener('click', closeModal);
+
+  // ================== PERSISTENCIA DE ESTADO ==================
+  function persistState(){
+    // Obtener tab activo
+    const activeTab = document.querySelector('.tab-active');
+    const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
+    
+    try{
+      localStorage.setItem('crm-tab', currentTab);
+      
+      // Guardar filtros según el tab activo
+      if (currentTab === 'accesos') {
+        localStorage.setItem('crm-acc-desde', $('#acc-desde')?.value || '');
+        localStorage.setItem('crm-acc-hasta', $('#acc-hasta')?.value || '');
+        localStorage.setItem('crm-acc-q', $('#acc-q')?.value || '');
+      } else if (currentTab === 'paqueteria') {
+        localStorage.setItem('crm-paq-desde', $('#paq-desde')?.value || '');
+        localStorage.setItem('crm-paq-hasta', $('#paq-hasta')?.value || '');
+        localStorage.setItem('crm-paq-q', $('#paq-q')?.value || '');
+      } else if (currentTab === 'personas') {
+        localStorage.setItem('crm-per-q', $('#per-q')?.value || '');
+      } else if (currentTab === 'contable') {
+        localStorage.setItem('crm-con-desde', $('#con-desde')?.value || '');
+        localStorage.setItem('crm-con-hasta', $('#con-hasta')?.value || '');
+        localStorage.setItem('crm-con-q', $('#con-q')?.value || '');
+      } else if (currentTab === 'parte-diario') {
+        localStorage.setItem('crm-pd-desde', $('#pd-desde')?.value || '');
+        localStorage.setItem('crm-pd-hasta', $('#pd-hasta')?.value || '');
+        localStorage.setItem('crm-pd-q', $('#pd-q')?.value || '');
+      }
+    }catch(e){}
+  }
+  
+  function restoreState(){
+    try{
+      const t = localStorage.getItem('crm-tab');
+      if (t) {
+        const tabBtn = document.querySelector(`[data-tab="${t}"]`);
+        if (tabBtn) {
+          document.querySelectorAll('.tab').forEach(x=>x.classList.remove('tab-active'));
+          tabBtn.classList.add('tab-active');
+          
+          // Ocultar todas las vistas
+          Object.values(views).forEach(v=> v.hidden = true);
+          views[t].hidden = false;
+          
+          // Cargar datos según el tab
+          if (t==='accesos') loadAccesos();
+          if (t==='paqueteria') loadPaqueteria();
+          if (t==='personas') loadPersonas();
+          if (t==='contable') loadContable();
+          if (t==='parte-diario') loadParteDiario();
+        }
+      }
+      
+      // Restaurar filtros según el tab activo
+      const activeTab = document.querySelector('.tab-active');
+      const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
+      
+      if (currentTab === 'accesos') {
+        const d = localStorage.getItem('crm-acc-desde'); if (d!==null) $('#acc-desde').value = d;
+        const h = localStorage.getItem('crm-acc-hasta'); if (h!==null) $('#acc-hasta').value = h;
+        const q = localStorage.getItem('crm-acc-q');     if (q!==null) $('#acc-q').value = q;
+      } else if (currentTab === 'paqueteria') {
+        const d = localStorage.getItem('crm-paq-desde'); if (d!==null) $('#paq-desde').value = d;
+        const h = localStorage.getItem('crm-paq-hasta'); if (h!==null) $('#paq-hasta').value = h;
+        const q = localStorage.getItem('crm-paq-q');     if (q!==null) $('#paq-q').value = q;
+      } else if (currentTab === 'personas') {
+        const q = localStorage.getItem('crm-per-q');     if (q!==null) $('#per-q').value = q;
+      } else if (currentTab === 'contable') {
+        const d = localStorage.getItem('crm-con-desde'); if (d!==null) $('#con-desde').value = d;
+        const h = localStorage.getItem('crm-con-hasta'); if (h!==null) $('#con-hasta').value = h;
+        const q = localStorage.getItem('crm-con-q');     if (q!==null) $('#con-q').value = q;
+      } else if (currentTab === 'parte-diario') {
+        const d = localStorage.getItem('crm-pd-desde'); if (d!==null) $('#pd-desde').value = d;
+        const h = localStorage.getItem('crm-pd-hasta'); if (h!==null) $('#pd-hasta').value = h;
+        const q = localStorage.getItem('crm-pd-q');     if (q!==null) $('#pd-q').value = q;
+      }
+    }catch(e){}
+  }
+  
+  // Agregar event listeners para persistir estado
+  ['acc-desde','acc-hasta','acc-q','paq-desde','paq-hasta','paq-q','per-q','con-desde','con-hasta','con-q','pd-desde','pd-hasta','pd-q'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', persistState);
+      el.addEventListener('change', persistState);
+    }
+  });
+  
+  // Persistir cuando cambia el tab
+  document.querySelectorAll("[data-tab]").forEach(b=>{
+    b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+  });
+
+  // ================== ATAJOS DE TECLADO ==================
+  document.addEventListener('keydown', (e)=>{
+    // Foco en búsqueda con /
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+      const activeTab = document.querySelector('.tab-active');
+      const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
+      
+      let qInput;
+      if (currentTab === 'accesos') qInput = $('#acc-q');
+      else if (currentTab === 'paqueteria') qInput = $('#paq-q');
+      else if (currentTab === 'personas') qInput = $('#per-q');
+      else if (currentTab === 'contable') qInput = $('#con-q');
+      else if (currentTab === 'parte-diario') qInput = $('#pd-q');
+      
+      if (qInput){ 
+        e.preventDefault(); 
+        qInput.focus(); 
+        qInput.select(); 
+      }
+    }
+    
+    // Nuevo con Ctrl+N
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+      e.preventDefault(); 
+      const activeTab = document.querySelector('.tab-active');
+      const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
+      
+      if (currentTab === 'accesos') $('#acc-nuevo')?.click();
+      else if (currentTab === 'paqueteria') $('#paq-nuevo')?.click();
+      else if (currentTab === 'personas') $('#per-nuevo')?.click();
+      else if (currentTab === 'contable') $('#con-nuevo')?.click();
+      else if (currentTab === 'parte-diario') $('#pd-nuevo')?.click();
+    }
+    
+    // Buscar con Ctrl+F
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+      e.preventDefault();
+      const activeTab = document.querySelector('.tab-active');
+      const currentTab = activeTab ? activeTab.dataset.tab : 'accesos';
+      
+      if (currentTab === 'accesos') $('#acc-filtrar')?.click();
+      else if (currentTab === 'paqueteria') $('#paq-filtrar')?.click();
+      else if (currentTab === 'personas') $('#per-filtrar')?.click();
+      else if (currentTab === 'contable') $('#con-filtrar')?.click();
+      else if (currentTab === 'parte-diario') $('#pd-filtrar')?.click();
+    }
+    
+    // Cerrar modal con Escape
+    if (e.key === 'Escape'){
+      if (!document.body.classList.contains('modal-open')) return;
+      closeModal();
+    }
+  });
+
+  // ================== VISTA PREVIA DE CAJA CHICA ==================
+  function updateCajaPreview(){
+    const el = $('#form-parte-diario input[name="caja_chica"]');
+    const pv = $('#caja_preview');
+    if (el && pv){
+      const val = Number(el.value || 0);
+      if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+      try{
+        pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+      }catch(e){ pv.textContent = ""; }
+    }
+  }
+  
+  window.addEventListener('input', (e)=>{
+    if (e.target && e.target.name === 'caja_chica'){ updateCajaPreview(); }
+  });
 
   // ================== TABS ==================
   const tabs = Array.from(document.querySelectorAll('.tab'));
@@ -680,45 +1056,168 @@
       if (t==='paqueteria') loadPaqueteria();
       if (t==='personas') loadPersonas();
       if (t==='contable') loadContable();
-      if (t==='parte-diario') initParteDiario();
+      if (t==='parte-diario') loadParteDiario();
     });
   });
 
+  // ================== PAGINACIÓN ==================
+  const PAGE_SIZE = 200;
+  let page = {
+    accesos: 0,
+    paqueteria: 0,
+    personas: 0,
+    contable: 0,
+    'parte-diario': 0
+  };
+  let lastBatchCount = {
+    accesos: 0,
+    paqueteria: 0,
+    personas: 0,
+    contable: 0,
+    'parte-diario': 0
+  };
+  
+  function resetPaging(tab) {
+    page[tab] = 0;
+    lastBatchCount[tab] = 0;
+    $(`#${tab}-loadMoreBtn`)?.classList.add('hidden');
+  }
+  
+  function canLoadMore(tab) {
+    return lastBatchCount[tab] === PAGE_SIZE;
+  }
+
+  // ================== ORDENAMIENTO ==================
+  function applyOrdering(q, tab) {
+    switch (tab) {
+      case 'contable':
+        return q
+          .order('fecha', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false });
+      case 'paqueteria':
+        return q
+          .order('fecha', { ascending: false, nullsFirst: false })
+          .order('hora',  { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false });
+      case 'accesos':
+        return q
+          .order('f_ing', { ascending: false, nullsFirst: false })
+          .order('h_ing', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false });
+      case 'parte-diario':
+        return q
+          .order('fecha', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false });
+      default:
+        return q.order('created_at', { ascending: false });
+    }
+  }
+
   // ================== ACCESOS ==================
-  async function loadAccesos(){
-    const q = $('#acc-q').value.trim().toLowerCase();
+  let __rowStripeIndex = {
+    accesos: 0,
+    paqueteria: 0,
+    personas: 0,
+    contable: 0,
+    'parte-diario': 0
+  };
+  
+  function calcHoras(r){
+    if (!r?.f_ing || !r?.h_ing || !r?.f_sal || !r?.h_sal) return null;
+    const start = new Date(`${r.f_ing}T${r.h_ing}`);
+    const end   = new Date(`${r.f_sal}T${r.h_sal}`);
+    const ms = end - start;
+    if (isNaN(ms) || ms < 0) return null;
+    return ms / 3600000;
+  }
+  
+  function totalHoras(list){
+    let t=0; for(const r of list){ const h = calcHoras(r); if(h!=null) t+=h; }
+    return t;
+  }
+  
+  async function loadAccesos(clearBefore = true){
+    if (clearBefore) { 
+      $('#acc-rows').innerHTML = ""; 
+      resetPaging('accesos'); 
+      __rowStripeIndex.accesos = 0; 
+    }
+    $('#acc-empty').classList.add("hidden"); 
+    $('#acc-err').textContent = "";
+
+    const q = $('#acc-q').value.trim();
     const d1 = toDate($('#acc-desde').value);
     const d2 = endOfDayStr($('#acc-hasta').value) ? new Date(endOfDayStr($('#acc-hasta').value)) : null;
 
     try{
-      const { data, error } = await sb.from('accesos').select('*').order('created_at', { ascending:false }).limit(1000);
+      let query = sb.from('accesos').select("*", { count: "exact", head: false });
+      
+      // Fechas
+      if (d1) query = query.gte('f_ing', $('#acc-desde').value);
+      if (d2) query = query.lte('f_ing', $('#acc-hasta').value);
+      
+      // Búsqueda en servidor
+      if (q) {
+        const orStr = `nombre.ilike.%${q}%,dni.ilike.%${q}%,vehiculo.ilike.%${q}%,dominio.ilike.%${q}%,motivo.ilike.%${q}%`;
+        query = query.or(orStr);
+      }
+      
+      // Ordenamiento
+      query = applyOrdering(query, 'accesos');
+      
+      // Paginación
+      const from = page.accesos * PAGE_SIZE;
+      const to   = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
       
-      const rows = (data||[]).filter(r=>{
-        const text = [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo].filter(Boolean).join(' ').toLowerCase();
-        const okQ = !q || text.includes(q);
-        const fechaRef = r.f_ing || r.created_at;
-        const okD = between(fechaRef, d1, d2);
-        return okQ && okD;
-      }).map(r=>`
-        <tr class="border-b last:border-0 hover:bg-yellow-50 transition-colors slide-in">
-          <td class="font-medium">${esc(r.nombre)}</td>
-          <td>${esc(r.dni)}</td>
-          <td>${esc(r.vehiculo)}</td>
-          <td>${esc(r.dominio)}</td>
-          <td>${esc(r.motivo)}</td>
-          <td>${esc(r.f_ing)}</td>
-          <td>${esc(r.h_ing)}</td>
-          <td>${esc(r.f_sal)}</td>
-          <td>${esc(r.h_sal)}</td>
-          <td class="text-slate-500 text-sm">${esc(r.created_at)}</td>
-        </tr>
-      `).join('') || `<tr><td colspan="10" class="px-4 py-6 text-slate-500 text-center">No se encontraron resultados</td></tr>`;
+      const list = data || [];
+      lastBatchCount.accesos = list.length;
       
-      $('#acc-rows').innerHTML = rows;
+      // KPI horas
+      if (clearBefore) {
+        const th = totalHoras(list);
+        $('#k_horas').textContent = th ? `${th.toFixed(2)} h` : "—";
+      }
+      
+      if (clearBefore && !list.length){
+        $('#acc-empty').classList.remove("hidden");
+        $('#acc-loadMoreBtn').classList.add('hidden');
+        return;
+      }
+      
+      for (const r of list) {
+        const horas = calcHoras(r);
+        const acciones = `
+          <div class="flex gap-2">
+            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editAcceso('${r.id}')">Editar</button>
+            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deleteAcceso('${r.id}')">Eliminar</button>
+          </div>
+        `;
+        
+        const t = [
+          r.nombre, r.dni, r.vehiculo, r.dominio, r.motivo, 
+          r.f_ing, r.h_ing, r.f_sal, r.h_sal, 
+          horas!=null?horas.toFixed(2):"—", acciones
+        ];
+        
+        const row = t.map((v,i)=> {
+          const isRaw = i === t.length - 1;
+          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
+        }).join("");
+
+        // Alternancia de filas + animación
+        const stripeClass = (__rowStripeIndex.accesos % 2 === 0) ? 'row-blank' : 'row-gold';
+        $('#acc-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
+        __rowStripeIndex.accesos++;
+      }
+      
+      $('#acc-loadMoreBtn').classList.toggle('hidden', !canLoadMore('accesos'));
     }catch(e){
-      $('#acc-rows').innerHTML = `<tr><td colspan="10" class="px-4 py-6 text-rose-600 text-center">Error: ${esc(e.message||e)}</td></tr>`;
-      showMsg('err', 'Accesos: ' + (e.message||e));
+      $('#acc-err').textContent = e.message || e;
+      $('#acc-loadMoreBtn').classList.add('hidden');
     }
   }
   
@@ -729,68 +1228,226 @@
     const data = Object.fromEntries(formData);
     
     try {
+      // Autocompletar persona si existe
+      if (data.nombre || data.dni) {
+        try{
+          await sb.rpc('upsert_persona', {
+            p_nombre: data.nombre || null,
+            p_dni: data.dni || null,
+            p_telefono: null,
+            p_email: null
+          });
+        }catch(e){ console.warn(e); }
+      }
+      
       const { error } = await sb.from('accesos').insert([data]);
       if (error) throw error;
       
       closeModal();
       showMsg('ok', 'Acceso registrado correctamente');
-      loadAccesos();
+      loadAccesos(true);
     } catch (error) {
       showMsg('err', 'Error al guardar acceso: ' + error.message);
     }
   });
   
   $('#acc-nuevo').addEventListener('click', () => openModal('modal-accesos'));
-  $('#acc-filtrar').addEventListener('click', loadAccesos);
+  $('#acc-filtrar').addEventListener('click', () => loadAccesos(true));
   $('#acc-limpiar').addEventListener('click', ()=>{ 
     $('#acc-q').value=''; 
     $('#acc-desde').value=''; 
     $('#acc-hasta').value=''; 
-    loadAccesos(); 
+    loadAccesos(true); 
   });
+  $('#acc-mostrar-todo').addEventListener('click', () => {
+    $('#acc-q').value=''; 
+    $('#acc-desde').value=''; 
+    $('#acc-hasta').value=''; 
+    loadAccesos(true);
+  });
+  $('#acc-loadMoreBtn').addEventListener('click', () => {
+    page.accesos += 1;
+    loadAccesos(false);
+  });
+  
+  // Autocomplete Personas
+  function attachPersonAutocomplete(){
+    const nameEl = $('#acc-nombre');
+    const dniEl  = $('#acc-dni');
+    const vehEl  = $('#acc-vehiculo');
+    const domEl  = $('#acc-dominio');
+    const sugName = $('#suggest_acc-nombre');
+    const sugDni  = $('#suggest_acc-dni');
+
+    const renderSug = (ul, items) => {
+      if (!items?.length){ ul.classList.add('hidden'); ul.innerHTML = ""; return; }
+      ul.innerHTML = items.map(p => `<li data-json='${JSON.stringify(p)}'>${esc(p.nombre||'')} — <span class="text-slate-500">${esc(p.dni||'')}</span></li>`).join("");
+      ul.classList.remove('hidden');
+      [...ul.querySelectorAll('li')].forEach(li=>{
+        li.addEventListener('click', async ()=>{
+          const p = JSON.parse(li.getAttribute('data-json'));
+          if (nameEl) nameEl.value = p.nombre || "";
+          if (dniEl)  dniEl.value  = p.dni || "";
+          try{
+            let q = sb.from('accesos').select('vehiculo,dominio,created_at').order('created_at',{ascending:false}).limit(1);
+            if (p.dni) q = q.eq('dni', p.dni);
+            else if (p.nombre) q = q.ilike('nombre', p.nombre);
+            const { data, error } = await q;
+            if (!error && data && data[0]){
+              if (vehEl && !vehEl.value) vehEl.value = data[0].vehiculo || '';
+              if (domEl && !domEl.value) domEl.value = data[0].dominio || '';
+            }
+          }catch(e){ console.warn(e); }
+          sugName?.classList.add('hidden'); sugDni?.classList.add('hidden');
+        });
+      });
+    };
+
+    let t1, t2;
+    nameEl?.addEventListener('input', async ()=>{
+      clearTimeout(t1);
+      t1 = setTimeout(async ()=>{
+        const q = nameEl.value.trim();
+        if (!q){ renderSug(sugName, []); return; }
+        const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
+        if (error){ console.warn(error); return; }
+        renderSug(sugName, data);
+      }, 220);
+    });
+    dniEl?.addEventListener('input', async ()=>{
+      clearTimeout(t2);
+      t2 = setTimeout(async ()=>{
+        const q = dniEl.value.trim();
+        if (!q){ renderSug(sugDni, []); return; }
+        const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('dni', `%${q}%`).limit(10);
+        if (error){ console.warn(error); return; }
+        renderSug(sugDni, data);
+      }, 220);
+    });
+
+    document.addEventListener('click', (e)=>{
+      if (!sugName?.contains(e.target) && e.target!==nameEl) sugName?.classList.add('hidden');
+      if (!sugDni?.contains(e.target)  && e.target!==dniEl)  sugDni?.classList.add('hidden');
+    });
+  }
+  
+  // Inicializar autocompletado cuando se abre el modal
+  const __openModalOrig = openModal;
+  openModal = function(modalId) {
+    __openModalOrig(modalId);
+    if (modalId === 'modal-accesos') {
+      attachPersonAutocomplete();
+    }
+  }
+  
+  window.editAcceso = async function(id) {
+    try {
+      const { data, error } = await sb.from('accesos').select("*").eq("id", id).single();
+      if (error) throw error;
+      
+      // Llenar formulario
+      const form = $('#form-accesos');
+      for (const [key, value] of Object.entries(data)) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) input.value = value || '';
+      }
+      
+      openModal('modal-accesos');
+    } catch (error) {
+      showMsg('err', 'Error al cargar acceso: ' + error.message);
+    }
+  }
+  
+  window.deleteAcceso = async function(id) {
+    if (!confirm('¿Eliminar este acceso? Esta acción no se puede deshacer.')) return;
+    
+    try {
+      const { error } = await sb.from('accesos').delete().eq('id', id);
+      if (error) throw error;
+      
+      showMsg('ok', 'Acceso eliminado correctamente');
+      loadAccesos(true);
+    } catch (error) {
+      showMsg('err', 'Error al eliminar acceso: ' + error.message);
+    }
+  }
 
   // ================== PAQUETERÍA ==================
-  async function loadPaqueteria(){
-    const q = $('#paq-q').value.trim().toLowerCase();
+  async function loadPaqueteria(clearBefore = true){
+    if (clearBefore) { 
+      $('#paq-rows').innerHTML = ""; 
+      resetPaging('paqueteria'); 
+      __rowStripeIndex.paqueteria = 0; 
+    }
+    $('#paq-empty').classList.add("hidden"); 
+    $('#paq-err').textContent = "";
+
+    const q = $('#paq-q').value.trim();
     const d1 = toDate($('#paq-desde').value);
     const d2 = endOfDayStr($('#paq-hasta').value) ? new Date(endOfDayStr($('#paq-hasta').value)) : null;
 
     try{
-      const { data, error } = await sb.from('paqueteria').select('*').order('created_at', { ascending:false }).limit(1000);
+      let query = sb.from('paqueteria').select("*", { count: "exact", head: false });
+      
+      // Fechas
+      if (d1) query = query.gte('fecha', $('#paq-desde').value);
+      if (d2) query = query.lte('fecha', $('#paq-hasta').value);
+      
+      // Búsqueda en servidor
+      if (q) {
+        const orStr = `receptor.ilike.%${q}%,empresa.ilike.%${q}%,remito.ilike.%${q}%,descripcion.ilike.%${q}%,id_num.ilike.%${q}%,entregado_a.ilike.%${q}%,notas.ilike.%${q}%`;
+        query = query.or(orStr);
+      }
+      
+      // Ordenamiento
+      query = applyOrdering(query, 'paqueteria');
+      
+      // Paginación
+      const from = page.paqueteria * PAGE_SIZE;
+      const to   = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
       
-      const rows = (data||[]).filter(r=>{
-        const text = [r.receptor,r.empresa,r.remito,r.estado,r.descripcion,r.id_num,r.entregado_a,r.notas].filter(Boolean).join(' ').toLowerCase();
-        const okQ = !q || text.includes(q);
-        const fechaRef = r.fecha || r.created_at;
-        const okD = between(fechaRef, d1, d2);
-        return okQ && okD;
-      }).map(r=>`
-        <tr class="border-b last:border-0 hover:bg-purple-50 transition-colors slide-in">
-          <td class="font-medium">${esc(r.receptor)}</td>
-          <td>${esc(r.empresa)}</td>
-          <td>${esc(r.remito)}</td>
-          <td><span class="px-2 py-1 rounded-full text-xs font-medium ${
-            r.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' : 
-            r.estado === 'entregado' ? 'bg-green-100 text-green-800' : 
-            'bg-red-100 text-red-800'
-          }">${esc(r.estado)}</span></td>
-          <td>${esc(r.fecha)}</td>
-          <td>${esc(r.hora)}</td>
-          <td>${esc(r.descripcion)}</td>
-          <td>${esc(r.id_num)}</td>
-          <td>${esc(r.entregado_a)}</td>
-          <td>${esc(r.fecha_entrega)}</td>
-          <td>${esc(r.hora_entrega)}</td>
-          <td>${esc(r.notas)}</td>
-          <td class="text-slate-500 text-sm">${esc(r.created_at)}</td>
-        </tr>
-      `).join('') || `<tr><td colspan="13" class="px-4 py-6 text-slate-500 text-center">No se encontraron resultados</td></tr>`;
+      const list = data || [];
+      lastBatchCount.paqueteria = list.length;
       
-      $('#paq-rows').innerHTML = rows;
+      if (clearBefore && !list.length){
+        $('#paq-empty').classList.remove("hidden");
+        $('#paq-loadMoreBtn').classList.add('hidden');
+        return;
+      }
+      
+      for (const r of list) {
+        const acciones = `
+          <div class="flex gap-2">
+            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editPaquete('${r.id}')">Editar</button>
+            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deletePaquete('${r.id}')">Eliminar</button>
+          </div>
+        `;
+        
+        const t = [
+          r.receptor, r.empresa, r.remito, r.estado, r.fecha, r.hora,
+          r.descripcion, r.id_num, r.entregado_a, r.fecha_entrega, r.hora_entrega,
+          r.notas || "", acciones
+        ];
+        
+        const row = t.map((v,i)=> {
+          const isRaw = i === t.length - 1;
+          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
+        }).join("");
+
+        // Alternancia de filas + animación
+        const stripeClass = (__rowStripeIndex.paqueteria % 2 === 0) ? 'row-blank' : 'row-gold';
+        $('#paq-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
+        __rowStripeIndex.paqueteria++;
+      }
+      
+      $('#paq-loadMoreBtn').classList.toggle('hidden', !canLoadMore('paqueteria'));
     }catch(e){
-      $('#paq-rows').innerHTML = `<tr><td colspan="13" class="px-4 py-6 text-rose-600 text-center">Error: ${esc(e.message||e)}</td></tr>`;
-      showMsg('err', 'Paquetería: ' + (e.message||e));
+      $('#paq-err').textContent = e.message || e;
+      $('#paq-loadMoreBtn').classList.add('hidden');
     }
   }
   
@@ -806,45 +1463,129 @@
       
       closeModal();
       showMsg('ok', 'Paquete registrado correctamente');
-      loadPaqueteria();
+      loadPaqueteria(true);
     } catch (error) {
       showMsg('err', 'Error al guardar paquete: ' + error.message);
     }
   });
   
   $('#paq-nuevo').addEventListener('click', () => openModal('modal-paqueteria'));
-  $('#paq-filtrar').addEventListener('click', loadPaqueteria);
+  $('#paq-filtrar').addEventListener('click', () => loadPaqueteria(true));
   $('#paq-limpiar').addEventListener('click', ()=>{ 
     $('#paq-q').value=''; 
     $('#paq-desde').value=''; 
     $('#paq-hasta').value=''; 
-    loadPaqueteria(); 
+    loadPaqueteria(true); 
   });
-
-  // ================== PERSONAS ==================
-  async function loadPersonas(){
-    const q = $('#per-q').value.trim().toLowerCase();
-    try{
-      const { data, error } = await sb.from('personas').select('*').order('created_at', { ascending:false }).limit(1000);
+  $('#paq-mostrar-todo').addEventListener('click', () => {
+    $('#paq-q').value=''; 
+    $('#paq-desde').value=''; 
+    $('#paq-hasta').value=''; 
+    loadPaqueteria(true);
+  });
+  $('#paq-loadMoreBtn').addEventListener('click', () => {
+    page.paqueteria += 1;
+    loadPaqueteria(false);
+  });
+  
+  window.editPaquete = async function(id) {
+    try {
+      const { data, error } = await sb.from('paqueteria').select("*").eq("id", id).single();
       if (error) throw error;
       
-      const rows = (data||[]).filter(r=>{
-        const text = [r.nombre,r.dni,r.telefono,r.email].filter(Boolean).join(' ').toLowerCase();
-        return !q || text.includes(q);
-      }).map(r=>`
-        <tr class="border-b last:border-0 hover:bg-green-50 transition-colors slide-in">
-          <td class="font-medium">${esc(r.nombre)}</td>
-          <td>${esc(r.dni)}</td>
-          <td>${esc(r.telefono)}</td>
-          <td>${esc(r.email)}</td>
-          <td class="text-slate-500 text-sm">${esc(r.created_at)}</td>
-        </tr>
-      `).join('') || `<tr><td colspan="5" class="px-4 py-6 text-slate-500 text-center">No se encontraron resultados</td></tr>`;
+      // Llenar formulario
+      const form = $('#form-paqueteria');
+      for (const [key, value] of Object.entries(data)) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) input.value = value || '';
+      }
       
-      $('#per-rows').innerHTML = rows;
+      openModal('modal-paqueteria');
+    } catch (error) {
+      showMsg('err', 'Error al cargar paquete: ' + error.message);
+    }
+  }
+  
+  window.deletePaquete = async function(id) {
+    if (!confirm('¿Eliminar este paquete? Esta acción no se puede deshacer.')) return;
+    
+    try {
+      const { error } = await sb.from('paqueteria').delete().eq('id', id);
+      if (error) throw error;
+      
+      showMsg('ok', 'Paquete eliminado correctamente');
+      loadPaqueteria(true);
+    } catch (error) {
+      showMsg('err', 'Error al eliminar paquete: ' + error.message);
+    }
+  }
+
+  // ================== PERSONAS ==================
+  async function loadPersonas(clearBefore = true){
+    if (clearBefore) { 
+      $('#per-rows').innerHTML = ""; 
+      resetPaging('personas'); 
+      __rowStripeIndex.personas = 0; 
+    }
+    $('#per-empty').classList.add("hidden"); 
+    $('#per-err').textContent = "";
+
+    const q = $('#per-q').value.trim();
+    
+    try{
+      let query = sb.from('personas').select("*", { count: "exact", head: false });
+      
+      // Búsqueda en servidor
+      if (q) {
+        const orStr = `nombre.ilike.%${q}%,dni.ilike.%${q}%,telefono.ilike.%${q}%,email.ilike.%${q}%`;
+        query = query.or(orStr);
+      }
+      
+      // Ordenamiento
+      query = query.order('created_at', { ascending: false });
+      
+      // Paginación
+      const from = page.personas * PAGE_SIZE;
+      const to   = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      
+      const list = data || [];
+      lastBatchCount.personas = list.length;
+      
+      if (clearBefore && !list.length){
+        $('#per-empty').classList.remove("hidden");
+        $('#per-loadMoreBtn').classList.add('hidden');
+        return;
+      }
+      
+      for (const r of list) {
+        const acciones = `
+          <div class="flex gap-2">
+            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editPersona('${r.id}')">Editar</button>
+            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deletePersona('${r.id}')">Eliminar</button>
+          </div>
+        `;
+        
+        const t = [r.nombre, r.dni, r.telefono, r.email, acciones];
+        
+        const row = t.map((v,i)=> {
+          const isRaw = i === t.length - 1;
+          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
+        }).join("");
+
+        // Alternancia de filas + animación
+        const stripeClass = (__rowStripeIndex.personas % 2 === 0) ? 'row-blank' : 'row-gold';
+        $('#per-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
+        __rowStripeIndex.personas++;
+      }
+      
+      $('#per-loadMoreBtn').classList.toggle('hidden', !canLoadMore('personas'));
     }catch(e){
-      $('#per-rows').innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-rose-600 text-center">Error: ${esc(e.message||e)}</td></tr>`;
-      showMsg('err', 'Personas: ' + (e.message||e));
+      $('#per-err').textContent = e.message || e;
+      $('#per-loadMoreBtn').classList.add('hidden');
     }
   }
   
@@ -860,246 +1601,494 @@
       
       closeModal();
       showMsg('ok', 'Persona registrada correctamente');
-      loadPersonas();
+      loadPersonas(true);
     } catch (error) {
       showMsg('err', 'Error al guardar persona: ' + error.message);
     }
   });
   
   $('#per-nuevo').addEventListener('click', () => openModal('modal-personas'));
-  $('#per-filtrar').addEventListener('click', loadPersonas);
+  $('#per-filtrar').addEventListener('click', () => loadPersonas(true));
   $('#per-limpiar').addEventListener('click', ()=>{ 
     $('#per-q').value=''; 
-    loadPersonas(); 
+    loadPersonas(true); 
   });
+  $('#per-mostrar-todo').addEventListener('click', () => {
+    $('#per-q').value=''; 
+    loadPersonas(true);
+  });
+  $('#per-loadMoreBtn').addEventListener('click', () => {
+    page.personas += 1;
+    loadPersonas(false);
+  });
+  
+  window.editPersona = async function(id) {
+    try {
+      const { data, error } = await sb.from('personas').select("*").eq("id", id).single();
+      if (error) throw error;
+      
+      // Llenar formulario
+      const form = $('#form-personas');
+      for (const [key, value] of Object.entries(data)) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) input.value = value || '';
+      }
+      
+      openModal('modal-personas');
+    } catch (error) {
+      showMsg('err', 'Error al cargar persona: ' + error.message);
+    }
+  }
+  
+  window.deletePersona = async function(id) {
+    if (!confirm('¿Eliminar esta persona? Esta acción no se puede deshacer.')) return;
+    
+    try {
+      const { error } = await sb.from('personas').delete().eq('id', id);
+      if (error) throw error;
+      
+      showMsg('ok', 'Persona eliminada correctamente');
+      loadPersonas(true);
+    } catch (error) {
+      showMsg('err', 'Error al eliminar persona: ' + error.message);
+    }
+  }
 
   // ================== CONTABLE ==================
-  async function loadContable(){
-    const head = $('#con-head'); 
-    const body = $('#con-rows');
-    
+  async function loadContable(clearBefore = true){
+    if (clearBefore) { 
+      $('#con-rows').innerHTML = ""; 
+      resetPaging('contable'); 
+      __rowStripeIndex.contable = 0; 
+    }
+    $('#con-empty').classList.add("hidden"); 
+    $('#con-err').textContent = "";
+
+    const q = $('#con-q').value.trim();
+    const d1 = toDate($('#con-desde').value);
+    const d2 = endOfDayStr($('#con-hasta').value) ? new Date(endOfDayStr($('#con-hasta').value)) : null;
+
     try{
-      // Verificar si la tabla existe primero
-      const { data, error } = await sb.from('contable').select('*').limit(1);
+      let query = sb.from('movimientos').select("*", { count: "exact", head: false });
       
-      if (error) {
-        // Si la tabla no existe, mostrar mensaje informativo
-        head.innerHTML = '';
-        body.innerHTML = `<tr><td class="px-4 py-8 text-center">
-          <div class="max-w-md mx-auto">
-            <div class="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
-              <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-medium text-slate-800 mb-2">Tabla no encontrada</h3>
-            <p class="text-slate-600">La tabla 'contable' no existe en la base de datos. Contacte al administrador para crearla.</p>
-          </div>
-        </td></tr>`;
+      // Fechas
+      if (d1) query = query.gte('fecha', $('#con-desde').value);
+      if (d2) query = query.lte('fecha', $('#con-hasta').value);
+      
+      // Búsqueda en servidor
+      if (q) {
+        const orStr = `tipo.ilike.%${q}%,concepto.ilike.%${q}%`;
+        query = query.or(orStr);
+      }
+      
+      // Ordenamiento
+      query = applyOrdering(query, 'contable');
+      
+      // Paginación
+      const from = page.contable * PAGE_SIZE;
+      const to   = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      
+      const list = data || [];
+      lastBatchCount.contable = list.length;
+      
+      // KPIs
+      if (clearBefore) {
+        let ing=0, egr=0; 
+        for(const r of list){ 
+          if(r.tipo==="Ingreso") ing+=Number(r.monto||0); 
+          if(r.tipo==="Egreso") egr+=Number(r.monto||0); 
+        }
+        $('#k_ing').textContent = formatMoney(ing);
+        $('#k_egr').textContent = formatMoney(egr);
+        $('#k_saldo').textContent = formatMoney(ing-egr);
+      }
+      
+      if (clearBefore && !list.length){
+        $('#con-empty').classList.remove("hidden");
+        $('#con-loadMoreBtn').classList.add('hidden');
         return;
       }
       
-      // Si la tabla existe, cargar los datos
-      const { data: fullData, error: fetchError } = await sb.from('contable').select('*').order('created_at', { ascending:false }).limit(1000);
-      if (fetchError) throw fetchError;
+      // Construir encabezado dinámicamente
+      if (clearBefore && list.length > 0) {
+        const cols = Object.keys(list[0]).filter(col => col !== 'id' && col !== 'user_id' && col !== 'created_at');
+        $('#con-head').innerHTML = `<tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">
+          ${cols.map(c => `<th>${esc(c)}</th>`).join('')}
+          <th>Acciones</th>
+        </tr>`;
+      }
       
-      const cols = fullData?.length ? Object.keys(fullData[0]) : [];
-      head.innerHTML = `<tr class="[&>th]:text-left [&>th]:px-4 [&>th]:py-3">${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`;
+      for (const r of list) {
+        const acciones = `
+          <div class="flex gap-2">
+            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editContable('${r.id}')">Editar</button>
+            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deleteContable('${r.id}')">Eliminar</button>
+          </div>
+        `;
+        
+        const cols = Object.keys(r).filter(col => col !== 'id' && col !== 'user_id' && col !== 'created_at');
+        const t = cols.map(col => {
+          if (col === 'url' && r[col]) {
+            return `<a class="underline text-amber-700" target="_blank" href="${r[col]}">Ver</a>`;
+          }
+          return esc(r[col] ?? "");
+        });
+        t.push(acciones);
+        
+        const row = t.map((v,i)=> {
+          const isRaw = i === t.length - 1;
+          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : (v ?? "")}</td>`;
+        }).join("");
+
+        // Alternancia de filas + animación
+        const stripeClass = (__rowStripeIndex.contable % 2 === 0) ? 'row-blank' : 'row-gold';
+        $('#con-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
+        __rowStripeIndex.contable++;
+      }
       
-      body.innerHTML = (fullData||[]).map(r=>`
-        <tr class="border-b last:border-0 hover:bg-blue-50 transition-colors slide-in">
-          ${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}
-        </tr>
-      `).join('') || `<tr><td class="px-4 py-6 text-slate-500 text-center">No hay datos disponibles</td></tr>`;
+      $('#con-loadMoreBtn').classList.toggle('hidden', !canLoadMore('contable'));
     }catch(e){
-      head.innerHTML=''; 
-      body.innerHTML = `<tr><td class="px-4 py-6 text-rose-600 text-center">Error: ${esc(e.message||e)}</td></tr>`;
-      showMsg('err', 'Contable: ' + (e.message||e));
+      $('#con-err').textContent = e.message || e;
+      $('#con-loadMoreBtn').classList.add('hidden');
     }
   }
   
-  $('#con-nuevo').addEventListener('click', () => {
-    // Mostrar mensaje informativo
-    showMsg('err', 'La tabla contable no está disponible actualmente. Contacte al administrador.');
+  // Formulario de nuevo registro contable
+  $('#form-contable').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+      // Obtener usuario actual
+      const { data: userData } = await sb.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error('Sesión expirada');
+      
+      data.user_id = uid;
+      
+      // Subir archivo si existe
+      const fi = e.target.querySelector('input[name="file"]');
+      if (fi && fi.files && fi.files.length){
+        const file = fi.files[0];
+        const path = `${uid}/${Date.now()}_${file.name}`;
+        const up = await sb.storage.from("tickets").upload(path, file, { upsert: false });
+        if (up.error) throw up.error;
+        const { data: pub } = sb.storage.from("tickets").getPublicUrl(path);
+        data.url = pub?.publicUrl || null;
+      }
+      
+      const { error } = await sb.from('movimientos').insert([data]);
+      if (error) throw error;
+      
+      closeModal();
+      showMsg('ok', 'Registro contable guardado correctamente');
+      loadContable(true);
+    } catch (error) {
+      showMsg('err', 'Error al guardar registro: ' + error.message);
+    }
   });
+  
+  $('#con-nuevo').addEventListener('click', () => openModal('modal-contable'));
+  $('#con-filtrar').addEventListener('click', () => loadContable(true));
+  $('#con-limpiar').addEventListener('click', ()=>{ 
+    $('#con-q').value=''; 
+    $('#con-desde').value=''; 
+    $('#con-hasta').value=''; 
+    loadContable(true); 
+  });
+  $('#con-mostrar-todo').addEventListener('click', () => {
+    $('#con-q').value=''; 
+    $('#con-desde').value=''; 
+    $('#con-hasta').value=''; 
+    loadContable(true);
+  });
+  $('#con-loadMoreBtn').addEventListener('click', () => {
+    page.contable += 1;
+    loadContable(false);
+  });
+  
+  // Exportación PDF
+  $('#con-export-pdf').addEventListener('click', () => {
+    const head = [...document.querySelectorAll('#con-head th')].map(th => th.textContent.trim()).slice(0,-1);
+    let body = [...document.querySelectorAll('#con-rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
+
+    if (!body.length){ 
+      showMsg('err', 'No hay datos para exportar.'); 
+      return; 
+    }
+
+    const { jsPDF } = window.jspdf; 
+    const doc = new jsPDF({ unit:'pt', format:'a4' });
+    const title = `CRM — Contable`;
+    doc.setFontSize(14); 
+    doc.text(title, 40, 40);
+
+    const startY = 60;
+    doc.autoTable({ 
+      startY, 
+      head:[head], 
+      body, 
+      styles:{ fontSize:9, cellPadding:4 }, 
+      headStyles:{ fillColor:[245,158,11] }, 
+      theme:'striped' 
+    });
+    doc.save(`Contable_${new Date().toISOString().slice(0,10)}.pdf`);
+  });
+  
+  // Exportación CSV
+  $('#con-export-csv').addEventListener('click', () => {
+    const head = [...document.querySelectorAll('#con-head th')].map(th => th.textContent.trim()).slice(0, -1);
+    const rowsData = [...document.querySelectorAll('#con-rows tr')].map(tr => [...tr.children].slice(0, -1).map(td => td.innerText.replaceAll("\n"," ").trim()));
+    
+    if (!rowsData.length){ 
+      showMsg('err', 'No hay datos para exportar.'); 
+      return; 
+    }
+    
+    const escCSV = (v) => { 
+      const s = String(v ?? ""); 
+      return /[",\n;]/.test(s) ? `"${s.replaceAll('"','""')}"` : s; 
+    };
+    const csv = [head.map(escCSV).join(";")].concat(rowsData.map(r => r.map(escCSV).join(";"))).join("\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"}); 
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); 
+    a.href = url; 
+    a.download = `Contable_${new Date().toISOString().slice(0,10)}.csv`; 
+    document.body.appendChild(a); 
+    a.click(); 
+    a.remove(); 
+    URL.revokeObjectURL(url);
+  });
+  
+  window.editContable = async function(id) {
+    try {
+      const { data, error } = await sb.from('movimientos').select("*").eq("id", id).single();
+      if (error) throw error;
+      
+      // Llenar formulario
+      const form = $('#form-contable');
+      for (const [key, value] of Object.entries(data)) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) input.value = value || '';
+      }
+      
+      openModal('modal-contable');
+    } catch (error) {
+      showMsg('err', 'Error al cargar registro: ' + error.message);
+    }
+  }
+  
+  window.deleteContable = async function(id) {
+    if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
+    
+    try {
+      const { error } = await sb.from('movimientos').delete().eq('id', id);
+      if (error) throw error;
+      
+      showMsg('ok', 'Registro eliminado correctamente');
+      loadContable(true);
+    } catch (error) {
+      showMsg('err', 'Error al eliminar registro: ' + error.message);
+    }
+  }
 
   // ================== PARTE DIARIO ==================
-  function initParteDiario() {
-    // Establecer fecha actual por defecto
-    const today = new Date().toISOString().split('T')[0];
-    $('#pd-fecha').value = today;
-    
-    // Cargar resumen inicial
-    loadResumenParteDiario();
-  }
-  
-  async function loadResumenParteDiario() {
-    const fecha = $('#pd-fecha').value;
-    if (!fecha) return;
-    
-    try {
-      // Contar accesos
-      const { data: accesos, error: errorAccesos } = await sb
-        .from('accesos')
-        .select('*', { count: 'exact', head: true })
-        .eq('f_ing', fecha);
-      
-      if (errorAccesos) throw errorAccesos;
-      $('#pd-accesos-count').textContent = accesos?.length || 0;
-      
-      // Contar paquetes
-      const { data: paquetes, error: errorPaquetes } = await sb
-        .from('paqueteria')
-        .select('*', { count: 'exact', head: true })
-        .eq('fecha', fecha);
-      
-      if (errorPaquetes) throw errorPaquetes;
-      $('#pd-paqueteria-count').textContent = paquetes?.length || 0;
-      
-      // Contar personas (creadas en esa fecha)
-      const { data: personas, error: errorPersonas } = await sb
-        .from('personas')
-        .select('*', { count: 'exact', head: true })
-        .like('created_at', `${fecha}%`);
-      
-      if (errorPersonas) throw errorPersonas;
-      $('#pd-personas-count').textContent = personas?.length || 0;
-      
-    } catch (error) {
-      showMsg('err', 'Error al cargar resumen: ' + error.message);
+  async function loadParteDiario(clearBefore = true){
+    if (clearBefore) { 
+      $('#pd-rows').innerHTML = ""; 
+      resetPaging('parte-diario'); 
+      __rowStripeIndex['parte-diario'] = 0; 
     }
-  }
-  
-  async function generarParteDiario() {
-    const fecha = $('#pd-fecha').value;
-    if (!fecha) {
-      showMsg('err', 'Debe seleccionar una fecha');
-      return;
-    }
-    
-    try {
-      // Obtener datos de accesos
-      const { data: accesos, error: errorAccesos } = await sb
-        .from('accesos')
-        .select('*')
-        .eq('f_ing', fecha)
-        .order('h_ing');
+    $('#pd-empty').classList.add("hidden"); 
+    $('#pd-err').textContent = "";
+
+    const q = $('#pd-q').value.trim();
+    const d1 = toDate($('#pd-desde').value);
+    const d2 = endOfDayStr($('#pd-hasta').value) ? new Date(endOfDayStr($('#pd-hasta').value)) : null;
+
+    try{
+      let query = sb.from('parte_diario').select("*", { count: "exact", head: false });
       
-      if (errorAccesos) throw errorAccesos;
+      // Fechas
+      if (d1) query = query.gte('fecha', $('#pd-desde').value);
+      if (d2) query = query.lte('fecha', $('#pd-hasta').value);
       
-      // Obtener datos de paquetes
-      const { data: paquetes, error: errorPaquetes } = await sb
-        .from('paqueteria')
-        .select('*')
-        .eq('fecha', fecha)
-        .order('hora');
-      
-      if (errorPaquetes) throw errorPaquetes;
-      
-      // Formatear fecha
-      const fechaFormateada = new Date(fecha).toLocaleDateString('es-AR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      // Generar mensaje
-      let mensaje = `*PARTE DIARIO - SAN ISIDRO*\n\n`;
-      mensaje += `*Fecha:* ${fechaFormateada}\n\n`;
-      
-      // Sección de accesos
-      mensaje += `*ACCESOS (${accesos?.length || 0})*\n`;
-      if (accesos && accesos.length > 0) {
-        accesos.forEach(acc => {
-          mensaje += `• ${acc.nombre} (DNI: ${acc.dni || 'N/A'}) - ${acc.motivo || 'Sin motivo'}\n`;
-          if (acc.vehiculo) mensaje += `  Vehículo: ${acc.vehiculo} (${acc.dominio || 'Sin dominio'})\n`;
-          mensaje += `  Ingreso: ${acc.h_ing || 'N/A'}\n`;
-          if (acc.h_sal) mensaje += `  Salida: ${acc.h_sal}\n`;
-          mensaje += `\n`;
-        });
-      } else {
-        mensaje += `No se registraron accesos hoy.\n\n`;
+      // Búsqueda en servidor
+      if (q) {
+        const orStr = `cabina.ilike.%${q}%,amt.ilike.%${q}%,puesto_hudson.ilike.%${q}%,otros.ilike.%${q}%,agenda_texto.ilike.%${q}%`;
+        query = query.or(orStr);
       }
       
-      // Sección de paquetes
-      mensaje += `*PAQUETERÍA (${paquetes?.length || 0})*\n`;
-      if (paquetes && paquetes.length > 0) {
-        paquetes.forEach(paq => {
-          mensaje += `• ${paq.receptor} - ${paq.descripcion || 'Sin descripción'}\n`;
-          mensaje += `  Estado: ${paq.estado}\n`;
-          if (paq.empresa) mensaje += `  Empresa: ${paq.empresa}\n`;
-          if (paq.entregado_a) mensaje += `  Entregado a: ${paq.entregado_a}\n`;
-          mensaje += `\n`;
-        });
-      } else {
-        mensaje += `No se registraron paquetes hoy.\n\n`;
+      // Ordenamiento
+      query = applyOrdering(query, 'parte-diario');
+      
+      // Paginación
+      const from = page['parte-diario'] * PAGE_SIZE;
+      const to   = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      
+      const list = data || [];
+      lastBatchCount['parte-diario'] = list.length;
+      
+      if (clearBefore && !list.length){
+        $('#pd-empty').classList.remove("hidden");
+        $('#pd-loadMoreBtn').classList.add('hidden');
+        return;
       }
       
-      mensaje += `Generado el ${new Date().toLocaleString('es-AR')}`;
+      for (const r of list) {
+        const acciones = `
+          <div class="flex gap-2">
+            <button class="chip px-2 py-1 border rounded-full text-xs" onclick="editParteDiario('${r.id}')">Editar</button>
+            <button class="chip px-2 py-1 border rounded-full text-xs text-red-600 border-red-600" onclick="deleteParteDiario('${r.id}')">Eliminar</button>
+          </div>
+        `;
+        
+        const resumen = (r.cabina || r.otros || "").toString().slice(0,60) + "...";
+        const t = [r.fecha, r.hora_inicio || "--:--", r.hora_fin || "--:--", formatMoney(r.caja_chica), resumen, acciones];
+        
+        const row = t.map((v,i)=> {
+          const isRaw = i === t.length - 1;
+          return `<td class="py-2 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : (v ?? "")}</td>`;
+        }).join("");
+
+        // Alternancia de filas + animación
+        const stripeClass = (__rowStripeIndex['parte-diario'] % 2 === 0) ? 'row-blank' : 'row-gold';
+        $('#pd-rows').insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${row}</tr>`);
+        __rowStripeIndex['parte-diario']++;
+      }
       
-      $('#pd-mensaje').textContent = mensaje;
-      showMsg('ok', 'Parte diario generado correctamente');
+      $('#pd-loadMoreBtn').classList.toggle('hidden', !canLoadMore('parte-diario'));
+    }catch(e){
+      $('#pd-err').textContent = e.message || e;
+      $('#pd-loadMoreBtn').classList.add('hidden');
+    }
+  }
+  
+  // Formulario de nuevo parte diario
+  $('#form-parte-diario').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+      // Obtener usuario actual
+      const { data: userData } = await sb.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error('Sesión expirada');
       
+      data.user_id = uid;
+      
+      const { error } = await sb.from('parte_diario').insert([data]);
+      if (error) throw error;
+      
+      closeModal();
+      showMsg('ok', 'Parte diario guardado correctamente');
+      loadParteDiario(true);
     } catch (error) {
-      showMsg('err', 'Error al generar parte diario: ' + error.message);
+      showMsg('err', 'Error al guardar parte diario: ' + error.message);
+    }
+  });
+  
+  $('#pd-nuevo').addEventListener('click', () => openModal('modal-parte-diario'));
+  $('#pd-filtrar').addEventListener('click', () => loadParteDiario(true));
+  $('#pd-limpiar').addEventListener('click', ()=>{ 
+    $('#pd-q').value=''; 
+    $('#pd-desde').value=''; 
+    $('#pd-hasta').value=''; 
+    loadParteDiario(true); 
+  });
+  $('#pd-mostrar-todo').addEventListener('click', () => {
+    $('#pd-q').value=''; 
+    $('#pd-desde').value=''; 
+    $('#pd-hasta').value=''; 
+    loadParteDiario(true);
+  });
+  $('#pd-loadMoreBtn').addEventListener('click', () => {
+    page['parte-diario'] += 1;
+    loadParteDiario(false);
+  });
+  
+  window.fillNow = (id) => { 
+    const el = document.querySelector(`#form-parte-diario [name="${id}"]`); 
+    if (!el) return; 
+    const d = new Date(); 
+    el.value = d.toTimeString().slice(0,5); 
+  };
+  
+  window.copyAgendaDelDia = async () => {
+    const d = document.querySelector('#form-parte-diario [name="fecha"]')?.value; 
+    if (!d) return;
+    
+    try {
+      const { data, error } = await sb.from('agenda_dom').select('asignado_a,tarea,hora,estado').eq('fecha', d).order('hora',{ascending:true});
+      if (error) throw error;
+      
+      if (!data?.length) return;
+      
+      const fmt = (h)=> h ? h.slice(0,5) : "--:--";
+      let out = `Agenda ${d.split('-').reverse().join('/')}\n`;
+      for (const r of data){ 
+        out += `• ${r.asignado_a}: ${fmt(r.hora)} — ${r.tarea} [${r.estado}]\n`; 
+      }
+      
+      const a = document.querySelector('#form-parte-diario [name="agenda_texto"]'); 
+      if (a) a.value = out.trim();
+    } catch (error) {
+      showMsg('err', 'Error al obtener agenda: ' + error.message);
+    }
+  };
+  
+  window.editParteDiario = async function(id) {
+    try {
+      const { data, error } = await sb.from('parte_diario').select("*").eq("id", id).single();
+      if (error) throw error;
+      
+      // Llenar formulario
+      const form = $('#form-parte-diario');
+      for (const [key, value] of Object.entries(data)) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) input.value = value || '';
+      }
+      
+      openModal('modal-parte-diario');
+    } catch (error) {
+      showMsg('err', 'Error al cargar parte diario: ' + error.message);
     }
   }
   
-  function enviarWhatsApp() {
-    const mensaje = $('#pd-mensaje').textContent;
-    const destinatario = $('#pd-destinatario').value.trim();
+  window.deleteParteDiario = async function(id) {
+    if (!confirm('¿Eliminar este parte diario? Esta acción no se puede deshacer.')) return;
     
-    if (!mensaje || mensaje.includes('Genera el reporte')) {
-      showMsg('err', 'Debe generar el reporte primero');
-      return;
+    try {
+      const { error } = await sb.from('parte_diario').delete().eq('id', id);
+      if (error) throw error;
+      
+      showMsg('ok', 'Parte diario eliminado correctamente');
+      loadParteDiario(true);
+    } catch (error) {
+      showMsg('err', 'Error al eliminar parte diario: ' + error.message);
     }
-    
-    if (!destinatario) {
-      showMsg('err', 'Debe ingresar un número de destinatario');
-      return;
-    }
-    
-    // Formatear número (quitar espacios, guiones, etc.)
-    let numero = destinatario.replace(/\D/g, '');
-    if (!numero.startsWith('549') && numero.startsWith('54')) {
-      numero = '549' + numero.substring(2);
-    } else if (!numero.startsWith('54')) {
-      numero = '549' + numero;
-    }
-    
-    // Codificar mensaje para URL
-    const mensajeCodificado = encodeURIComponent(mensaje);
-    
-    // Abrir WhatsApp Web
-    window.open(`https://wa.me/${numero}?text=${mensajeCodificado}`, '_blank');
   }
-  
-  function copiarMensaje() {
-    const mensaje = $('#pd-mensaje').textContent;
-    
-    if (!mensaje || mensaje.includes('Genera el reporte')) {
-      showMsg('err', 'Debe generar el reporte primero');
-      return;
-    }
-    
-    // Copiar al portapapeles
-    navigator.clipboard.writeText(mensaje)
-      .then(() => {
-        showMsg('ok', 'Mensaje copiado al portapapeles');
-      })
-      .catch(err => {
-        showMsg('err', 'Error al copiar mensaje: ' + err);
-      });
+
+  // ================== UTILIDADES ==================
+  function formatMoney(n){ 
+    const x = Number(n||0); 
+    return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); 
   }
-  
-  // Eventos del parte diario
-  $('#pd-fecha').addEventListener('change', loadResumenParteDiario);
-  $('#pd-generar').addEventListener('click', generarParteDiario);
-  $('#pd-enviar').addEventListener('click', enviarWhatsApp);
-  $('#pd-copiar').addEventListener('click', copiarMensaje);
 
   // ================== INIT ==================
   // Arranca en Accesos
-  loadAccesos();
+  // La carga inicial se hace después de restaurar el estado en la verificación de sesión
 </script>
 </body>
 </html>
