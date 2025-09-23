@@ -7,19 +7,345 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>CRM — Dashboard</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com">
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
 
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2">
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js">
+/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
+function persistState(){
+  // Save filters and tab
+  try{
+    localStorage.setItem('crm-tab', current);
+    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
+    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
+    localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
+  }catch(e){}
+}
+function restoreState(){
+  try{
+    const t = localStorage.getItem('crm-tab');
+    if (t && tabs[t]){
+      current = t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
+  }catch(e){}
+}
+['fDesde','fHasta','q','asignado'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Initialize restore before first load
+restoreState();
+
+</script>
 <style>
   :root{ color-scheme: light; }
   body{ 
-    background:#f8fafc; 
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4eaf1 100%);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     position:relative; 
-    overflow-x:hidden;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x:hidden; 
+    min-height: 100vh;
+  }
+  
+  /* Contenedor principal */
+  .main-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
   }
   
   /* Efectos de fondo */
@@ -47,516 +373,551 @@
     animation: shimmer 10s linear infinite; 
     z-index:0; 
   }
-  
   @keyframes floatGlow{ 
     from{ transform: translate(0,0) scale(1) } 
     to{ transform: translate(-6%,4%) scale(1.05) } 
   }
-  
   @keyframes shimmer{ 
     0%{ background-position:-200% 0 } 
     100%{ background-position:200% 0 } 
   }
-  
   .app-layer{ 
     position:relative; 
     z-index:1; 
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Estética general mejorada */
-  .tab{
-    padding:.65rem 1rem;
-    border-radius:.8rem;
-    border:1px solid #e2e8f0;
-    background:#ffffff;
-    color:#475569;
-    transition: all .25s ease;
-    font-weight: 500;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  /* Header mejorado */
+  header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
   }
   
-  .tab:hover{ 
-    transform: translateY(-2px); 
-    box-shadow:0 4px 12px rgba(0,0,0,0.08);
-    background: #f8fafc;
-  }
-  
-  .tab.active{
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color:#ffffff;
-    border-color:#d97706;
+  .logo-container {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border-radius: 12px;
     box-shadow: 0 4px 12px rgba(245,158,11,0.3);
   }
   
-  .chip{
-    border:1px solid #e2e8f0;
-    border-radius:999px;
-    padding:.2rem .7rem;
-    font-size:.75rem;
-    transition: all .2s ease;
-    background: #ffffff;
-    color: #475569;
+  /* Estética general */
+  .tab{
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem 0.75rem 0 0;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.05);
+    color: #cbd5e1;
+    transition: all 0.25s ease;
     font-weight: 500;
+    position: relative;
+    overflow: hidden;
+  }
+  .tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(217,119,6,0.1) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .tab:hover{ 
+    background: rgba(255,255,255,0.08);
+    color: #f1f5f9;
+    transform: translateY(-2px);
+  }
+  .tab:hover::before {
+    opacity: 1;
+  }
+  .tab.active{ 
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #111827;
+    border-color: #d97706;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+  }
+  .tab.active::before {
+    opacity: 0;
   }
   
-  .chip:hover{ 
-    background:#f1f5f9;
-    transform: translateY(-1px);
+  .chip{
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    background: white;
+    color: #475569;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .chip:hover{ 
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   }
   
   .kpi{
-    border:1px solid #e2e8f0;
-    border-radius:16px;
-    background:#ffffff;
-    padding:16px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: white;
+    padding: 1.25rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
   }
-  
   .kpi:hover {
     transform: translateY(-3px);
     box-shadow: 0 15px 30px rgba(0,0,0,0.1);
   }
   
   .table-wrap{
-    max-height:70vh; 
-    overflow:auto;
+    max-height: 65vh;
+    overflow: auto;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    background: white;
   }
   
   .modal-body{
-    max-height:75vh; 
-    overflow:auto;
+    max-height: 75vh;
+    overflow: auto;
   }
   
   .modal-footer-shadow{
-    box-shadow:0 -8px 20px rgba(0,0,0,0.05);
-    border-radius: 0 0 16px 16px;
+    box-shadow: 0 -6px 18px rgba(0,0,0,0.06);
   }
   
   .btn{
-    padding:.6rem 1rem;
-    border-radius:.8rem;
-    border:1px solid #e2e8f0;
-    background:#ffffff;
-    color:#475569;
-    transition: all .25s ease;
+    padding: 0.65rem 1.15rem;
+    border-radius: 0.8rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    transition: all 0.25s ease;
     font-weight: 500;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   }
-  
   .btn:hover{ 
-    transform: translateY(-2px); 
-    box-shadow:0 8px 15px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1);
     background: #f8fafc;
   }
   
   .btn-gold{
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color:#ffffff;
-    border-color:#d97706;
-    box-shadow: 0 4px 10px rgba(245,158,11,0.3);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border-color: #d97706;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
   }
-  
   .btn-gold:hover{ 
-    background: linear-gradient(135deg, #d97706, #b45309);
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
     transform: translateY(-2px);
-    box-shadow:0 8px 15px rgba(245,158,11,0.4);
+    box-shadow: 0 8px 15px rgba(245,158,11,0.4);
   }
   
   .label{
-    display:block;
-    font-size:.75rem;
-    color:#64748b;
-    margin-bottom:.3rem;
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.35rem;
     font-weight: 600;
   }
   
   .input{
-    width:100%;
-    padding:.7rem .9rem;
-    border:1px solid #cbd5e1;
-    border-radius:.75rem;
-    outline:none;
-    transition:border-color .2s ease, box-shadow .2s ease;
-    background: #ffffff;
-    color: #334155;
-    font-weight: 500;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    outline: none;
+    transition: all 0.2s ease;
+    background: #f8fafc;
+    font-size: 0.95rem;
   }
-  
   .input:focus{ 
-    border-color:#f59e0b; 
-    box-shadow:0 0 0 4px rgba(245,158,11,.15);
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245,158,11,0.15);
+    background: white;
   }
   
   .section{
-    border:1px solid #e2e8f0;
-    border-radius:16px;
-    box-shadow:0 8px 20px rgba(0,0,0,0.03);
-    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.04);
     overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .section:hover {
+    box-shadow: 0 12px 25px rgba(0,0,0,0.08);
   }
   
   .section summary{
-    cursor:pointer;
-    list-style:none;
-    padding:.8rem 1rem;
-    border-bottom:1px solid #e2e8f0;
-    background:#f8fafc;
-    border-radius:16px 16px 0 0;
+    cursor: pointer;
+    list-style: none;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 16px 16px 0 0;
     font-weight: 600;
     color: #334155;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
   }
-  
   .section summary:hover {
     background: #f1f5f9;
   }
   
   .section .content{
-    padding:1rem;
+    padding: 1.25rem;
   }
   
   .suggest{
-    position:absolute; 
-    z-index:20; 
-    background:#ffffff; 
-    border:1px solid #e2e8f0; 
-    border-radius:12px; 
-    box-shadow:0 16px 32px rgba(0,0,0,.12); 
-    max-height:220px; 
-    overflow:auto; 
-    width:100%
+    position: absolute; 
+    z-index: 20; 
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 16px 32px rgba(0,0,0,0.12);
+    max-height: 220px;
+    overflow: auto;
+    width: 100%;
   }
   
   .suggest li{
-    padding:.6rem .8rem; 
-    cursor:pointer;
-    transition: background-color 0.2s ease;
+    padding: 0.65rem 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
   }
-  
   .suggest li:hover{
-    background:#fff7ed
+    background: #fff7ed;
   }
   
   .note{
-    font-size:.78rem;
-    color:#64748b;
+    font-size: 0.78rem;
+    color: #64748b;
   }
   
   .badge{
-    font-size:.72rem;
-    border:1px solid #e2e8f0;
-    border-radius:999px;
-    padding:.2rem .6rem;
-    background: #ffffff;
+    font-size: 0.72rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 0.15rem 0.65rem;
+    background: #f8fafc;
     color: #64748b;
     font-weight: 500;
   }
 
   /* Filas: blanco / dorado suave + animación */
   .row-fade{ 
-    animation: fadeInUp .35s ease both
+    animation: fadeInUp 0.35s ease both;
   }
-  
   @keyframes fadeInUp{ 
-    from{ opacity:0; transform: translateY(8px)} 
-    to{ opacity:1; transform: translateY(0)} 
+    from{ 
+      opacity: 0; 
+      transform: translateY(6px);
+    } 
+    to{ 
+      opacity: 1; 
+      transform: translateY(0);
+    } 
   }
   
   .row-gold{ 
-    background:#fffbeb; 
+    background: linear-gradient(135deg, #fff8e6 0%, #fef3c7 100%);
   }
   
   .row-blank{ 
-    background:#ffffff 
+    background: white;
   }
 
   /* Cabecera sticky para tablas largas */
   thead.sticky-head th{ 
     position: sticky; 
-    top:0; 
-    background:#fdfaf5; 
-    z-index:2; 
-    box-shadow:0 2px 5px rgba(0,0,0,0.05);
+    top: 0; 
+    background: linear-gradient(135deg, #fdfaf5 0%, #fef3c7 100%);
+    z-index: 2; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    color: #334155;
+    font-weight: 600;
   }
   
-  /* Mejoras en el header */
-  header {
-    background: linear-gradient(135deg, #1e293b, #334155);
-    border-bottom: 3px solid #f59e0b;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  /* Tabla mejorada */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
   }
   
-  /* Mejoras en la sección principal */
-  main > section {
-    background: linear-gradient(to bottom right, #ffffff, #f8fafc);
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  th {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-weight: 600;
+    color: #334155;
+    border-bottom: 1px solid #e2e8f0;
   }
   
-  /* Mejoras en el modal */
-  #modal > div {
-    background: linear-gradient(to bottom right, #ffffff, #f8fafc);
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
   }
   
-  /* Animaciones y transiciones mejoradas */
-  .fade-in {
-    animation: fadeIn 0.5s ease forwards;
+  tr:hover td {
+    background: #f8fafc;
   }
   
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+  /* Modal mejorado */
+  .modal {
+    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,0.5);
   }
   
-  /* Efectos hover en filas de tabla */
-  tbody tr {
-    transition: background-color 0.2s ease, transform 0.2s ease;
+  .modal > div {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+    max-width: 90%;
+    width: 1200px;
   }
   
-  tbody tr:hover {
-    background-color: #fffbeb;
-    transform: scale(1.005);
+  /* Contenedor de filtros */
+  .filters-container {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
   }
   
-  /* Botones de acción mejorados */
-  .action-btn {
-    padding: 0.4rem 0.8rem;
-    border-radius: 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
+  /* KPIs mejorados */
+  .kpi-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
   }
   
-  .edit-btn {
-    background-color: #3b82f6;
-    color: white;
-    border: 1px solid #3b82f6;
+  .kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
   }
   
-  .edit-btn:hover {
-    background-color: #2563eb;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  .kpi-title {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-bottom: 0.25rem;
   }
   
-  .delete-btn {
-    background-color: #ef4444;
-    color: white;
-    border: 1px solid #ef4444;
+  .kpi-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1;
   }
   
-  .delete-btn:hover {
-    background-color: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  /* Botones de acción */
+  .action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .main-container {
+      padding: 0 15px;
+    }
+    
+    .tab {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+    }
+    
+    .action-buttons {
+      justify-content: center;
+    }
+    
+    .kpi-container {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 </head>
 <body class="min-h-screen text-slate-800">
-  <div class="gold-glow"></div><div class="gold-ribbon"></div>
+  <div class="gold-glow"></div>
+  <div class="gold-ribbon"></div>
   <div class="app-layer">
-    <header class="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-900 font-extrabold flex items-center justify-center shadow-lg">
-          <i class="fas fa-building"></i>
+    <header class="py-5 px-6">
+      <div class="main-container flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="logo-container w-14 h-14 flex items-center justify-center">
+            <span class="text-white font-bold text-xl">CRM</span>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-white">San Isidro</h1>
+            <p class="text-xs text-slate-300">Panel de Control</p>
+          </div>
         </div>
-        <div>
-          <h1 class="text-2xl font-bold leading-tight text-white">San Isidro</h1>
-          <p class="text-xs text-amber-100">Panel de Control</p>
+        <div class="flex items-center gap-3">
+          <button id="refreshBtn" class="btn">
+            <i class="fas fa-sync-alt mr-2"></i>Actualizar
+          </button>
+          <button id="exportBtn" class="btn btn-gold">
+            <i class="fas fa-file-pdf mr-2"></i>PDF
+          </button>
+          <button id="exportCsvBtn" class="btn">
+            <i class="fas fa-file-csv mr-2"></i>CSV
+          </button>
+          <button id="logoutBtn" class="btn">
+            <i class="fas fa-sign-out-alt mr-2"></i>Salir
+          </button>
         </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <button id="refreshBtn" class="btn flex items-center gap-2">
-          <i class="fas fa-sync-alt"></i>
-          <span>Actualizar</span>
-        </button>
-        <button id="exportBtn"  class="btn btn-gold flex items-center gap-2">
-          <i class="fas fa-file-pdf"></i>
-          <span>Exportar PDF</span>
-        </button>
-        <button id="exportCsvBtn" class="btn flex items-center gap-2">
-          <i class="fas fa-file-csv"></i>
-          <span>Exportar CSV</span>
-        </button>
-        <button id="logoutBtn"  class="btn flex items-center gap-2">
-          <i class="fas fa-sign-out-alt"></i>
-          <span>Salir</span>
-        </button>
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 pb-24">
-      <nav class="flex gap-3 mb-6">
-        <button data-tab="accesos"    class="tab active flex items-center gap-2">
-          <i class="fas fa-door-open"></i>
-          <span>Accesos</span>
-        </button>
-        <button data-tab="paqueteria" class="tab flex items-center gap-2">
-          <i class="fas fa-box"></i>
-          <span>Paquetería</span>
-        </button>
-        <button data-tab="contable"   class="tab flex items-center gap-2">
-          <i class="fas fa-calculator"></i>
-          <span>Contable</span>
-        </button>
-        <button data-tab="agenda"     class="tab flex items-center gap-2">
-          <i class="fas fa-calendar-alt"></i>
-          <span>Agenda</span>
-        </button>
-        <button data-tab="parte"      class="tab flex items-center gap-2">
-          <i class="fas fa-clipboard-list"></i>
-          <span>Parte diario</span>
-        </button>
-      </nav>
+    <main class="flex-1 py-6">
+      <div class="main-container">
+        <nav class="flex gap-1 mb-6 overflow-x-auto pb-2">
+          <button data-tab="accesos" class="tab active">
+            <i class="fas fa-door-open mr-2"></i>Accesos
+          </button>
+          <button data-tab="paqueteria" class="tab">
+            <i class="fas fa-box mr-2"></i>Paquetería
+          </button>
+          <button data-tab="contable" class="tab">
+            <i class="fas fa-calculator mr-2"></i>Contable
+          </button>
+          <button data-tab="parte" class="tab">
+            <i class="fas fa-clipboard-list mr-2"></i>Parte diario
+          </button>
+        </nav>
 
-      <section class="rounded-2xl bg-white border border-slate-200 shadow-xl p-6">
-        <div class="flex items-end gap-4 flex-wrap mb-6">
-          <div>
-            <label class="label">Desde</label>
-            <input id="fDesde" type="date" class="input">
-          </div>
-          <div>
-            <label class="label">Hasta</label>
-            <input id="fHasta" type="date" class="input">
-          </div>
-
-          <div id="wrapAsignado" class="hidden">
-            <label class="label">Asignado a</label>
-            <div class="flex gap-2 items-center">
-              <select id="asignado" class="input" style="width:auto">
-                <option>Todos</option>
-                <option>Amalia</option>
-                <option>Valentino</option>
-                <option>Otros</option>
-              </select>
-              <button class="chip" data-quick="Amalia">Amalia</button>
-              <button class="chip" data-quick="Valentino">Valentino</button>
-              <button class="chip" data-quick="Otros">Otros</button>
+        <div class="filters-container">
+          <div class="flex flex-wrap items-end gap-4">
+            <div>
+              <label class="label">Desde</label>
+              <input id="fDesde" type="date" class="input w-40">
             </div>
-          </div>
-
-          <div class="flex-1 min-w-[280px]">
-            <label class="label">Buscar</label>
-            <div class="relative">
-              <input id="q" type="text" placeholder="Texto libre (nombre, apellido, DNI, etc.)" class="input pl-10">
-              <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+            <div>
+              <label class="label">Hasta</label>
+              <input id="fHasta" type="date" class="input w-40">
             </div>
-            <div class="note mt-1" id="extraHint"></div>
-          </div>
 
-          <button id="newBtn" class="btn btn-gold flex items-center gap-2">
-            <i class="fas fa-plus"></i>
-            <span>Nuevo</span>
-          </button>
-          <button id="filterBtn" class="btn flex items-center gap-2">
-            <i class="fas fa-search"></i>
-            <span>Buscar</span>
-          </button>
-          <button id="clearBtn" class="btn flex items-center gap-2">
-            <i class="fas fa-eraser"></i>
-            <span>Limpiar</span>
-          </button>
-          <button id="showAllBtn" class="btn flex items-center gap-2">
-            <i class="fas fa-list"></i>
-            <span>Mostrar todo</span>
-          </button>
-        </div>
-
-        <div id="contableKpis" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 hidden">
-          <div class="kpi">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                <i class="fas fa-arrow-up text-green-600"></i>
-              </div>
-              <div>
-                <div class="text-xs text-slate-500">Ingresos</div>
-                <div id="k_ing" class="text-xl font-bold">—</div>
+            <div id="wrapAsignado" class="hidden">
+              <label class="label">Asignado a</label>
+              <div class="flex gap-2 items-center">
+                <select id="asignado" class="input" style="width:auto">
+                  <option>Todos</option>
+                  <option>Amalia</option>
+                  <option>Valentino</option>
+                  <option>Otros</option>
+                </select>
+                <button class="chip" data-quick="Amalia">Amalia</button>
+                <button class="chip" data-quick="Valentino">Valentino</button>
+                <button class="chip" data-quick="Otros">Otros</button>
               </div>
             </div>
-          </div>
-          <div class="kpi">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <i class="fas fa-arrow-down text-red-600"></i>
+
+            <div class="flex-1 min-w-[280px]">
+              <label class="label">Buscar</label>
+              <div class="relative">
+                <input id="q" type="text" placeholder="Texto libre (nombre, apellido, DNI, etc.)" class="input pr-10">
+                <i class="fas fa-search absolute right-3 top-3.5 text-slate-400"></i>
               </div>
-              <div>
-                <div class="text-xs text-slate-500">Egresos</div>
-                <div id="k_egr" class="text-xl font-bold">—</div>
-              </div>
+              <div class="note mt-1" id="extraHint"></div>
             </div>
-          </div>
-          <div class="kpi">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <i class="fas fa-wallet text-blue-600"></i>
-              </div>
-              <div>
-                <div class="text-xs text-slate-500">Saldo</div>
-                <div id="k_saldo" class="text-xl font-bold">—</div>
-              </div>
+
+            <div class="action-buttons">
+              <button id="newBtn" class="btn btn-gold">
+                <i class="fas fa-plus mr-2"></i>Nuevo
+              </button>
+              <button id="filterBtn" class="btn">
+                <i class="fas fa-search mr-2"></i>Buscar
+              </button>
+              <button id="clearBtn" class="btn">
+                <i class="fas fa-eraser mr-2"></i>Limpiar
+              </button>
+              <button id="showAllBtn" class="btn">
+                <i class="fas fa-list mr-2"></i>Mostrar todo
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- KPI HORAS (solo Accesos) -->
-        <div id="accesosKpi" class="kpi mt-6 hidden">
+        <div id="contableKpis" class="kpi-container hidden">
+          <div class="kpi">
+            <div class="kpi-icon bg-green-100 text-green-600">
+              <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="kpi-title">Ingresos</div>
+            <div id="k_ing" class="kpi-value">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-icon bg-red-100 text-red-600">
+              <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="kpi-title">Egresos</div>
+            <div id="k_egr" class="kpi-value">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-icon bg-blue-100 text-blue-600">
+              <i class="fas fa-wallet"></i>
+            </div>
+            <div class="kpi-title">Saldo</div>
+            <div id="k_saldo" class="kpi-value">—</div>
+          </div>
+        </div>
+
+        <div id="accesosKpi" class="kpi hidden">
           <div class="flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                <i class="fas fa-clock text-amber-600"></i>
-              </div>
-              <div>
-                <div class="text-xs text-slate-500">Total horas (lista filtrada)</div>
-                <div id="k_horas" class="text-xl font-bold">—</div>
-              </div>
+            <div>
+              <div class="kpi-title">Total horas (lista filtrada)</div>
+              <div id="k_horas" class="kpi-value">—</div>
             </div>
-            <span id="k_horas_badge" class="badge bg-amber-100 text-amber-800">Accesos</span>
+            <span id="k_horas_badge" class="badge">Accesos</span>
           </div>
         </div>
 
-        <div class="table-wrap mt-6 bg-white rounded-xl overflow-hidden">
+        <div class="table-wrap">
           <table class="min-w-full">
             <thead id="thead" class="text-sm text-slate-700 sticky-head"></thead>
             <tbody id="rows" class="text-sm"></tbody>
           </table>
           <p id="empty" class="text-center text-slate-500 py-8 hidden">Sin registros</p>
-          <p id="err" class="text-center text-red-500 py-3"></p>
+          <p id="err" class="text-center text-red-500 py-2"></p>
         </div>
 
         <div class="flex justify-center mt-6">
-          <button id="loadMoreBtn" class="btn hidden flex items-center gap-2">
-            <i class="fas fa-plus-circle"></i>
-            <span>Cargar más</span>
+          <button id="loadMoreBtn" class="btn hidden">
+            <i class="fas fa-plus mr-2"></i>Cargar más
           </button>
         </div>
-      </section>
+      </div>
     </main>
 
     <!-- Modal -->
-    <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-      <div class="w-full max-w-5xl rounded-2xl bg-white border border-slate-200 p-6 shadow-2xl">
-        <div class="flex items-center justify-between mb-4 pb-3 border-b">
-          <h3 id="modalTitle" class="text-xl font-bold text-slate-800">Nuevo</h3>
+    <div id="modal" class="fixed inset-0 hidden items-center justify-center p-4">
+      <div class="w-full rounded-2xl bg-white border border-slate-200 p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="modalTitle" class="text-xl font-semibold">Nuevo</h3>
           <div class="flex gap-2">
-            <button id="closeModal" class="btn flex items-center gap-2">
+            <button id="closeModal" class="btn">
               <i class="fas fa-times"></i>
-              <span>Cerrar</span>
             </button>
           </div>
         </div>
         <form id="form" class="grid md:grid-cols-2 gap-4 modal-body"></form>
-        <div class="mt-6 flex justify-between items-center gap-4 pt-4 border-t modal-footer-shadow">
-          <div id="hint" class="text-sm text-slate-500"></div>
-          <div class="flex gap-3">
-            <button id="saveBtn" class="btn btn-gold flex items-center gap-2">
-              <i class="fas fa-save"></i>
-              <span>Guardar</span>
+        <div class="mt-6 flex justify-between items-center gap-4 modal-footer-shadow pt-4">
+          <div id="hint" class="text-xs text-slate-500"></div>
+          <div class="flex gap-2">
+            <button id="saveBtn" class="btn btn-gold">
+              <i class="fas fa-save mr-2"></i>Guardar
             </button>
           </div>
         </div>
@@ -626,22 +987,8 @@ const tabs = {
       {k:"fecha",    l:"Fecha",    t:"date"},
       {k:"file",     l:"Comprobante (imagen)", t:"file"},   // virtual
     ],
-    row: r => [r.tipo,r.concepto,formatMoney(r.monto),r.fecha, r.url ? `<a class="underline text-amber-600" target="_blank" href="${r.url}">Ver</a>`:"—", actions(r.id)],
+    row: r => [r.tipo,r.concepto,formatMoney(r.monto),r.fecha, r.url ? `<a class="underline text-amber-700" target="_blank" href="${r.url}">Ver</a>`:"—", actions(r.id)],
     kpis: true
-  },
-  agenda: {
-    table: "agenda_dom",
-    head: ["Asignado","Tarea","Fecha","Hora","Estado","Notas",""],
-    fields: [
-      {k:"asignado_a", l:"Asignado a", t:"select", p:["Amalia","Valentino","Otros"], r:true},
-      {k:"tarea",      l:"Tarea",   t:"text", r:true},
-      {k:"fecha",      l:"Fecha",   t:"date", r:true},
-      {k:"hora",       l:"Hora",    t:"time"},
-      {k:"estado",     l:"Estado",  t:"select", p:["pendiente","confirmado","completado","cancelado"], r:true},
-      {k:"notas",      l:"Notas",   t:"textarea"},
-    ],
-    row: r => [r.asignado_a, r.tarea, r.fecha, r.hora||"--:--", r.estado, r.notas||"", actions(r.id)],
-    agendaFilter: true
   },
   parte: {
     table: "parte_diario",
@@ -722,11 +1069,6 @@ function applyOrdering(q){
         .order('f_ing', { ascending: false, nullsFirst: false })
         .order('h_ing', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
-    case 'agenda':
-      return q
-        .order('fecha', { ascending: false, nullsFirst: false })
-        .order('hora',  { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
     default:
       return q.order('created_at', { ascending: false });
   }
@@ -757,7 +1099,7 @@ document.querySelectorAll('[data-quick]').forEach(btn=>{
 byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
 
 byId("refreshBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
-byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
+byId("filterBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); }); // Texto del botón ya dice "Buscar"
 byId("exportBtn").addEventListener("click", exportPDF);
 byId("exportCsvBtn").addEventListener("click", exportCSV);
 byId("clearBtn").addEventListener("click", async ()=>{
@@ -783,7 +1125,7 @@ function toggleExtras(){
   kHorasBadge.textContent = current === "accesos" ? "Accesos" : "";
 }
 function buildHead(){
-  thead.innerHTML = `<tr class="border-b border-slate-200">${tabs[current].head.map(h=>`<th class="text-left py-3 px-4 font-semibold">${h}</th>`).join("")}</tr>`;
+  thead.innerHTML = `<tr>${tabs[current].head.map(h=>`<th class="text-left py-3 pr-4">${h}</th>`).join("")}</tr>`;
 }
 
 /* ===== Búsqueda: server-side cuando hay texto ===== */
@@ -797,7 +1139,6 @@ function buildSearchOr(current, q){
     accesos:    ["nombre","dni","vehiculo","dominio","motivo"],
     paqueteria: ["receptor","descripcion","id_num","estado","entregado_a","notas"],
     contable:   ["tipo","concepto"],
-    agenda:     ["asignado_a","tarea","estado","notas"],
     parte:      ["cabina","amt","puesto_hudson","otros","agenda_texto"]
   };
   const fields = map[current] || [];
@@ -807,12 +1148,8 @@ function buildSearchOr(current, q){
 
 function actions(id){
   return `<div class="flex gap-2">
-    <button class="action-btn edit-btn" onclick="editRow('${id}')">
-      <i class="fas fa-edit mr-1"></i>Editar
-    </button>
-    <button class="action-btn delete-btn" onclick="deleteRow('${id}')">
-      <i class="fas fa-trash-alt mr-1"></i>Eliminar
-    </button>
+    <button class="chip" onclick="editRow('${id}')">Editar</button>
+    <button class="chip" style="border-color:#ef4444;color:#991b1b" onclick="deleteRow('${id}')">Eliminar</button>
   </div>`;
 }
 
@@ -858,7 +1195,7 @@ async function load(clearBefore = true){
             .select("*", { count: "exact", head: false });
 
   // Fechas por tabla
-  const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
+  const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
 
@@ -902,7 +1239,7 @@ async function load(clearBefore = true){
     const arr = tabs[current].row(r);
     const t = arr.map((v,i)=> {
       const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
-      return `<td class="py-3 px-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
+      return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
     }).join("");
 
     // Alternancia de filas + animación
@@ -985,382 +1322,4 @@ function fieldHTML(f, value){
   return `<div><label class="label">${f.l}${f.r?" *":""}</label><input id="f_${f.k}" type="${f.t||'text'}" value="${v??""}" ${base}></div>`;
 }
 
-/* ===== Parte Diario — UI pro (secciones) ===== */
-function sec(title, inner){
-  return `<details class="section" open>
-    <summary class="flex items-center justify-between">
-      <span class="font-medium">${title}</span>
-      <span class="note">click para plegar</span>
-    </summary>
-    <div class="content grid md:grid-cols-2 gap-4">${inner}</div>
-  </details>`;
-}
-function renderParteForm(data){
-  const top =
-  `<div class="grid md:grid-cols-4 gap-4 md:col-span-2">
-      <div class="md:col-span-1"><label class="label">Fecha *</label><input id="f_fecha" type="date" class="input" value="${data?.fecha??''}"></div>
-      <div><label class="label">Hora inicio</label><input id="f_hora_inicio" type="time" class="input" value="${data?.hora_inicio??''}"></div>
-      <div><label class="label">Hora fin</label><input id="f_hora_fin" type="time" class="input" value="${data?.hora_fin??''}"></div>
-      <div><label class="label">Caja chica (ARS)</label><input id="f_caja_chica" type="number" class="input" value="${data?.caja_chica??''}"><div class="note mt-1" id="caja_preview"></div></div>
-   </div>`;
-
-  const op = 
-    `<div class="md:col-span-2"><label class="label">CABINA</label><textarea id="f_cabina" rows="3" class="input">${data?.cabina??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">AMT</label><textarea id="f_amt" rows="3" class="input">${data?.amt??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">PUESTO HUDSON</label><textarea id="f_puesto_hudson" rows="3" class="input">${data?.puesto_hudson??""}</textarea></div>`;
-
-  const choferes =
-    `<div><label class="label">Chofer C-1</label><input id="f_c1" class="input" value="${data?.c1??''}"></div>
-     <div><label class="label">Chofer C-2</label><input id="f_c2" class="input" value="${data?.c2??''}"></div>
-     <div><label class="label">Chofer C-3</label><input id="f_c3" class="input" value="${data?.c3??''}"></div>
-     <div><label class="label">Chofer C-4</label><input id="f_c4" class="input" value="${data?.c4??''}"></div>`;
-
-  const vehiculos =
-    `<div><label class="label">Trailblazer</label><input id="f_v_trailblazer" class="input" value="${data?.v_trailblazer??''}"></div>
-     <div><label class="label">Amarok</label><input id="f_v_amarok" class="input" value="${data?.v_amarok??''}"></div>
-     <div><label class="label">SW4</label><input id="f_v_sw4" class="input" value="${data?.v_sw4??''}"></div>
-     <div><label class="label">Toyota Corolla</label><input id="f_v_corolla" class="input" value="${data?.v_corolla??''}"></div>
-     <div><label class="label">Q5</label><input id="f_v_q5" class="input" value="${data?.v_q5??''}"></div>
-     <div><label class="label">Q7</label><input id="f_v_q7" class="input" value="${data?.v_q7??''}"></div>`;
-
-  const familia =
-    `<div><label class="label">Familia #1</label><input id="f_fam1" class="input" value="${data?.fam1??''}"></div>
-     <div><label class="label">Familia #2</label><input id="f_fam2" class="input" value="${data?.fam2??''}"></div>
-     <div><label class="label">Familia #3</label><input id="f_fam3" class="input" value="${data?.fam3??''}"></div>
-     <div><label class="label">Familia #4</label><input id="f_fam4" class="input" value="${data?.fam4??''}"></div>
-     <div><label class="label">Familia #5</label><input id="f_fam5" class="input" value="${data?.fam5??''}"></div>`;
-
-  const domes =
-    `<div class="md:col-span-2"><label class="label">Empleadas domésticas (una por línea)</label><textarea id="f_empleadas" rows="3" class="input">${data?.empleadas??""}</textarea></div>
-     <div><label class="label">Niñera</label><input id="f_niniera" class="input" value="${data?.niniera??''}"></div>`;
-
-  const tec =
-    `<div><label class="label">Sistemas de cámaras</label><input id="f_tec_camaras" class="input" value="${data?.tec_camaras??''}"></div>
-     <div><label class="label">Cerco eléctrico</label><input id="f_tec_cerco" class="input" value="${data?.tec_cerco??''}"></div>
-     <div class="md:col-span-2"><label class="label">Portones (detalle)</label><input id="f_tec_portones" class="input" value="${data?.tec_portones??''}"></div>`;
-
-  const prof =
-    `<div><label class="label">Jardinero</label><input id="f_prof_jardinero" class="input" value="${data?.prof_jardinero??''}"></div>
-     <div><label class="label">Piletero</label><input id="f_prof_piletero" class="input" value="${data?.prof_piletero??''}"></div>
-     <div><label class="label">Paisajistas</label><input id="f_prof_paisajistas" class="input" value="${data?.prof_paisajistas??''}"></div>
-     <div><label class="label">Fumigador</label><input id="f_prof_fumigador" class="input" value="${data?.prof_fumigador??''}"></div>
-     <div><label class="label">Floristas</label><input id="f_prof_floristas" class="input" value="${data?.prof_floristas??''}"></div>`;
-
-  const invitados =
-    `<div class="md:col-span-2"><label class="label">Amigos de la Sra.</label><textarea id="f_amigos_sra" rows="3" class="input">${data?.amigos_sra??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">Amigos de Isabella</label><textarea id="f_amigos_isabella" rows="3" class="input">${data?.amigos_isabella??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">Amigos de Angie</label><textarea id="f_amigos_angie" rows="3" class="input">${data?.amigos_angie??""}</textarea></div>`;
-
-  const otros =
-    `<div class="md:col-span-2"><label class="label">Elementos asignados (una por línea)</label><textarea id="f_elementos" rows="3" class="input">${data?.elementos??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">OTROS</label><textarea id="f_otros" rows="3" class="input">${data?.otros??""}</textarea></div>
-     <div class="md:col-span-2"><label class="label">AGENDA (texto)</label><textarea id="f_agenda_texto" rows="3" class="input">${data?.agenda_texto??""}</textarea></div>`;
-
-  form.insertAdjacentHTML("beforeend", top);
-  form.insertAdjacentHTML("beforeend", sec("Operativo", op));
-  form.insertAdjacentHTML("beforeend", sec("Choferes", choferes));
-  form.insertAdjacentHTML("beforeend", sec("Vehículos", vehiculos));
-  form.insertAdjacentHTML("beforeend", sec("Familia en la quinta", familia));
-  form.insertAdjacentHTML("beforeend", sec("Personal doméstico", domes));
-  form.insertAdjacentHTML("beforeend", sec("Sistemas técnicos", tec));
-  form.insertAdjacentHTML("beforeend", sec("Profesionales", prof));
-  form.insertAdjacentHTML("beforeend", sec("Amigos / Invitados", invitados));
-  form.insertAdjacentHTML("beforeend", sec("Otros y Agenda", otros));
-
-  const quick = document.createElement('div');
-  quick.className = "md:col-span-2 flex flex-wrap gap-2 mt-2";
-  quick.innerHTML = `
-    <span class="note">Atajos: </span>
-    <button type="button" class="chip" onclick="fillNow('f_hora_inicio')">Inicio = ahora</button>
-    <button type="button" class="chip" onclick="fillNow('f_hora_fin')">Fin = ahora</button>
-    <button type="button" class="chip" onclick="copyAgendaDelDia()">Pegar agenda del día</button>
-  `;
-  form.appendChild(quick);
-}
-window.fillNow = (id) => { const el = byId(id); if (!el) return; const d = new Date(); el.value = d.toTimeString().slice(0,5); };
-window.copyAgendaDelDia = async () => {
-  const d = byId('f_fecha')?.value; if (!d) return;
-  const txt = await textoAgendaDelDia(d); if (!txt) return;
-  const a = byId('f_agenda_texto'); if (a) a.value = txt;
-};
-
-/* ===== Autocomplete Personas ===== */
-function attachPersonAutocomplete(){
-  const nameEl = byId('f_nombre');
-  const dniEl  = byId('f_dni');
-  const vehEl  = byId('f_vehiculo');
-  const domEl  = byId('f_dominio');
-  const sugName = byId('suggest_nombre');
-  const sugDni  = byId('suggest_dni');
-
-  const renderSug = (ul, items) => {
-    if (!items?.length){ ul.classList.add('hidden'); ul.innerHTML = ""; return; }
-    ul.innerHTML = items.map(p => `<li data-json='${JSON.stringify(p)}'>${esc(p.nombre||'')} — <span class="text-slate-500">${esc(p.dni||'')}</span></li>`).join("");
-    ul.classList.remove('hidden');
-    [...ul.querySelectorAll('li')].forEach(li=>{
-      li.addEventListener('click', async ()=>{
-        const p = JSON.parse(li.getAttribute('data-json'));
-        if (nameEl) nameEl.value = p.nombre || "";
-        if (dniEl)  dniEl.value  = p.dni || "";
-        try{
-          let q = sb.from('accesos').select('vehiculo,dominio,created_at').order('created_at',{ascending:false}).limit(1);
-          if (p.dni) q = q.eq('dni', p.dni);
-          else if (p.nombre) q = q.ilike('nombre', p.nombre);
-          const { data, error } = await q;
-          if (!error && data && data[0]){
-            if (vehEl && !vehEl.value) vehEl.value = data[0].vehiculo || '';
-            if (domEl && !domEl.value) domEl.value = data[0].dominio || '';
-          }
-        }catch(e){ console.warn(e); }
-        sugName?.classList.add('hidden'); sugDni?.classList.add('hidden');
-      });
-    });
-  };
-
-  let t1, t2;
-  nameEl?.addEventListener('input', async ()=>{
-    clearTimeout(t1);
-    t1 = setTimeout(async ()=>{
-      const q = nameEl.value.trim();
-      if (!q){ renderSug(sugName, []); return; }
-      // Permite "nombre apellido" también
-      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
-      if (error){ console.warn(error); return; }
-      renderSug(sugName, data);
-    }, 220);
-  });
-  dniEl?.addEventListener('input', async ()=>{
-    clearTimeout(t2);
-    t2 = setTimeout(async ()=>{
-      const q = dniEl.value.trim();
-      if (!q){ renderSug(sugDni, []); return; }
-      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('dni', `%${q}%`).limit(10);
-      if (error){ console.warn(error); return; }
-      renderSug(sugDni, data);
-    }, 220);
-  });
-
-  document.addEventListener('click', (e)=>{
-    if (!sugName?.contains(e.target) && e.target!==nameEl) sugName?.classList.add('hidden');
-    if (!sugDni?.contains(e.target)  && e.target!==dniEl)  sugDni?.classList.add('hidden');
-  });
-}
-
-async function save(ev){
-  ev?.preventDefault?.();
-  const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
-  const def = tabs[current]; let payload = { user_id: uid };
-
-  const PARTE_VIRTUAL = new Set([
-    "c1","c2","c3","c4","v_trailblazer","v_amarok","v_sw4","v_corolla","v_q5","v_q7",
-    "fam1","fam2","fam3","fam4","fam5","empleadas","niniera",
-    "tec_camaras","tec_cerco","tec_portones","prof_jardinero","prof_piletero","prof_paisajistas","prof_fumigador","prof_floristas",
-    "amigos_sra","amigos_isabella","amigos_angie","elementos"
-  ]);
-
-  for (const f of def.fields){
-    if (f.k === "file") continue;
-    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue;
-    const el = byId(`f_${f.k}`); if (!el) continue;
-    let v = el.value;
-    if (f.t==="number" && v!=="") v = Number(v);
-    if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
-    if (v==="") v = null;
-    payload[f.k] = v;
-  }
-
-  if (current==="parte"){
-    payload.choferes = [val('f_c1'),val('f_c2'),val('f_c3'),val('f_c4')].filter(x=>x && x.trim());
-    payload.novedades_vehiculos = clean({
-      "Trailblazer": val('f_v_trailblazer'),
-      "Amarok": val('f_v_amarok'),
-      "SW4": val('f_v_sw4'),
-      "Toyota Corolla": val('f_v_corolla'),
-      "Q5": val('f_v_q5'),
-      "Q7": val('f_v_q7'),
-    });
-    payload.familia_en_quinta = clean({ "1":val('f_fam1'), "2":val('f_fam2'), "3":val('f_fam3'), "4":val('f_fam4'), "5":val('f_fam5') });
-    payload.personal_domestico = clean({ "empleadas": (val('f_empleadas')||"").split('\n').map(s=>s.trim()).filter(Boolean), "niniera": val('f_niniera') });
-    payload.sistemas_tecnicos = clean({ "camaras": val('f_tec_camaras'), "cerco": val('f_tec_cerco'), "portones": val('f_tec_portones') });
-    payload.profesionales = clean({ "jardinero": val('f_prof_jardinero'), "piletero": val('f_prof_piletero'), "paisajistas": val('f_prof_paisajistas'), "fumigador": val('f_prof_fumigador'), "floristas": val('f_prof_floristas') });
-    payload.invitados = clean({ "amigos_sra": val('f_amigos_sra'), "amigos_isabella": val('f_amigos_isabella'), "amigos_angie": val('f_amigos_angie') });
-    payload.elementos_asignados = (val('f_elementos')||"").split('\n').map(s=>s.trim()).filter(Boolean);
-  }
-
-  if (current==="accesos"){
-    try{
-      await sb.rpc('upsert_persona', {
-        p_nombre: val('f_nombre') || null,
-        p_dni:    val('f_dni')    || null,
-        p_telefono: null,
-        p_email:    null
-      });
-    }catch(e){ console.warn(e); }
-  }
-
-  if (current==="contable"){
-    const fi = byId("f_file");
-    if (fi && fi.files && fi.files.length){
-      const file = fi.files[0];
-      const path = `${uid}/${Date.now()}_${file.name}`;
-      const up = await sb.storage.from("tickets").upload(path, file, { upsert: false });
-      if (up.error){ alert("Upload: " + up.error.message); return; }
-      const { data: pub } = sb.storage.from("tickets").getPublicUrl(path);
-      payload.url = pub?.publicUrl || null;
-    }
-  }
-
-  let resp;
-  if (editingId){ resp = await sb.from(def.table).update(payload).eq('id', editingId);
-  } else { resp = await sb.from(def.table).insert(payload); }
-  if (resp.error){ alert("Guardar: " + resp.error.message); return; }
-
-  if (current==="parte"){
-    const { data: row } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
-    if (row?.id){
-      const { data, error } = await sb.from('parte_diario_whatsapp').select('mensaje').eq('id', row.id).single();
-      if (!error && data?.mensaje){
-        const msg = encodeURIComponent(data.mensaje);
-        if (WHATSAPP_MODE === 'direct'){
-          const phone = (WHATSAPP_PHONE || "").replace(/\D/g,'');
-          const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
-          window.open(url, '_blank');
-        } else {
-          const url = `https://api.whatsapp.com/send?text=${msg}`;
-          window.open(url, '_blank');
-        }
-      }
-    }
-  }
-
-  editingId = null;
-  modal.classList.add("hidden");
-  await load(true);
-}
-
-/* ===== Exportaciones ===== */
-function exportPDF(){
-  const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", agenda:"Agenda", parte:"Parte Diario"};
-  let head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
-  let body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
-
-  if (!body.length){ alert("No hay datos para exportar."); return; }
-
-  let resumenHoras = "";
-  if (current==="accesos"){
-    const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].map(td => td.innerText));
-    const horas = rowsData.map(r => parseFloat(r[r.length-2].replace(',', '.'))).filter(n => !isNaN(n));
-    const total = horas.reduce((a,b)=>a+b,0);
-    resumenHoras = `Total de horas (lista): ${total.toFixed(2)} h`;
-  }
-
-  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
-  const title = `CRM — ${map[current]}`;
-  doc.setFontSize(14); doc.text(title, 40, 40);
-  if (resumenHoras) { doc.setFontSize(11); doc.text(resumenHoras, 40, 58); }
-
-  const startY = resumenHoras ? 72 : 60;
-  doc.autoTable({ startY, head:[head], body, styles:{ fontSize:9, cellPadding:4 }, headStyles:{ fillColor:[245,158,11] }, theme:'striped' });
-  doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
-}
-function exportCSV(){
-  const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0, -1);
-  const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0, -1).map(td => td.innerText.replaceAll("\n"," ").trim()));
-  if (!rowsData.length){ alert("No hay datos para exportar."); return; }
-  const escCSV = (v) => { const s = String(v ?? ""); return /[",\n;]/.test(s) ? `"${s.replaceAll('"','""')}"` : s; };
-  const csv = [head.map(escCSV).join(";")].concat(rowsData.map(r => r.map(escCSV).join(";"))).join("\n");
-  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"}); const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); const map = {accesos:"Accesos", paqueteria:"Paqueteria", contable:"Contable", agenda:"Agenda", parte:"Parte_Diario"};
-  a.href = url; a.download = `${map[current]}_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-}
-
-/* ===== Utils ===== */
-function byId(id){ return document.getElementById(id); }
-function esc(v){ return (""+v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
-function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); }
-function nice(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
-function clean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
-function val(id){ const el=byId(id); return el? (el.value||null) : null; }
-
-/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
-function persistState(){
-  // Save filters and tab
-  try{
-    localStorage.setItem('crm-tab', current);
-    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
-    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
-    localStorage.setItem('crm-q', byId('q')?.value || '');
-    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
-  }catch(e){}
-}
-function restoreState(){
-  try{
-    const t = localStorage.getItem('crm-tab');
-    if (t && tabs[t]){
-      current = t;
-      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-      const btn = document.querySelector(`[data-tab="${t}"]`);
-      if (btn) btn.classList.add('active');
-    }
-    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
-    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
-    const qv = localStorage.getItem('crm-q');     if (qv!==null) byId('q').value = qv;
-    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
-  }catch(e){}
-}
-['fDesde','fHasta','q','asignado'].forEach(id=>{
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', persistState);
-  if (el) el.addEventListener('change', persistState);
-});
-// Persist when changing tab as well (handled in click handler by calling persistState after switching)
-document.querySelectorAll("[data-tab]").forEach(b=>{
-  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e)=>{
-  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
-    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
-    e.preventDefault(); byId('newBtn')?.click();
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
-    // Trigger search
-    setTimeout(()=> byId('filterBtn')?.click(), 0);
-  }
-  if (e.key === 'Escape'){
-    // Close modal if open
-    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
-  }
-});
-
-// Money preview for Caja Chica
-function updateCajaPreview(){
-  const el = byId('f_caja_chica');
-  const pv = byId('caja_preview');
-  if (el && pv){
-    const val = Number(el.value || 0);
-    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
-    try{
-      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
-    }catch(e){ pv.textContent = ""; }
-  }
-}
-window.addEventListener('input', (e)=>{
-  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
-});
-// Call on modal open
-const __openModalOrig = openModal;
-openModal = async function(data=null){
-  await __openModalOrig(data);
-  updateCajaPreview();
-}
-
-// Initialize restore before first load
-restoreState();
-
-</script>
-</body>
-</html>
+/* ===== Parte Diario —
