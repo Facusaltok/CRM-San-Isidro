@@ -259,6 +259,9 @@
     transition: all 0.25s ease;
     font-weight: 500;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .btn:hover{ 
     transform: translateY(-2px);
@@ -795,7 +798,7 @@
           <div id="hint" class="text-xs text-slate-500"></div>
           <div class="flex gap-2">
             <button id="saveBtn" class="btn btn-gold">
-              <i class="fas fa-save mr-2"></i>Guardar
+              <i class="fas fa-save mr-2"></i><span id="saveBtnText">Guardar</span>
             </button>
           </div>
         </div>
@@ -981,6 +984,8 @@ document.querySelectorAll("[data-tab]").forEach(b=>{
     current = b.dataset.tab; editingId=null;
     updateTableInfo();
     buildHead(); toggleExtras(); resetPaging(); await load(true);
+    // Actualizar texto del botón al cambiar de pestaña
+    updateSaveButtonText();
   });
 });
 
@@ -1193,6 +1198,9 @@ async function openModal(data=null){
   byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + tabs[current].table.charAt(0).toUpperCase() + tabs[current].table.slice(1);
   form.innerHTML=""; hint.innerHTML="";
 
+  // Actualizar texto del botón
+  updateSaveButtonText();
+
   if (current==="parte"){
     renderParteForm(data);
   } else {
@@ -1206,7 +1214,7 @@ async function openModal(data=null){
   }
 
   if (current==="parte"){
-    hint.innerHTML = 'Secciones plegables con autocompletados. WhatsApp se abre al guardar.';
+    hint.innerHTML = 'Secciones plegables con autocompletados. WhatsApp se abre al enviar.';
     if (!editingId) {
       const hoy = new Date().toISOString().slice(0,10);
       const d = byId("f_fecha"); if (d) d.value = hoy;
@@ -1222,6 +1230,16 @@ async function openModal(data=null){
   setTimeout(() => {
     modal.classList.add('show');
   }, 10);
+}
+
+// Función para actualizar el texto del botón guardar/enviar
+function updateSaveButtonText() {
+  const saveBtnText = byId("saveBtnText");
+  if (current === "parte") {
+    saveBtnText.textContent = "Enviar";
+  } else {
+    saveBtnText.textContent = "Guardar";
+  }
 }
 
 function fieldHTML(f, value){
@@ -1555,7 +1573,7 @@ function restoreState(){
       if (btn) btn.classList.add('active');
     }
     const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
-    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta").value = h;
     const qv = localStorage.getItem('crm-q'); if (qv!==null) byId('q').value = qv;
   }catch(e){}
 }
