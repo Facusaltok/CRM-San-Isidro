@@ -816,6 +816,12 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSe
 const WHATSAPP_MODE  = 'chooser';
 const WHATSAPP_PHONE = '54911XXXXXXXX';
 
+// ID de usuario especial que puede ver todos los registros
+const SPECIAL_USER_ID = '01a11c78-bfa7-4c27-b78d-df4ad1493faa';
+
+// Variable para almacenar el ID del usuario actual
+let currentUserId = null;
+
 const tabs = {
   accesos: {
     table: "accesos",
@@ -968,6 +974,9 @@ function applyOrdering(q){
 (async () => {
   const { data } = await sb.auth.getSession();
   if (!data?.session) { location.replace("./index.html"); return; }
+  
+  // Guardar el ID del usuario actual
+  currentUserId = data?.session?.user?.id;
 
   extraHint.innerHTML = 'Sugerencia: buscá por <b>nombre, apellido o DNI</b> para ver el <b>total de horas</b>.';
 
@@ -1105,6 +1114,11 @@ async function load(clearBefore = true){
   let q = sb.from(tabs[current].table)
             .select("*", { count: "exact", head: false });
 
+  // Aplicar filtro de usuario solo si no es el usuario especial
+  if (currentUserId !== SPECIAL_USER_ID) {
+    q = q.eq('user_id', currentUserId);
+  }
+
   // Fechas por tabla
   const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
@@ -1196,7 +1210,7 @@ async function textoAgendaDelDia(fechaISO){
 /* ===== Modal ===== */
 async function openModal(data=null){
   byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + tabs[current].table.charAt(0).toUpperCase() + tabs[current].table.slice(1);
-  form.innerHTML=""; hint.innerHTML="";
+  form.innerHTML=""; hint.innerHTML="");
 
   // Actualizar texto del botón
   updateSaveButtonText();
@@ -1573,7 +1587,7 @@ function restoreState(){
       if (btn) btn.classList.add('active');
     }
     const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
-    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta").value = h;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
     const qv = localStorage.getItem('crm-q'); if (qv!==null) byId('q').value = qv;
   }catch(e){}
 }
