@@ -259,9 +259,6 @@
     transition: all 0.25s ease;
     font-weight: 500;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
   .btn:hover{ 
     transform: translateY(-2px);
@@ -984,8 +981,6 @@ document.querySelectorAll("[data-tab]").forEach(b=>{
     current = b.dataset.tab; editingId=null;
     updateTableInfo();
     buildHead(); toggleExtras(); resetPaging(); await load(true);
-    // Actualizar texto del botón al cambiar de pestaña
-    updateSaveButtonText();
   });
 });
 
@@ -1196,10 +1191,15 @@ async function textoAgendaDelDia(fechaISO){
 /* ===== Modal ===== */
 async function openModal(data=null){
   byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + tabs[current].table.charAt(0).toUpperCase() + tabs[current].table.slice(1);
-  form.innerHTML=""; hint.innerHTML="";
+  form.innerHTML=""; hint.innerHTML="");
 
-  // Actualizar texto del botón
-  updateSaveButtonText();
+  // Cambiar texto del botón según la sección
+  const saveBtnText = byId("saveBtnText");
+  if (current === "parte") {
+    saveBtnText.textContent = "Enviar";
+  } else {
+    saveBtnText.textContent = "Guardar";
+  }
 
   if (current==="parte"){
     renderParteForm(data);
@@ -1230,16 +1230,6 @@ async function openModal(data=null){
   setTimeout(() => {
     modal.classList.add('show');
   }, 10);
-}
-
-// Función para actualizar el texto del botón guardar/enviar
-function updateSaveButtonText() {
-  const saveBtnText = byId("saveBtnText");
-  if (current === "parte") {
-    saveBtnText.textContent = "Enviar";
-  } else {
-    saveBtnText.textContent = "Guardar";
-  }
 }
 
 function fieldHTML(f, value){
@@ -1573,7 +1563,7 @@ function restoreState(){
       if (btn) btn.classList.add('active');
     }
     const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
-    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta").value = h;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
     const qv = localStorage.getItem('crm-q'); if (qv!==null) byId('q').value = qv;
   }catch(e){}
 }
