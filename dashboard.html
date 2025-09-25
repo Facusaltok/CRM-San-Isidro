@@ -1592,15 +1592,15 @@ function renderParteForm(data){
     <div class="md:col-span-2"><label class="label">AGENDA (texto)</label><textarea id="f_agenda_texto" rows="3" class="input">${data?.agenda_texto??""}</textarea></div>`;
 
   form.insertAdjacentHTML("beforeend", top);
-  form.insertAdjacentHTML("beforeend", sec("🏢 Operativo", op));
-  form.insertAdjacentHTML("beforeend", sec("🚗 Choferes", choferes));
-  form.insertAdjacentHTML("beforeend", sec("🚙 Vehículos", vehiculos));
-  form.insertAdjacentHTML("beforeend", sec("👨‍👩‍👧‍👦 Familia en la quinta", familia));
-  form.insertAdjacentHTML("beforeend", sec("👩‍🍳 Personal doméstico", domes));
-  form.insertAdjacentHTML("beforeend", sec("🔧 Sistemas técnicos", tec));
-  form.insertAdjacentHTML("beforeend", sec("👷 Profesionales", prof));
-  form.insertAdjacentHTML("beforeend", sec("👥 Amigos / Invitados", invitados));
-  form.insertAdjacentHTML("beforeend", sec("📋 Otros y Agenda", otros));
+  form.insertAdjacentHTML("beforeend", sec("Operativo", op));
+  form.insertAdjacentHTML("beforeend", sec("Choferes", choferes));
+  form.insertAdjacentHTML("beforeend", sec("Vehículos", vehiculos));
+  form.insertAdjacentHTML("beforeend", sec("Familia en la quinta", familia));
+  form.insertAdjacentHTML("beforeend", sec("Personal doméstico", domes));
+  form.insertAdjacentHTML("beforeend", sec("Sistemas técnicos", tec));
+  form.insertAdjacentHTML("beforeend", sec("Profesionales", prof));
+  form.insertAdjacentHTML("beforeend", sec("Amigos / Invitados", invitados));
+  form.insertAdjacentHTML("beforeend", sec("Otros y Agenda", otros));
 
   const quick = document.createElement('div');
   quick.className = "md:col-span-2 flex flex-wrap gap-2 mt-2";
@@ -1746,39 +1746,39 @@ function attachPersonAutocomplete(){
   });
 }
 
-// Función para formatear el mensaje de WhatsApp con emoticones
+// Función para formatear el mensaje de WhatsApp sin emoticones
 function formatWhatsAppMessage(data) {
-  let message = `*📋 PARTE DIARIO - ${data.fecha}*\n\n`;
+  let message = `PARTE DIARIO - ${data.fecha}\n\n`;
   
   // Operativo
-  message += `*⚙️ OPERATIVO*\n`;
-  message += `🕐 Inicio: ${data.hora_inicio || 'N/A'} - Fin: ${data.hora_fin || 'N/A'}\n`;
-  message += `💰 Caja chica: ${data.caja_chica ? '$' + Number(data.caja_chica).toLocaleString('es-AR') : 'N/A'}\n\n`;
+  message += `OPERATIVO\n`;
+  message += `Inicio: ${data.hora_inicio || 'N/A'} - Fin: ${data.hora_fin || 'N/A'}\n`;
+  message += `Caja chica: ${data.caja_chica ? '$' + Number(data.caja_chica).toLocaleString('es-AR') : 'N/A'}\n\n`;
   
   // Secciones principales
-  if (data.cabina) message += `*🏢 CABINA*\n${data.cabina}\n\n`;
-  if (data.amt) message += `*🚛 AMT*\n${data.amt}\n\n`;
-  if (data.puesto_hudson) message += `*🏪 PUESTO HUDSON*\n${data.puesto_hudson}\n\n`;
+  if (data.cabina) message += `CABINA\n${data.cabina}\n\n`;
+  if (data.amt) message += `AMT\n${data.amt}\n\n`;
+  if (data.puesto_hudson) message += `PUESTO HUDSON\n${data.puesto_hudson}\n\n`;
   
   // Choferes
   const choferes = [data.c1, data.c2, data.c3, data.c4].filter(c => c);
   if (choferes.length > 0) {
-    message += `*🚗 CHOFERES*\n`;
+    message += `CHOFERES\n`;
     choferes.forEach((chofer, i) => message += `C-${i+1}: ${chofer}\n`);
     message += '\n';
   }
   
   // Vehículos
   const vehiculos = [];
-  if (data.v_trailblazer) vehiculos.push(`🚙 Trailblazer: ${data.v_trailblazer}`);
-  if (data.v_amarok) vehiculos.push(`🚙 Amarok: ${data.v_amarok}`);
-  if (data.v_sw4) vehiculos.push(`🚙 SW4: ${data.v_sw4}`);
-  if (data.v_corolla) vehiculos.push(`🚗 Toyota Corolla: ${data.v_corolla}`);
-  if (data.v_q5) vehiculos.push(`🚙 Q5: ${data.v_q5}`);
-  if (data.v_q7) vehiculos.push(`🚙 Q7: ${data.v_q7}`);
+  if (data.v_trailblazer) vehiculos.push(`Trailblazer: ${data.v_trailblazer}`);
+  if (data.v_amarok) vehiculos.push(`Amarok: ${data.v_amarok}`);
+  if (data.v_sw4) vehiculos.push(`SW4: ${data.v_sw4}`);
+  if (data.v_corolla) vehiculos.push(`Toyota Corolla: ${data.v_corolla}`);
+  if (data.v_q5) vehiculos.push(`Q5: ${data.v_q5}`);
+  if (data.v_q7) vehiculos.push(`Q7: ${data.v_q7}`);
   
   if (vehiculos.length > 0) {
-    message += `*🚗 VEHÍCULOS*\n`;
+    message += `VEHICULOS\n`;
     vehiculos.forEach(v => message += `${v}\n`);
     message += '\n';
   }
@@ -1792,14 +1792,14 @@ function formatWhatsAppMessage(data) {
   if (data.fam5) familia.push(`Familia #5: ${data.fam5}`);
   
   if (familia.length > 0) {
-    message += `*👨‍👩‍👧‍👦 FAMILIA EN LA QUINTA*\n`;
+    message += `FAMILIA EN LA QUINTA\n`;
     familia.forEach(f => message += `${f}\n`);
     message += '\n';
   }
   
   // Personal doméstico
   if (data.empleadas || data.niniera) {
-    message += `*👩‍🍳 PERSONAL DOMÉSTICO*\n`;
+    message += `PERSONAL DOMESTICO\n`;
     if (data.empleadas) message += `Empleadas: ${data.empleadas}\n`;
     if (data.niniera) message += `Niñera: ${data.niniera}\n`;
     message += '\n';
@@ -1807,9 +1807,9 @@ function formatWhatsAppMessage(data) {
   
   // Sistemas técnicos
   if (data.tec_camaras || data.tec_cerco || data.tec_portones) {
-    message += `*🔧 SISTEMAS TÉCNICOS*\n`;
-    if (data.tec_camaras) message += `Cámaras: ${data.tec_camaras}\n`;
-    if (data.tec_cerco) message += `Cerco eléctrico: ${data.tec_cerco}\n`;
+    message += `SISTEMAS TECNICOS\n`;
+    if (data.tec_camaras) message += `Camaras: ${data.tec_camaras}\n`;
+    if (data.tec_cerco) message += `Cerco electrico: ${data.tec_cerco}\n`;
     if (data.tec_portones) message += `Portones: ${data.tec_portones}\n`;
     message += '\n';
   }
@@ -1823,14 +1823,14 @@ function formatWhatsAppMessage(data) {
   if (data.prof_floristas) profesionales.push(`Floristas: ${data.prof_floristas}`);
   
   if (profesionales.length > 0) {
-    message += `*👷 PROFESIONALES*\n`;
+    message += `PROFESIONALES\n`;
     profesionales.forEach(p => message += `${p}\n`);
     message += '\n';
   }
   
   // Amigos / Invitados
   if (data.amigos_sra || data.amigos_isabella || data.amigos_angie) {
-    message += `*👥 AMIGOS / INVITADOS*\n`;
+    message += `AMIGOS / INVITADOS\n`;
     if (data.amigos_sra) message += `Amigos de la Sra.: ${data.amigos_sra}\n`;
     if (data.amigos_isabella) message += `Amigos de Isabella: ${data.amigos_isabella}\n`;
     if (data.amigos_angie) message += `Amigos de Angie: ${data.amigos_angie}\n`;
@@ -1839,17 +1839,17 @@ function formatWhatsAppMessage(data) {
   
   // Elementos asignados
   if (data.elementos) {
-    message += `*📦 ELEMENTOS ASIGNADOS*\n${data.elementos}\n\n`;
+    message += `ELEMENTOS ASIGNADOS\n${data.elementos}\n\n`;
   }
   
   // Agenda
-  if (data.agenda_texto) message += `*📅 AGENDA*\n${data.agenda_texto}\n\n`;
+  if (data.agenda_texto) message += `AGENDA\n${data.agenda_texto}\n\n`;
   
   // Otros
-  if (data.otros) message += `*📌 OTROS*\n${data.otros}\n\n`;
+  if (data.otros) message += `OTROS\n${data.otros}\n\n`;
   
-  // Emoticones finales
-  message += `*✨ ¡Que tengas un excelente día! ✨*`;
+  // Final
+  message += `¡Que tengas un excelente dia!`;
   
   return message;
 }
@@ -1859,40 +1859,79 @@ async function save(ev){
   const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
   const def = tabs[current]; let payload = { user_id: uid };
 
-  const PARTE_VIRTUAL = new Set([
-    "c1","c2","c3","c4","v_trailblazer","v_amarok","v_sw4","v_corolla","v_q5","v_q7",
-    "fam1","fam2","fam3","fam4","fam5","empleadas","niniera",
-    "tec_camaras","tec_cerco","tec_portones","prof_jardinero","prof_piletero","prof_paisajistas","prof_fumigador","prof_floristas",
-    "amigos_sra","amigos_isabella","amigos_angie","elementos"
-  ]);
-
-  for (const f of def.fields){
-    if (f.k === "file") continue;
-    if (current==="parte" && PARTE_VIRTUAL.has(f.k)) continue;
-    const el = byId(`f_${f.k}`); if (!el) continue;
-    let v = el.value;
-    if (f.t==="number" && v!=="") v = Number(v);
-    if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
-    if (v==="") v = null;
-    payload[f.k] = v;
-  }
-
-  if (current==="parte"){
-    payload.choferes = [val('f_c1'),val('f_c2'),val('f_c3'),val('f_c4')].filter(x=>x && x.trim());
-    payload.novedades_vehiculos = clean({
-      "Trailblazer": val('f_v_trailblazer'),
-      "Amarok": val('f_v_amarok'),
-      "SW4": val('f_v_sw4'),
-      "Toyota Corolla": val('f_v_corolla'),
-      "Q5": val('f_v_q5'),
-      "Q7": val('f_v_q7'),
-    });
-    payload.familia_en_quinta = clean({ "1":val('f_fam1'), "2":val('f_fam2'), "3":val('f_fam3'), "4":val('f_fam4'), "5":val('f_fam5') });
-    payload.personal_domestico = clean({ "empleadas": (val('f_empleadas')||"").split('\n').map(s=>s.trim()).filter(Boolean), "niniera": val('f_niniera') });
-    payload.sistemas_tecnicos = clean({ "camaras": val('f_tec_camaras'), "cerco": val('f_tec_cerco'), "portones": val('f_tec_portones') });
-    payload.profesionales = clean({ "jardinero": val('f_prof_jardinero'), "piletero": val('f_prof_piletero'), "paisajistas": val('f_prof_paisajistas'), "fumigador": val('f_prof_fumigador'), "floristas": val('f_prof_floristas') });
-    payload.invitados = clean({ "amigos_sra": val('f_amigos_sra'), "amigos_isabella": val('f_amigos_isabella'), "amigos_angie": val('f_amigos_angie') });
-    payload.elementos_asignados = (val('f_elementos')||"").split('\n').map(s=>s.trim()).filter(Boolean);
+  // Guardar todos los campos del formulario
+  const formData = getFormData();
+  
+  // Para la tabla parte_diario, necesitamos guardar todos los campos individualmente
+  if (current === "parte") {
+    // Campos básicos
+    payload.fecha = formData.fecha;
+    payload.hora_inicio = formData.hora_inicio;
+    payload.hora_fin = formData.hora_fin;
+    payload.caja_chica = formData.caja_chica ? Number(formData.caja_chica) : null;
+    
+    // Secciones principales
+    payload.cabina = formData.cabina;
+    payload.amt = formData.amt;
+    payload.puesto_hudson = formData.puesto_hudson;
+    
+    // Choferes
+    payload.c1 = formData.c1;
+    payload.c2 = formData.c2;
+    payload.c3 = formData.c3;
+    payload.c4 = formData.c4;
+    
+    // Vehículos
+    payload.v_trailblazer = formData.v_trailblazer;
+    payload.v_amarok = formData.v_amarok;
+    payload.v_sw4 = formData.v_sw4;
+    payload.v_corolla = formData.v_corolla;
+    payload.v_q5 = formData.v_q5;
+    payload.v_q7 = formData.v_q7;
+    
+    // Familia
+    payload.fam1 = formData.fam1;
+    payload.fam2 = formData.fam2;
+    payload.fam3 = formData.fam3;
+    payload.fam4 = formData.fam4;
+    payload.fam5 = formData.fam5;
+    
+    // Personal doméstico
+    payload.empleadas = formData.empleadas;
+    payload.niniera = formData.niniera;
+    
+    // Sistemas técnicos
+    payload.tec_camaras = formData.tec_camaras;
+    payload.tec_cerco = formData.tec_cerco;
+    payload.tec_portones = formData.tec_portones;
+    
+    // Profesionales
+    payload.prof_jardinero = formData.prof_jardinero;
+    payload.prof_piletero = formData.prof_piletero;
+    payload.prof_paisajistas = formData.prof_paisajistas;
+    payload.prof_fumigador = formData.prof_fumigador;
+    payload.prof_floristas = formData.prof_floristas;
+    
+    // Amigos
+    payload.amigos_sra = formData.amigos_sra;
+    payload.amigos_isabella = formData.amigos_isabella;
+    payload.amigos_angie = formData.amigos_angie;
+    
+    // Otros
+    payload.elementos = formData.elementos;
+    payload.otros = formData.otros;
+    payload.agenda_texto = formData.agenda_texto;
+  } else {
+    // Para otras tablas, usar el método original
+    for (const f of def.fields){
+      if (f.k === "file") continue;
+      const el = byId(`f_${f.k}`); if (!el) continue;
+      let v = el.value;
+      if (f.t==="number" && v!=="") v = Number(v);
+      if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
+      if (v==="") v = null;
+      payload[f.k] = v;
+    }
   }
 
   if (current==="accesos"){
@@ -1919,9 +1958,16 @@ async function save(ev){
   }
 
   let resp;
-  if (editingId){ resp = await sb.from(def.table).update(payload).eq('id', editingId);
-  } else { resp = await sb.from(def.table).insert(payload); }
-  if (resp.error){ alert("Guardar: " + resp.error.message); return; }
+  if (editingId){ 
+    resp = await sb.from(def.table).update(payload).eq('id', editingId);
+  } else { 
+    resp = await sb.from(def.table).insert(payload); 
+  }
+  
+  if (resp.error){ 
+    alert("Guardar: " + resp.error.message); 
+    return; 
+  }
 
   if (current==="parte"){
     // Obtener el ID del registro recién guardado
@@ -1932,7 +1978,7 @@ async function save(ev){
     }
     
     if (parteId) {
-      // Generar el mensaje formateado con emoticones
+      // Generar el mensaje formateado sin emoticones
       const mensaje = formatWhatsAppMessage(payload);
       
       // Guardar el mensaje en la tabla parte_diario_whatsapp
