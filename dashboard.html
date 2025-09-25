@@ -840,7 +840,7 @@ const tabs = {
     ],
     row: r => {
       const horas = calcHoras(r);
-      return [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo,r.f_ing,r.h_ing,r.f_sal,r.h_sal, horas!=null?horas.toFixed(2):"—", actions(r.id)]
+      return [r.nombre,r.dni,r.vehiculo,r.dominio,r.motivo,r.f_ing,r.h_ing,r.f_sal,r.h_sal, horas!=null?horas:"—", actions(r.id)]
     },
     showHorasKpi: true,
     icon: "fas fa-door-open",
@@ -1071,11 +1071,35 @@ function calcHoras(r){
   const end   = new Date(`${r.f_sal}T${r.h_sal}`);
   const ms = end - start;
   if (isNaN(ms) || ms < 0) return null;
-  return ms / 3600000;
+  
+  // Convertir a horas y minutos
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  
+  return `${hours}h ${minutes}m`;
 }
+
+function calcHorasRaw(r){
+  if (!r?.f_ing || !r?.h_ing || !r?.f_sal || !r?.h_sal) return null;
+  const start = new Date(`${r.f_ing}T${r.h_ing}`);
+  const end   = new Date(`${r.f_sal}T${r.h_sal}`);
+  const ms = end - start;
+  if (isNaN(ms) || ms < 0) return null;
+  return Math.floor(ms / 60000);
+}
+
 function totalHoras(list){
-  let t=0; for(const r of list){ const h = calcHoras(r); if(h!=null) t+=h; }
-  return t;
+  let totalMinutes = 0;
+  for(const r of list){ 
+    const h = calcHorasRaw(r);
+    if(h != null) totalMinutes += h;
+  }
+  
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  
+  return `${hours}h ${minutes}m`;
 }
 
 window.editRow = async function(id){
@@ -1156,7 +1180,7 @@ async function load(clearBefore = true){
   // KPI horas (Accesos)
   if (current === "accesos" && clearBefore) {
     const th = totalHoras(list);
-    kHorasVal.textContent = th ? `${th.toFixed(2)} h` : "—";
+    kHorasVal.textContent = th ? th : "—";
   }
 
   if (clearBefore && !list.length){
@@ -1185,9 +1209,9 @@ async function load(clearBefore = true){
 }
 function updateKpis(list){
   let ing=0,egr=0; for(const r of list){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
-  byId('k_ing').textContent = formatMoney(ing);
-  byId('k_egr').textContent = formatMoney(egr);
-  byId('k_saldo').textContent = formatMoney(ing-egr);
+  byId("k_ing").textContent = formatMoney(ing);
+  byId("k_egr").textContent = formatMoney(egr);
+  byId("k_saldo").textContent = formatMoney(ing-egr);
 }
 
 async function kpiSaldoHasta(fechaISO){
@@ -1418,6 +1442,52 @@ function attachPersonAutocomplete(){
   });
 }
 
+// Función para formatear el mensaje de WhatsApp
+function formatWhatsAppMessage(data) {
+  let message = `*PARTE DIARIO - ${data.fecha}*\n\n`;
+  
+  // Operativo
+  message += `*OPERATIVO*\n`;
+  message += `Inicio: ${data.hora_inicio || 'N/A'} - Fin: ${data.hora_fin || 'N/A'}\n`;
+  message += `Caja chica: ${data.caja_chica ? '$' + Number(data.caja_chica).toLocaleString('es-AR') : 'N/A'}\n\n`;
+  
+  // Secciones principales
+  if (data.cabina) message += `*CABINA*\n${data.cabina}\n\n`;
+  if (data.amt) message += `*AMT*\n${data.amt}\n\n`;
+  if (data.puesto_hudson) message += `*PUESTO HUDSON*\n${data.puesto_hudson}\n\n`;
+  
+  // Choferes
+  const choferes = [data.c1, data.c2, data.c3, data.c4].filter(c => c);
+  if (choferes.length > 0) {
+    message += `*CHOFERES*\n`;
+    choferes.forEach((chofer, i) => message += `C-${i+1}: ${chofer}\n`);
+    message += '\n';
+  }
+  
+  // Vehículos
+  const vehiculos = [];
+  if (data.v_trailblazer) vehiculos.push(`Trailblazer: ${data.v_trailblazer}`);
+  if (data.v_amarok) vehiculos.push(`Amarok: ${data.v_amarok}`);
+  if (data.v_sw4) vehiculos.push(`SW4: ${data.v_sw4}`);
+  if (data.v_corolla) vehiculos.push(`Toyota Corolla: ${data.v_corolla}`);
+  if (data.v_q5) vehiculos.push(`Q5: ${data.v_q5}`);
+  if (data.v_q7) vehiculos.push(`Q7: ${data.v_q7}`);
+  
+  if (vehiculos.length > 0) {
+    message += `*VEHÍCULOS*\n`;
+    vehiculos.forEach(v => message += `${v}\n`);
+    message += '\n';
+  }
+  
+  // Agenda
+  if (data.agenda_texto) message += `*AGENDA*\n${data.agenda_texto}\n\n`;
+  
+  // Otros
+  if (data.otros) message += `*OTROS*\n${data.otros}\n\n`;
+  
+  return message;
+}
+
 async function save(ev){
   ev?.preventDefault?.();
   const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
@@ -1488,19 +1558,32 @@ async function save(ev){
   if (resp.error){ alert("Guardar: " + resp.error.message); return; }
 
   if (current==="parte"){
-    const { data: row } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
-    if (row?.id){
-      const { data, error } = await sb.from('parte_diario_whatsapp').select('mensaje').eq('id', row.id).single();
-      if (!error && data?.mensaje){
-        const msg = encodeURIComponent(data.mensaje);
-        if (WHATSAPP_MODE === 'direct'){
-          const phone = (WHATSAPP_PHONE || "").replace(/\D/g,'');
-          const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
-          window.open(url, '_blank');
-        } else {
-          const url = `https://api.whatsapp.com/send?text=${msg}`;
-          window.open(url, '_blank');
-        }
+    // Obtener el ID del registro recién guardado
+    let parteId = editingId;
+    if (!parteId) {
+      const { data: newRow } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+      parteId = newRow?.id;
+    }
+    
+    if (parteId) {
+      // Generar el mensaje formateado
+      const mensaje = formatWhatsAppMessage(payload);
+      
+      // Guardar el mensaje en la tabla parte_diario_whatsapp
+      await sb.from('parte_diario_whatsapp').upsert({ 
+        id: parteId, 
+        mensaje: mensaje 
+      });
+      
+      // Abrir WhatsApp
+      const msg = encodeURIComponent(mensaje);
+      if (WHATSAPP_MODE === 'direct'){
+        const phone = (WHATSAPP_PHONE || "").replace(/\D/g,'');
+        const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
+        window.open(url, '_blank');
+      } else {
+        const url = `https://api.whatsapp.com/send?text=${msg}`;
+        window.open(url, '_blank');
       }
     }
   }
@@ -1521,9 +1604,19 @@ function exportPDF(){
   let resumenHoras = "";
   if (current==="accesos"){
     const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].map(td => td.innerText));
-    const horas = rowsData.map(r => parseFloat(r[r.length-2].replace(',', '.'))).filter(n => !isNaN(n));
-    const total = horas.reduce((a,b)=>a+b,0);
-    resumenHoras = `Total de horas (lista): ${total.toFixed(2)} h`;
+    const horas = rowsData.map(r => {
+      const horasText = r[r.length-2];
+      // Convertir formato "Xh Ym" a minutos totales
+      const match = horasText.match(/(\d+)h\s+(\d+)m/);
+      if (match) {
+        return parseInt(match[1]) * 60 + parseInt(match[2]);
+      }
+      return 0;
+    }).filter(n => !isNaN(n));
+    const totalMinutes = horas.reduce((a,b)=>a+b,0);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    resumenHoras = `Total de horas (lista): ${hours}h ${minutes}m`;
   }
 
   const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
