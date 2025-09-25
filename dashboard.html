@@ -466,6 +466,8 @@
     transform: translateY(20px);
     transition: transform 0.3s ease;
     z-index: 10000;
+    display: flex;
+    flex-direction: column;
   }
   
   .modal.show > div {
@@ -790,7 +792,9 @@
             </button>
           </div>
         </div>
-        <form id="form" class="grid md:grid-cols-2 gap-4 modal-body"></form>
+        <div class="modal-body overflow-auto" style="max-height: 70vh;">
+          <form id="form" class="grid md:grid-cols-2 gap-4"></form>
+        </div>
         <div class="mt-6 flex justify-between items-center gap-4 modal-footer-shadow pt-4">
           <div id="hint" class="text-xs text-slate-500"></div>
           <div class="flex gap-2">
@@ -813,8 +817,11 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSe
 const WHATSAPP_MODE  = 'chooser';
 const WHATSAPP_PHONE = '54911XXXXXXXX';
 
-// Usuario con acceso completo
-const ADMIN_USER_ID = '01a11c78-bfa7-4c27-b78d-df4ad1493faa';
+// Usuarios con acceso completo
+const ADMIN_USER_IDS = [
+  '01a11c78-bfa7-4c27-b78d-df4ad1493faa', // Nuevo usuario
+  // Agrega aquí otros IDs de administradores si es necesario
+];
 
 const tabs = {
   accesos: {
@@ -1122,9 +1129,9 @@ async function load(clearBefore = true){
   const to   = from + PAGE_SIZE - 1;
   q = q.range(from, to);
 
-  // Verificar si el usuario es el administrador
+  // Verificar si el usuario es administrador
   const { data: { user } } = await sb.auth.getUser();
-  const isAdmin = user?.id === ADMIN_USER_ID;
+  const isAdmin = ADMIN_USER_IDS.includes(user?.id);
   
   // Si no es administrador, filtrar por user_id
   if (!isAdmin) {
