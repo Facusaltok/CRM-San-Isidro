@@ -813,6 +813,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSe
 const WHATSAPP_MODE  = 'chooser';
 const WHATSAPP_PHONE = '54911XXXXXXXX';
 
+// Usuario con acceso completo
+const ADMIN_USER_ID = '01a11c78-bfa7-4c27-b78d-df4ad1493faa';
+
 const tabs = {
   accesos: {
     table: "accesos",
@@ -1118,6 +1121,15 @@ async function load(clearBefore = true){
   const from = page * PAGE_SIZE;
   const to   = from + PAGE_SIZE - 1;
   q = q.range(from, to);
+
+  // Verificar si el usuario es el administrador
+  const { data: { user } } = await sb.auth.getUser();
+  const isAdmin = user?.id === ADMIN_USER_ID;
+  
+  // Si no es administrador, filtrar por user_id
+  if (!isAdmin) {
+    q = q.eq('user_id', user?.id);
+  }
 
   const { data, error, count } = await q;
   if (error){ 
