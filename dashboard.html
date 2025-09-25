@@ -1418,6 +1418,176 @@ function attachPersonAutocomplete(){
   });
 }
 
+// Función para formatear el mensaje de WhatsApp del parte diario
+function formatParteDiarioWhatsApp(data) {
+  // Formatear la fecha
+  const fecha = new Date(data.fecha);
+  const fechaFormateada = fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  
+  // Formatear las horas
+  const horaInicio = data.hora_inicio || '--:--';
+  const horaFin = data.hora_fin || '--:--';
+  
+  let mensaje = `*📝 SERVICIO ${fechaFormateada}*\n🕒 ${horaInicio} — ${horaFin}\n\n`;
+  
+  // CABINA
+  if (data.cabina) {
+    mensaje += `*CABINA*\n`;
+    const cabinas = data.cabina.split('\n').filter(linea => linea.trim());
+    cabinas.forEach(cabina => {
+      mensaje += `• ${cabina.trim()}\n`;
+    });
+    mensaje += '\n';
+  }
+  
+  // AMT
+  if (data.amt) {
+    mensaje += `*AMT*\n`;
+    const amts = data.amt.split('\n').filter(linea => linea.trim());
+    amts.forEach(amt => {
+      mensaje += `• ${amt.trim()}\n`;
+    });
+    mensaje += '\n';
+  }
+  
+  // PUESTO HUDSON
+  if (data.puesto_hudson) {
+    mensaje += `*PUESTO HUDSON*\n`;
+    const hudsons = data.puesto_hudson.split('\n').filter(linea => linea.trim());
+    hudsons.forEach(hudson => {
+      mensaje += `• ${hudson.trim()}\n`;
+    });
+    mensaje += '\n';
+  }
+  
+  // CAJA CHICA
+  if (data.caja_chica) {
+    mensaje += `*CAJA CHICA:* $${Number(data.caja_chica).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.-\n\n`;
+  }
+  
+  // CHOFERES
+  const choferes = [data.c1, data.c2, data.c3, data.c4].filter(c => c && c.trim());
+  if (choferes.length > 0) {
+    mensaje += `*CHOFERES*\n`;
+    choferes.forEach(chofer => {
+      mensaje += `• ${chofer.trim()}\n`;
+    });
+    mensaje += '\n';
+  }
+  
+  // Novedades de Vehículos
+  const vehiculos = [
+    { nombre: 'Q5', valor: data.v_q5 },
+    { nombre: 'Q7', valor: data.v_q7 },
+    { nombre: 'SW4', valor: data.v_sw4 },
+    { nombre: 'Amarok', valor: data.v_amarok },
+    { nombre: 'Trailblazer', valor: data.v_trailblazer },
+    { nombre: 'Toyota Corolla', valor: data.v_corolla }
+  ].filter(v => v.valor && v.valor.trim());
+  
+  if (vehiculos.length > 0) {
+    mensaje += `*🚗 Novedades de Vehículos*\n`;
+    vehiculos.forEach(vehiculo => {
+      mensaje += `• ${vehiculo.nombre} → ${vehiculo.valor.trim() || 'Sin novedad'}\n`;
+    });
+    mensaje += '\n';
+  }
+  
+  // Familia en la quinta
+  const familias = [data.fam1, data.fam2, data.fam3, data.fam4, data.fam5].filter(f => f && f.trim());
+  if (familias.length > 0) {
+    mensaje += `*👨‍👩‍👧‍👦 Familia en la quinta*\n`;
+    familias.forEach(familia => {
+      mensaje += `• ${familia.trim()}\n`;
+    });
+    mensaje += '\n';
+  }
+  
+  // Empleadas / Niñera
+  const empleadas = data.empleadas ? data.empleadas.split('\n').filter(e => e.trim()) : [];
+  const niniera = data.niniera;
+  
+  if (empleadas.length > 0 || niniera) {
+    mensaje += `*👩‍🦰 Empleadas / Niñera*\n`;
+    if (empleadas.length === 0 && !niniera) {
+      mensaje += `(Sin novedades)\n`;
+    } else {
+      if (empleadas.length > 0) {
+        empleadas.forEach(empleada => {
+          mensaje += `• ${empleada.trim()}\n`;
+        });
+      }
+      if (niniera) {
+        mensaje += `• Niñera: ${niniera.trim()}\n`;
+      }
+    }
+    mensaje += '\n';
+  }
+  
+  // Cámaras / Cerco / Portones
+  const sistemas = [
+    { nombre: 'Cerco', valor: data.tec_cerco },
+    { nombre: 'Cámaras', valor: data.tec_camaras },
+    { nombre: 'Portones', valor: data.tec_portones }
+  ].filter(s => s.valor && s.valor.trim());
+  
+  if (sistemas.length > 0) {
+    mensaje += `*📹 Cámaras / Cerco / Portones*\n`;
+    sistemas.forEach(sistema => {
+      mensaje += `• ${sistema.nombre} → ${sistema.valor.trim() || 'Sin novedad'}\n`;
+    });
+    mensaje += '\n';
+  }
+  
+  // Profesionales
+  const profesionales = [
+    data.prof_jardinero, data.prof_piletero, data.prof_paisajistas, 
+    data.prof_fumigador, data.prof_floristas
+  ].filter(p => p && p.trim());
+  
+  if (profesionales.length > 0) {
+    mensaje += `*👷 Profesionales*\n`;
+    profesionales.forEach(profesional => {
+      mensaje += `• ${profesional.trim()}\n`;
+    });
+    mensaje += '\n';
+  } else {
+    mensaje += `*👷 Profesionales*\n(Sin novedades)\n\n`;
+  }
+  
+  // Amigos / Invitados
+  const amigos = [
+    data.amigos_sra, data.amigos_isabella, data.amigos_angie
+  ].filter(a => a && a.trim());
+  
+  if (amigos.length > 0) {
+    mensaje += `*👥 Amigos / Invitados*\n`;
+    amigos.forEach(amigo => {
+      mensaje += `• ${amigo.trim()}\n`;
+    });
+    mensaje += '\n';
+  } else {
+    mensaje += `*👥 Amigos / Invitados*\n(Sin novedades)\n\n`;
+  }
+  
+  // Elementos asignados
+  if (data.elementos) {
+    const elementos = data.elementos.split('\n').filter(e => e.trim());
+    if (elementos.length > 0) {
+      mensaje += `*📦 Elementos asignados*\n`;
+      elementos.forEach(elemento => {
+        mensaje += `• ${elemento.trim()}\n`;
+      });
+    } else {
+      mensaje += `*📦 Elementos asignados*\n(Sin novedades)\n`;
+    }
+  } else {
+    mensaje += `*📦 Elementos asignados*\n(Sin novedades)\n`;
+  }
+  
+  return mensaje;
+}
+
 async function save(ev){
   ev?.preventDefault?.();
   const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
@@ -1488,19 +1658,22 @@ async function save(ev){
   if (resp.error){ alert("Guardar: " + resp.error.message); return; }
 
   if (current==="parte"){
-    const { data: row } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    // Obtener el registro recién guardado
+    const { data: row } = await sb.from('parte_diario').select('*').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    
     if (row?.id){
-      const { data, error } = await sb.from('parte_diario_whatsapp').select('mensaje').eq('id', row.id).single();
-      if (!error && data?.mensaje){
-        const msg = encodeURIComponent(data.mensaje);
-        if (WHATSAPP_MODE === 'direct'){
-          const phone = (WHATSAPP_PHONE || "").replace(/\D/g,'');
-          const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
-          window.open(url, '_blank');
-        } else {
-          const url = `https://api.whatsapp.com/send?text=${msg}`;
-          window.open(url, '_blank');
-        }
+      // Formatear el mensaje para WhatsApp
+      const mensaje = formatParteDiarioWhatsApp(row);
+      
+      // Enviar por WhatsApp
+      const msg = encodeURIComponent(mensaje);
+      if (WHATSAPP_MODE === 'direct'){
+        const phone = (WHATSAPP_PHONE || "").replace(/\D/g,'');
+        const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
+        window.open(url, '_blank');
+      } else {
+        const url = `https://api.whatsapp.com/send?text=${msg}`;
+        window.open(url, '_blank');
       }
     }
   }
