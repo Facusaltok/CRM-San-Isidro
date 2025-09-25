@@ -433,43 +433,17 @@
   
   /* Modal mejorado */
   .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(5px);
-    z-index: 9999;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-  }
-  
-  .modal.show {
-    opacity: 1;
-    visibility: visible;
+    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,0.5);
   }
   
   .modal > div {
     background: white;
     border-radius: 20px;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.25);
-    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
     max-width: 90%;
     width: 1200px;
-    max-height: 90vh;
-    overflow: hidden;
-    transform: translateY(20px);
-    transition: transform 0.3s ease;
-    z-index: 10000;
-  }
-  
-  .modal.show > div {
-    transform: translateY(0);
   }
   
   /* Contenedor de filtros */
@@ -612,11 +586,6 @@
       padding: 0.75rem;
       font-size: 0.875rem;
     }
-    
-    .modal > div {
-      width: 95%;
-      max-height: 95vh;
-    }
   }
 </style>
 </head>
@@ -673,6 +642,9 @@
           <button data-tab="contable" class="tab">
             <i class="fas fa-calculator mr-2"></i>Contable
           </button>
+          <button data-tab="agenda" class="tab">
+            <i class="fas fa-calendar-alt mr-2"></i>Agenda
+          </button>
           <button data-tab="parte" class="tab">
             <i class="fas fa-clipboard-list mr-2"></i>Parte diario
           </button>
@@ -687,6 +659,21 @@
             <div>
               <label class="label">Hasta</label>
               <input id="fHasta" type="date" class="input w-40">
+            </div>
+
+            <div id="wrapAsignado" class="hidden">
+              <label class="label">Asignado a</label>
+              <div class="flex gap-1 items-center">
+                <select id="asignado" class="input" style="width:auto">
+                  <option>Todos</option>
+                  <option>Amalia</option>
+                  <option>Valentino</option>
+                  <option>Otros</option>
+                </select>
+                <button class="chip" data-quick="Amalia">Amalia</button>
+                <button class="chip" data-quick="Valentino">Valentino</button>
+                <button class="chip" data-quick="Otros">Otros</button>
+              </div>
             </div>
 
             <div class="flex-1 min-w-[280px]">
@@ -780,7 +767,7 @@
     </main>
 
     <!-- Modal -->
-    <div id="modal" class="modal">
+    <div id="modal" class="fixed inset-0 hidden items-center justify-center p-4 modal">
       <div class="w-full rounded-2xl bg-white border border-slate-200 p-6 shadow-2xl">
         <div class="flex items-center justify-between mb-4">
           <h3 id="modalTitle" class="text-xl font-semibold">Nuevo</h3>
@@ -795,7 +782,7 @@
           <div id="hint" class="text-xs text-slate-500"></div>
           <div class="flex gap-2">
             <button id="saveBtn" class="btn btn-gold">
-              <i class="fas fa-save mr-2"></i><span id="saveBtnText">Guardar</span>
+              <i class="fas fa-save mr-2"></i>Guardar
             </button>
           </div>
         </div>
@@ -876,6 +863,22 @@ const tabs = {
     icon: "fas fa-calculator",
     color: "green"
   },
+  agenda: {
+    table: "agenda_dom",
+    head: ["Asignado","Tarea","Fecha","Hora","Estado","Notas",""],
+    fields: [
+      {k:"asignado_a", l:"Asignado a", t:"select", p:["Amalia","Valentino","Otros"], r:true},
+      {k:"tarea", l:"Tarea", t:"text", r:true},
+      {k:"fecha", l:"Fecha", t:"date", r:true},
+      {k:"hora", l:"Hora", t:"time"},
+      {k:"estado", l:"Estado", t:"select", p:["pendiente","confirmado","completado","cancelado"], r:true},
+      {k:"notas", l:"Notas", t:"textarea"},
+    ],
+    row: r => [r.asignado_a, r.tarea, r.fecha, r.hora||"--:--", r.estado, r.notas||"", actions(r.id)],
+    agendaFilter: true,
+    icon: "fas fa-calendar-alt",
+    color: "indigo"
+  },
   parte: {
     table: "parte_diario",
     head: ["Fecha","Inicio","Fin","Caja chica","Resumen",""],
@@ -927,6 +930,7 @@ const tabs = {
 
 const thead = byId("thead"), rows = byId("rows"), empty = byId("empty"), errEl = byId("err");
 const tableIcon = byId("tableIcon"), tableTitle = byId("tableTitle"), recordCount = byId("recordCount");
+const wrapAsignado = byId("wrapAsignado"), selAsignado = byId("asignado");
 const contKpis = byId("contableKpis");
 const kpiHoras = byId("accesosKpi"), kHorasVal = byId("k_horas"), kHorasBadge = byId("k_horas_badge");
 const extraHint = byId("extraHint");
@@ -957,6 +961,11 @@ function applyOrdering(q){
         .order('f_ing', { ascending: false, nullsFirst: false })
         .order('h_ing', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
+    case 'agenda':
+      return q
+        .order('fecha', { ascending: false, nullsFirst: false })
+        .order('hora', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
     default:
       return q.order('created_at', { ascending: false });
   }
@@ -984,6 +993,14 @@ document.querySelectorAll("[data-tab]").forEach(b=>{
   });
 });
 
+document.querySelectorAll('[data-quick]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ 
+    selAsignado.value = btn.dataset.quick; 
+    resetPaging(); 
+    load(true); 
+  });
+});
+
 byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
 
 byId("refreshBtn").addEventListener("click", async ()=>{ resetPaging(); await load(true); });
@@ -992,26 +1009,21 @@ byId("exportBtn").addEventListener("click", exportPDF);
 byId("exportCsvBtn").addEventListener("click", exportCSV);
 byId("clearBtn").addEventListener("click", async ()=>{
   byId("fDesde").value=""; byId("fHasta").value=""; byId("q").value="";
+  if (byId("asignado")) byId("asignado").value="Todos";
   resetPaging(); await load(true);
 });
 byId("showAllBtn").addEventListener("click", async ()=>{
   byId("fDesde").value=""; byId("fHasta").value="";
   byId("q").value="";
+  if (byId("asignado")) byId("asignado").value="Todos";
   resetPaging(); await load(true);
 });
 byId("loadMoreBtn").addEventListener("click", async ()=>{ page += 1; await load(false); });
 
 const modal = byId("modal"), form = byId("form"), hint = byId("hint");
 byId("newBtn").addEventListener("click", () => openModal());
-byId("closeModal").addEventListener("click", closeModal);
+byId("closeModal").addEventListener("click", ()=>modal.classList.add("hidden"));
 byId("saveBtn").addEventListener("click", save);
-
-function closeModal() {
-  modal.classList.remove('show');
-  setTimeout(() => {
-    modal.style.display = 'none';
-  }, 300);
-}
 
 function updateTableInfo() {
   const tabInfo = tabs[current];
@@ -1021,6 +1033,7 @@ function updateTableInfo() {
 }
 
 function toggleExtras(){
+  wrapAsignado.classList.toggle("hidden", tabs[current].agendaFilter!==true);
   contKpis.classList.toggle("hidden", tabs[current].kpis!==true);
   kpiHoras.classList.toggle("hidden", tabs[current].showHorasKpi!==true);
   kHorasBadge.textContent = current === "accesos" ? "Accesos" : "";
@@ -1040,6 +1053,7 @@ function buildSearchOr(current, q){
     accesos:    ["nombre","dni","vehiculo","dominio","motivo"],
     paqueteria: ["receptor","descripcion","id_num","estado","entregado_a","notas"],
     contable:   ["tipo","concepto"],
+    agenda:     ["asignado_a","tarea","estado","notas"],
     parte:      ["cabina","amt","puesto_hudson","otros","agenda_texto"]
   };
   const fields = map[current] || [];
@@ -1101,9 +1115,12 @@ async function load(clearBefore = true){
             .select("*", { count: "exact", head: false });
 
   // Fechas por tabla
-  const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : "fecha";
+  const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : current==="agenda" ? "fecha" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
+
+  // Filtro asignado (Agenda)
+  if (current==="agenda" && selAsignado.value!=="Todos") q = q.eq("asignado_a", selAsignado.value);
 
   // Filtro en servidor
   if (qText){
@@ -1191,15 +1208,7 @@ async function textoAgendaDelDia(fechaISO){
 /* ===== Modal ===== */
 async function openModal(data=null){
   byId("modalTitle").textContent = (editingId? "Editar — ":"Nuevo — ") + tabs[current].table.charAt(0).toUpperCase() + tabs[current].table.slice(1);
-  form.innerHTML=""; hint.innerHTML="");
-
-  // Cambiar texto del botón según la sección
-  const saveBtnText = byId("saveBtnText");
-  if (current === "parte") {
-    saveBtnText.textContent = "Enviar";
-  } else {
-    saveBtnText.textContent = "Guardar";
-  }
+  form.innerHTML=""; hint.innerHTML="";
 
   if (current==="parte"){
     renderParteForm(data);
@@ -1214,7 +1223,7 @@ async function openModal(data=null){
   }
 
   if (current==="parte"){
-    hint.innerHTML = 'Secciones plegables con autocompletados. WhatsApp se abre al enviar.';
+    hint.innerHTML = 'Secciones plegables con autocompletados. WhatsApp se abre al guardar.';
     if (!editingId) {
       const hoy = new Date().toISOString().slice(0,10);
       const d = byId("f_fecha"); if (d) d.value = hoy;
@@ -1225,11 +1234,7 @@ async function openModal(data=null){
     }
   }
 
-  // Mostrar modal con animación
-  modal.style.display = 'flex';
-  setTimeout(() => {
-    modal.classList.add('show');
-  }, 10);
+  modal.classList.remove("hidden");
 }
 
 function fieldHTML(f, value){
@@ -1495,13 +1500,13 @@ async function save(ev){
   }
 
   editingId = null;
-  closeModal();
+  modal.classList.add("hidden");
   await load(true);
 }
 
 /* ===== Exportaciones ===== */
 function exportPDF(){
-  const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", parte:"Parte Diario"};
+  const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", agenda:"Agenda", parte:"Parte Diario"};
   let head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
   let body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
 
@@ -1531,7 +1536,7 @@ function exportCSV(){
   const escCSV = (v) => { const s = String(v ?? ""); return /[",\n;]/.test(s) ? `"${s.replaceAll('"','""')}"` : s; };
   const csv = [head.map(escCSV).join(";")].concat(rowsData.map(r => r.map(escCSV).join(";"))).join("\n");
   const blob = new Blob([csv], {type:"text/csv;charset=utf-8"}); const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); const map = {accesos:"Accesos", paqueteria:"Paqueteria", contable:"Contable", parte:"Parte_Diario"};
+  const a = document.createElement("a"); const map = {accesos:"Accesos", paqueteria:"Paqueteria", contable:"Contable", agenda:"Agenda", parte:"Parte_Diario"};
   a.href = url; a.download = `${map[current]}_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 
@@ -1551,6 +1556,7 @@ function persistState(){
     localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
     localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
     localStorage.setItem('crm-q', byId('q')?.value || '');
+    localStorage.setItem('crm-asignado', byId('asignado')?.value || 'Todos');
   }catch(e){}
 }
 function restoreState(){
@@ -1565,9 +1571,10 @@ function restoreState(){
     const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
     const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
     const qv = localStorage.getItem('crm-q'); if (qv!==null) byId('q').value = qv;
+    const as = localStorage.getItem('crm-asignado'); if (as && byId('asignado')) byId('asignado').value = as;
   }catch(e){}
 }
-['fDesde','fHasta','q'].forEach(id=>{
+['fDesde','fHasta','q','asignado'].forEach(id=>{
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', persistState);
   if (el) el.addEventListener('change', persistState);
@@ -1591,7 +1598,7 @@ document.addEventListener('keydown', (e)=>{
   }
   if (e.key === 'Escape'){
     // Close modal if open
-    if (modal.classList.contains('show')){ closeModal(); }
+    if (!modal.classList.contains('hidden')){ byId('closeModal')?.click(); }
   }
 });
 
