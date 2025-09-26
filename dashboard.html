@@ -1620,34 +1620,7 @@ async function load(clearBefore = true) {
   }
   empty.classList.add("hidden");
   errEl.textContent = "";
-
-  // ... tu lógica de consulta a Supabase ...
-
-  // Render de filas
-  rows.innerHTML = ""; // Limpio el tbody
-  data.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.className = 'row-fade';
-
-    const arr = tabs[activeTab].row(r);
-    arr.forEach((val, idx) => {
-      const td = document.createElement('td');
-
-      // SOLO para Paquetería → Estado (columna 3) permito HTML
-      if (activeTab === 'paqueteria' && idx === 3 && typeof val === 'string' && val.includes('status-badge')) {
-        td.innerHTML = val;
-      } else {
-        td.textContent = (val ?? '—');
-      }
-
-      tr.appendChild(td);
-    });
-
-    rows.appendChild(tr);
-  });
-}
-
-
+  
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
   const qText = byId("q").value.trim();
 
@@ -1670,6 +1643,29 @@ async function load(clearBefore = true) {
   if (current === 'paqueteria') {
     q = q.eq('estado', paqueteriaEstado);
   }
+  // Render de filas (fragmento)
+rows.innerHTML = "";                     // Limpio el tbody
+data.forEach(r => {
+  const tr = document.createElement('tr');
+  tr.className = 'row-fade';
+
+  const arr = tabs[activeTab].row(r);    // <-- ya te arma el array de celdas
+  arr.forEach((val, idx) => {
+    const td = document.createElement('td');
+
+    // Permitir HTML SOLO en Paquetería, columna "Estado" (índice 3)
+    if (activeTab === 'paqueteria' && idx === 3 && typeof val === 'string' && val.includes('status-badge')) {
+      td.innerHTML = val;                // <span class="status-badge …">…</span>
+    } else {
+      td.textContent = (val ?? '—');     // resto seguro como texto
+    }
+
+    tr.appendChild(td);
+  });
+
+  rows.appendChild(tr);
+});
+
 
   // Orden centralizado (desc)
   q = applyOrdering(q);
