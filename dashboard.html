@@ -6,7 +6,7 @@
 <meta http-equiv="Expires" content="0">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CRM — Dashboard</title>
+<title>CRM — Dashboard Premium</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -992,11 +992,11 @@
       <div class="main-container flex items-center justify-between">
         <div class="flex items-center gap-8">
           <div class="logo-container w-16 h-16 flex items-center justify-center animate-float">
-            <span class="text-white font-bold text-2xl">SI</span>
+            <span class="text-white font-bold text-2xl">CRM</span>
           </div>
           <div>
             <h1 class="text-4xl font-bold text-white">San Isidro</h1>
-            <p class="text-sm text-amber-100 mt-1">Panel de Control</p>
+            <p class="text-sm text-amber-100 mt-1">Panel de Control Premium</p>
           </div>
         </div>
         <div class="flex items-center gap-4">
@@ -2323,16 +2323,159 @@ function exportPDF(){
 
   const startY = resumenHoras ? 80 : 60;
 
-  // Para todas las secciones, solo la tabla sin gráficos
-  doc.autoTable({ 
-    startY, 
-    head:[head], 
-    body, 
-    styles:{ fontSize:10, cellPadding:5 }, 
-    headStyles:{ fillColor:[251, 191, 36] }, 
-    theme:'striped' 
-  });
-  doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
+  // Si es contable, agregar gráficos
+  if (current === "contable") {
+    // Preparar datos para gráficos
+    const ingresos = [];
+    const egresos = [];
+    const fechas = [];
+    const saldoPorFecha = {};
+
+    // Recorrer los datos para extraer ingresos, egresos y fechas
+    body.forEach(row => {
+      const tipo = row[0];
+      const monto = parseFloat(row[2].replace(/[^\d.-]/g, '')) || 0;
+      const fecha = row[3];
+
+      if (!saldoPorFecha[fecha]) {
+        saldoPorFecha[fecha] = 0;
+        fechas.push(fecha);
+      }
+
+      if (tipo === 'Ingreso') {
+        ingresos.push({ fecha, monto });
+        saldoPorFecha[fecha] += monto;
+      } else if (tipo === 'Egreso') {
+        egresos.push({ fecha, monto });
+        saldoPorFecha[fecha] -= monto;
+      }
+    });
+
+    // Ordenar fechas
+    fechas.sort();
+
+    // Calcular saldo acumulado
+    let saldoAcumulado = 0;
+    const saldos = fechas.map(fecha => {
+      saldoAcumulado += saldoPorFecha[fecha];
+      return saldoAcumulado;
+    });
+
+    // Crear canvas para gráficos
+    const canvas1 = document.createElement('canvas');
+    canvas1.width = 500;
+    canvas1.height = 300;
+    const ctx1 = canvas1.getContext('2d');
+
+    // Gráfico de barras: Ingresos vs Egresos
+    const chart1 = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: fechas,
+        datasets: [
+          {
+            label: 'Ingresos',
+            data: fechas.map(fecha => {
+              const ingreso = ingresos.find(i => i.fecha === fecha);
+              return ingreso ? ingreso.monto : 0;
+            }),
+            backgroundColor: 'rgba(251, 191, 36, 0.6)',
+          },
+          {
+            label: 'Egresos',
+            data: fechas.map(fecha => {
+              const egreso = egresos.find(e => e.fecha === fecha);
+              return egreso ? egreso.monto : 0;
+            }),
+            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+          }
+        ]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Ingresos vs Egresos',
+            font: {
+              family: 'Playfair Display',
+              size: 16
+            }
+          }
+        }
+      }
+    });
+
+    // Esperar a que el gráfico se dibuje
+    setTimeout(() => {
+      const imgData1 = canvas1.toDataURL('image/png');
+      doc.addImage(imgData1, 'PNG', 40, startY, 500, 300);
+      const nextY = startY + 320;
+
+      // Gráfico de línea: Saldo acumulado
+      const canvas2 = document.createElement('canvas');
+      canvas2.width = 500;
+      canvas2.height = 300;
+      const ctx2 = canvas2.getContext('2d');
+
+      const chart2 = new Chart(ctx2, {
+        type: 'line',
+        data: {
+          labels: fechas,
+          datasets: [
+            {
+              label: 'Saldo Acumulado',
+              data: saldos,
+              borderColor: 'rgba(59, 130, 246, 1)',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Evolución del Saldo',
+              font: {
+                family: 'Playfair Display',
+                size: 16
+              }
+            }
+          }
+        }
+      });
+
+      setTimeout(() => {
+        const imgData2 = canvas2.toDataURL('image/png');
+        doc.addImage(imgData2, 'PNG', 40, nextY, 500, 300);
+        const finalY = nextY + 320;
+
+        // Tabla de datos
+        doc.autoTable({ 
+          startY: finalY, 
+          head:[head], 
+          body, 
+          styles:{ fontSize:10, cellPadding:5 }, 
+          headStyles:{ fillColor:[251, 191, 36] }, 
+          theme:'striped' 
+        });
+        doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
+      }, 500);
+    }, 500);
+  } else {
+    // Para otras secciones, solo la tabla
+    doc.autoTable({ 
+      startY, 
+      head:[head], 
+      body, 
+      styles:{ fontSize:10, cellPadding:5 }, 
+      headStyles:{ fillColor:[251, 191, 36] }, 
+      theme:'striped' 
+    });
+    doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
+  }
 }
 function exportCSV(){
   const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0, -1);
@@ -2369,4 +2512,128 @@ function restoreState(){
     if (t && tabs[t]){
       current = t;
       document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-      const btn = document
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
+    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
+    const qv = localStorage.getItem('crm-q'); if (qv!==null) byId('q').value = qv;
+  }catch(e){}
+}
+['fDesde','fHasta','q'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', persistState);
+  if (el) el.addEventListener('change', persistState);
+});
+// Persist when changing tab as well (handled in click handler by calling persistState after switching)
+document.querySelectorAll("[data-tab]").forEach(b=>{
+  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
+    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault(); byId('newBtn')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    // Trigger search
+    setTimeout(()=> byId('filterBtn')?.click(), 0);
+  }
+  if (e.key === 'Escape'){
+    // Close modal if open
+    if (modal.classList.contains('show')){ closeModal(); }
+  }
+});
+
+// Money preview for Caja Chica
+function updateCajaPreview(){
+  const el = byId('f_caja_chica');
+  const pv = byId('caja_preview');
+  if (el && pv){
+    const val = Number(el.value || 0);
+    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
+    try{
+      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
+    }catch(e){ pv.textContent = ""; }
+  }
+}
+window.addEventListener('input', (e)=>{
+  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
+});
+// Call on modal open
+const __openModalOrig = openModal;
+openModal = async function(data=null){
+  await __openModalOrig(data);
+  updateCajaPreview();
+}
+
+// Función para agregar animaciones premium a elementos clave
+function addPremiumAnimations() {
+  // Animación para el logo
+  const logo = document.querySelector('.logo-container');
+  if (logo) {
+    logo.classList.add('animate-float');
+  }
+  
+  // Animación para KPIs
+  const kpis = document.querySelectorAll('.kpi');
+  kpis.forEach((kpi, index) => {
+    setTimeout(() => {
+      kpi.classList.add('animate-fade-in-up');
+    }, index * 100);
+  });
+  
+  // Animación para tarjetas
+  const cards = document.querySelectorAll('.table-card, .filters-container');
+  cards.forEach((card, index) => {
+    setTimeout(() => {
+      card.classList.add('animate-fade-in-up');
+    }, index * 150);
+  });
+  
+  // Efecto de brillo para botones dorados
+  const goldButtons = document.querySelectorAll('.btn-gold');
+  goldButtons.forEach(button => {
+    button.classList.add('gold-shimmer');
+  });
+}
+
+// Animaciones CSS adicionales
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+  }
+`;
+document.head.appendChild(style);
+
+// Initialize restore before first load
+restoreState();
+
+</script>
+</body>
+</html>
