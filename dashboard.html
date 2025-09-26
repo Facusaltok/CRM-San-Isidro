@@ -1673,6 +1673,7 @@ if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paque
     // Alternancia de filas + animación
     const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
     rows.insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${t}</tr>`);
+    if (current === 'paqueteria') { decoratePaqueteriaEstadoCells(); }
     __rowStripeIndex++;
   }
 
@@ -2644,28 +2645,31 @@ restoreState();
 
 // Decora celdas de Estado en Paquetería después del render
 function decoratePaqueteriaEstadoCells(){
-  try{
-    if (current !== 'paqueteria') return;
-    const estadoIdx = (tabs[current].head||[]).indexOf('Estado');
-    if (estadoIdx < 0) return;
-    const tbody = document.getElementById('rows');
-    const trs = tbody ? tbody.querySelectorAll('tr') : [];
-    trs.forEach(tr => {
-      const tds = tr.children;
-      if (!tds || !tds[estadoIdx]) return;
-      const td = tds[estadoIdx];
-      const raw = td.textContent.trim();
-      if (!raw) return;
-      if (raw.startsWith('<span') || raw.includes('status-badge')){
-        td.innerHTML = raw;
-        return;
-      }
-      const key = normalizeEstado(raw);
-      if (key === 'en cabina' || key === 'entregado'){
-        td.innerHTML = estadoBadge(key);
-      }
-    });
-  }catch(e){ console.warn('decoratePaqueteriaEstadoCells error', e); }
+try{
+if (current !== 'paqueteria') return;
+const estadoIdx = (() => {
+const heads = (tabs[current].head || []).map(h => (h || '').toString().trim().toLowerCase());
+const i = heads.indexOf('estado');
+return i >= 0 ? i : 3; // en Paquetería normalmente es la 4ª columna (index 3)
+})();
+
+
+const tbody = document.getElementById('rows');
+const trs = tbody ? tbody.querySelectorAll('tr') : [];
+trs.forEach(tr => {
+const tds = tr.children;
+if (!tds || !tds[estadoIdx]) return;
+const td = tds[estadoIdx];
+// Tomamos SIEMPRE el texto "crudo" (por si vino escapado como &lt;span ...&gt;)
+const raw = td.innerText.trim();
+if (!raw) return;
+// Caso 1: ya vino con markup impreso ("<span ...>") ⇒ activarlo
+if (raw.startsWith('<span')) { td.innerHTML = raw; return; }
+// Caso 2: vino texto canónico ⇒ envolver en badge
+const key = normalizeEstado(raw);
+if (key === 'en cabina' || key === 'entregado') td.innerHTML = estadoBadge(key);
+});
+}catch(e){ console.warn('decoratePaqueteriaEstadoCells error', e); }
 }
 
 </script>
