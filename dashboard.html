@@ -1363,6 +1363,7 @@ function applyOrdering(q){
   }
 }
 
+// Inicialización
 (async () => {
   const { data } = await sb.auth.getSession();
   if (!data?.session) { location.replace("./index.html"); return; }
@@ -1371,36 +1372,29 @@ function applyOrdering(q){
 
   byId("fDesde").value = "";
   byId("fHasta").value = "";
+
+  // Config inicial
   updateTableInfo();
-  buildHead(); toggleExtras(); resetPaging(); await load();
-  
-  // Cargar contadores de paquetería
+  buildHead();
+  toggleExtras();
+  resetPaging();
+  await load();
+
+  // Contadores de paquetería
   await loadPaqueteriaCounts();
-  
-  // Agregar animaciones a elementos clave
+
+  // Animaciones premium
   addPremiumAnimations();
 })();
 
+// Listeners de pestañas
 document.querySelectorAll("[data-tab]").forEach(b=>{
-  b.addEventListener("click", async ()=>{
-    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");
-    current = b.dataset.tab; editingId=null;
-    
-    // Mostrar/ocultar sub-pestañas de paquetería
-    if (current === 'paqueteria') {
-      paqueteriaSubTabs.classList.remove('hidden');
-      await loadPaqueteriaCounts();
-    } else {
-      paqueteriaSubTabs.classList.add('hidden');
-    }
-    
-    updateTableInfo();
-    buildHead(); toggleExtras(); resetPaging(); await load(true);
+  b.addEventListener("click", ()=>{
+    setTab(b.dataset.tab);   // 👈 usamos la nueva función que unifica todo
   });
 });
 
-// Eventos para las sub-pestañas de paquetería
+// Sub-pestañas de Paquetería
 document.getElementById('tabPendientes').addEventListener('click', async () => {
   paqueteriaEstado = 'en cabina';
   document.getElementById('tabPendientes').classList.add('active');
@@ -1416,6 +1410,7 @@ document.getElementById('tabEntregados').addEventListener('click', async () => {
   resetPaging();
   await load(true);
 });
+
 
 byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
 
