@@ -996,7 +996,7 @@
           </div>
           <div>
             <h1 class="text-4xl font-bold text-white">San Isidro</h1>
-            <p class="text-sm text-amber-100 mt-1">Panel de Control</p>
+            <p class="text-sm text-amber-100 mt-1">Panel de Control Premium</p>
           </div>
         </div>
         <div class="flex items-center gap-4">
@@ -1196,25 +1196,6 @@ const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 
-// === Helpers de Estado (Paquetería) ===
-const ESTADOS_PAQ = { 'en cabina': 'status-warning', 'entregado': 'status-success' };
-
-function normalizeEstado(v){
-  if (!v) return 'en cabina';
-  return v.toString().trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-function humanize(str){
-  return str.split(' ').map(s => s ? s[0].toUpperCase() + s.slice(1) : s).join(' ');
-}
-
-function estadoBadge(v){
-  const key   = normalizeEstado(v);
-  const cls   = ESTADOS_PAQ[key] || 'status-info';
-  const label = humanize(key);
-  return `<span class="status-badge ${cls}">${label}</span>`;
-}
-  
 /** WhatsApp */
 const WHATSAPP_MODE  = 'chooser';
 const WHATSAPP_PHONE = '54911XXXXXXXX';
@@ -1264,21 +1245,13 @@ const tabs = {
       {k:"notas",       l:"Notas",    t:"textarea"},
     ],
     // CAMBIO: Mejorar la visualización del estado en la tabla
-  row: r => [
-  r.receptor,
-  r.descripcion,
-  r.id_num,
-  // 👇 Renderizamos el estado como badge HTML
-  estadoBadge(r.estado),
-  r.fecha,
-  r.hora,
-  r.entregado_a || "—",
-  r.fecha_entrega || "—",
-  r.hora_entrega || "—",
-  r.notas || "",
-  actions(r.id)
-],
-
+    row: r => [
+      r.receptor, r.descripcion, r.id_num, 
+      `<span class="status-badge ${r.estado === 'entregado' ? 'status-success' : 'status-warning'}">${r.estado || 'en cabina'}</span>`, 
+      r.fecha, r.hora,
+      r.entregado_a || "—", r.fecha_entrega || "—", r.hora_entrega || "—",
+      r.notas || "", actions(r.id)
+    ],
     icon: "fas fa-box",
     color: "purple"
   },
@@ -1634,12 +1607,11 @@ async function load(clearBefore = true){
     if (orStr) q = q.or(orStr);
   }
 
-  // ✅ Filtro adicional para paquetería: solo si está seteado y no es "todos"
-  if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paqueteriaEstado && paqueteriaEstado !== 'todos') {
-    const norm = s => s.toString().trim().toLowerCase().replace(/\s+/g,' ');
-    q = q.eq('estado', norm(paqueteriaEstado));
+  // Filtro adicional para paquetería
+  if (current === 'paqueteria') {
+    q = q.eq('estado', paqueteriaEstado);
   }
- 
+
   // Orden centralizado (desc)
   q = applyOrdering(q);
 
@@ -1684,37 +1656,6 @@ async function load(clearBefore = true){
     byId('loadMoreBtn').classList.add('hidden');
     return;
   }
-
-  // === Render de filas ===
-  // Permitimos HTML solo en la columna "Estado" de Paquetería
-  const estadoIdx = tabs[current].head.indexOf("Estado");
-
-  for (const r of list){
-    const arr = tabs[current].row(r);
-
-    const t = arr.map((v,i)=> {
-      // ya tenías este criterio:
-      const isLink = (typeof v === 'string' && /<a\\s/i.test(v));
-      const isActions = (i === arr.length - 1);
-
-      // 👇 permitimos HTML sólo para Estado de Paquetería
-      const allowEstadoHtml = (current === 'paqueteria' && i === estadoIdx && typeof v === 'string' && v.includes('status-badge'));
-
-      const isRaw = isLink || isActions || allowEstadoHtml;
-      return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
-    }).join("");
-
-    // Alternancia de filas + animación (igual a tu versión)
-    const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
-    rows.insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${t}</tr>`);
-    __rowStripeIndex++;
-  }
-
-  if (current==="contable" && clearBefore) updateKpis(list);
-
-  byId('loadMoreBtn').classList.toggle('hidden', !canLoadMore());
-}
-
 
   for (const r of list){
     const arr = tabs[current].row(r);
