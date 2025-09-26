@@ -14,28 +14,29 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
   
   :root { 
-    --primary: #4f46e5;
-    --primary-light: #818cf8;
-    --secondary: #0ea5e9;
-    --secondary-light: #38bdf8;
-    --accent: #ec4899;
-    --accent-light: #f472b6;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --dark: #1e293b;
+    --primary: #1e40af;
+    --primary-light: #3b82f6;
+    --secondary: #0891b2;
+    --secondary-light: #06b6d4;
+    --accent: #7e22ce;
+    --accent-light: #a855f7;
+    --success: #059669;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --dark: #0f172a;
     --gray: #64748b;
-    --light: #f8fafc;
+    --light: #f1f5f9;
     --white: #ffffff;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    --radius: 16px;
-    --radius-lg: 24px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
   }
   
   * {
@@ -43,7 +44,7 @@
   }
   
   body { 
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: var(--dark);
     min-height: 100vh;
@@ -59,32 +60,32 @@
     width: 100%;
     height: 100%;
     background-image: 
-      radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.03) 0%, transparent 50%),
-      radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.03) 0%, transparent 50%);
+      radial-gradient(circle at 10% 20%, rgba(30, 64, 175, 0.02) 0%, transparent 50%),
+      radial-gradient(circle at 90% 80%, rgba(8, 145, 178, 0.02) 0%, transparent 50%);
     z-index: -1;
   }
   
   .accent-shape {
     position: fixed;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%);
-    filter: blur(40px);
+    background: linear-gradient(135deg, rgba(30, 64, 175, 0.05) 0%, rgba(8, 145, 178, 0.05) 100%);
+    filter: blur(60px);
     z-index: -1;
   }
   
   .accent-shape-1 {
-    width: 500px;
-    height: 500px;
+    width: 600px;
+    height: 600px;
     top: -200px;
-    right: -100px;
+    right: -200px;
   }
   
   .accent-shape-2 {
-    width: 400px;
-    height: 400px;
+    width: 500px;
+    height: 500px;
     bottom: -150px;
-    left: -100px;
-    background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%);
+    left: -150px;
+    background: linear-gradient(135deg, rgba(126, 34, 206, 0.05) 0%, rgba(8, 145, 178, 0.05) 100%);
   }
   
   /* Contenedor principal */
@@ -98,22 +99,23 @@
   header {
     background: linear-gradient(135deg, var(--white) 0%, #f8fafc 100%);
     border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: var(--shadow);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(10px);
   }
   
   .logo-container {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     border-radius: var(--radius);
-    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
   }
   
   .logo-container:hover {
     transform: translateY(-2px);
+    box-shadow: 0 12px 20px -5px rgba(30, 64, 175, 0.4);
   }
   
   /* Leyenda de seguridad */
@@ -122,7 +124,7 @@
     align-items: center; 
     gap: 0.75rem; 
     padding: 1rem 1.5rem; 
-    border: 1px solid rgba(79, 70, 229, 0.2); 
+    border: 1px solid rgba(30, 64, 175, 0.2); 
     border-radius: var(--radius); 
     background: linear-gradient(180deg, var(--white), #f0f9ff);
     margin-bottom: 2rem;
@@ -163,14 +165,14 @@
   /* Navegación */
   .nav-container {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-bottom: 2rem;
     overflow-x: auto;
     padding-bottom: 0.5rem;
   }
   
   .tab {
-    padding: 0.875rem 1.5rem;
+    padding: 0.875rem 1.75rem;
     border-radius: var(--radius);
     border: 1px solid transparent;
     background: var(--white);
@@ -196,7 +198,7 @@
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     color: var(--white);
     border-color: transparent;
-    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3);
     transform: translateY(-2px);
   }
   
@@ -233,7 +235,7 @@
     background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
     color: var(--white);
     border-color: transparent;
-    box-shadow: 0 8px 12px rgba(14, 165, 233, 0.3);
+    box-shadow: 0 8px 12px rgba(8, 145, 178, 0.3);
   }
   
   .tab-count {
@@ -387,7 +389,7 @@
   }
   
   tr:hover td {
-    background: rgba(79, 70, 229, 0.03);
+    background: rgba(30, 64, 175, 0.03);
   }
   
   /* Estados */
@@ -401,22 +403,22 @@
   }
   
   .status-success {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(5, 150, 105, 0.1);
     color: var(--success);
   }
   
   .status-warning {
-    background: rgba(245, 158, 11, 0.1);
+    background: rgba(217, 119, 6, 0.1);
     color: var(--warning);
   }
   
   .status-danger {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(220, 38, 38, 0.1);
     color: var(--danger);
   }
   
   .status-info {
-    background: rgba(14, 165, 233, 0.1);
+    background: rgba(8, 145, 178, 0.1);
     color: var(--secondary);
   }
   
@@ -445,13 +447,13 @@
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     color: var(--white);
     border-color: transparent;
-    box-shadow: 0 8px 12px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 8px 12px rgba(30, 64, 175, 0.3);
   }
   
   .btn-primary:hover { 
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary-light) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 12px 20px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 12px 20px rgba(30, 64, 175, 0.4);
   }
   
   .btn-danger {
@@ -461,7 +463,7 @@
   }
   
   .btn-danger:hover {
-    background: #dc2626;
+    background: #b91c1c;
   }
   
   /* Formularios */
@@ -479,7 +481,7 @@
   
   .input:focus { 
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.15);
   }
   
   .label {
@@ -502,7 +504,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(15, 23, 42, 0.8);
+    background-color: rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(8px);
     z-index: 9999;
     opacity: 0;
@@ -517,7 +519,7 @@
   
   .modal > div {
     background: var(--white);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-xl);
     max-width: 90%;
     width: 1200px;
@@ -609,12 +611,41 @@
     border-radius: var(--radius);
     padding: 1.5rem;
     margin-top: 1rem;
-    border: 1px solid rgba(14, 165, 233, 0.3);
+    border: 1px solid rgba(8, 145, 178, 0.3);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 0.95rem;
     line-height: 1.5;
     max-height: 300px;
     overflow-y: auto;
+  }
+  
+  /* Sugerencias de autocompletado */
+  .suggest {
+    position: absolute; 
+    z-index: 20; 
+    background: var(--white);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-xl);
+    max-height: 240px;
+    overflow: auto;
+    width: 100%;
+  }
+  
+  .suggest li {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  
+  .suggest li:hover {
+    background: rgba(30, 64, 175, 0.05);
+  }
+  
+  /* Note */
+  .note {
+    font-size: 0.8rem;
+    color: var(--gray);
   }
   
   /* Responsive */
@@ -662,7 +693,7 @@
           </div>
           <div>
             <h1 class="text-3xl font-bold text-gray-900">San Isidro</h1>
-            <p class="text-sm text-gray-600">Sistema de Gestión</p>
+            <p class="text-sm text-gray-600">Sistema de Gestión Integral</p>
           </div>
         </div>
         <div class="flex items-center gap-4">
@@ -1480,575 +1511,4 @@ function renderParteForm(data){
 
   const domes =
     `<div class="md:col-span-2"><label class="label">Empleadas domésticas (una por línea)</label><textarea id="f_empleadas" rows="3" class="input">${data?.empleadas??""}</textarea></div>
-    <div><label class="label">Niñera</label><input id="f_niniera" class="input" value="${data?.niniera??''}"></div>`;
-
-  const tec =
-    `<div><label class="label">Sistemas de cámaras</label><input id="f_tec_camaras" class="input" value="${data?.tec_camaras??''}"></div>
-    <div><label class="label">Cerco eléctrico</label><input id="f_tec_cerco" class="input" value="${data?.tec_cerco??''}"></div>
-    <div class="md:col-span-2"><label class="label">Portones (detalle)</label><input id="f_tec_portones" class="input" value="${data?.tec_portones??''}"></div>`;
-
-  const prof =
-    `<div><label class="label">Jardinero</label><input id="f_prof_jardinero" class="input" value="${data?.prof_jardinero??''}"></div>
-    <div><label class="label">Piletero</label><input id="f_prof_piletero" class="input" value="${data?.prof_piletero??''}"></div>
-    <div><label class="label">Paisajistas</label><input id="f_prof_paisajistas" class="input" value="${data?.prof_paisajistas??''}"></div>
-    <div><label class="label">Fumigador</label><input id="f_prof_fumigador" class="input" value="${data?.prof_fumigador??''}"></div>
-    <div><label class="label">Floristas</label><input id="f_prof_floristas" class="input" value="${data?.prof_floristas??''}"></div>`;
-
-  const invitados =
-    `<div class="md:col-span-2"><label class="label">Amigos de la Sra.</label><textarea id="f_amigos_sra" rows="3" class="input">${data?.amigos_sra??""}</textarea></div>
-    <div class="md:col-span-2"><label class="label">Amigos de Isabella</label><textarea id="f_amigos_isabella" rows="3" class="input">${data?.amigos_isabella??""}</textarea></div>
-    <div class="md:col-span-2"><label class="label">Amigos de Angie</label><textarea id="f_amigos_angie" rows="3" class="input">${data?.amigos_angie??""}</textarea></div>`;
-
-  const otros =
-    `<div class="md:col-span-2"><label class="label">Elementos asignados (una por línea)</label><textarea id="f_elementos" rows="3" class="input">${data?.elementos??""}</textarea></div>
-    <div class="md:col-span-2"><label class="label">OTROS</label><textarea id="f_otros" rows="3" class="input">${data?.otros??""}</textarea></div>
-    <div class="md:col-span-2"><label class="label">AGENDA (texto)</label><textarea id="f_agenda_texto" rows="3" class="input">${data?.agenda_texto??""}</textarea></div>`;
-
-  form.insertAdjacentHTML("beforeend", top);
-  form.insertAdjacentHTML("beforeend", sec("Operativo", op));
-  form.insertAdjacentHTML("beforeend", sec("Choferes", choferes));
-  form.insertAdjacentHTML("beforeend", sec("Vehículos", vehiculos));
-  form.insertAdjacentHTML("beforeend", sec("Familia en la quinta", familia));
-  form.insertAdjacentHTML("beforeend", sec("Personal doméstico", domes));
-  form.insertAdjacentHTML("beforeend", sec("Sistemas técnicos", tec));
-  form.insertAdjacentHTML("beforeend", sec("Profesionales", prof));
-  form.insertAdjacentHTML("beforeend", sec("Amigos / Invitados", invitados));
-  form.insertAdjacentHTML("beforeend", sec("Otros y Agenda", otros));
-
-  const quick = document.createElement('div');
-  quick.className = "md:col-span-2 flex flex-wrap gap-2 mt-2";
-  quick.innerHTML = `
-    <span class="note">Atajos: </span>
-    <button type="button" class="btn" onclick="fillNow('f_hora_inicio')">Inicio = ahora</button>
-    <button type="button" class="btn" onclick="fillNow('f_hora_fin')">Fin = ahora</button>
-    <button type="button" class="btn" onclick="copyAgendaDelDia()">Pegar agenda del día</button>
-  `;
-  form.appendChild(quick);
-}
-window.fillNow = (id) => { const el = byId(id); if (!el) return; const d = new Date(); el.value = d.toTimeString().slice(0,5); };
-window.copyAgendaDelDia = async () => {
-  const d = byId('f_fecha')?.value; if (!d) return;
-  const txt = await textoAgendaDelDia(d); if (!txt) return;
-  const a = byId('f_agenda_texto'); if (a) a.value = txt;
-};
-
-// Obtener datos del formulario
-function getFormData() {
-  const data = {};
-  
-  // Campos básicos
-  data.fecha = byId('f_fecha')?.value || '';
-  data.hora_inicio = byId('f_hora_inicio')?.value || '';
-  data.hora_fin = byId('f_hora_fin')?.value || '';
-  data.caja_chica = byId('f_caja_chica')?.value || '';
-  
-  // Secciones
-  data.cabina = byId('f_cabina')?.value || '';
-  data.amt = byId('f_amt')?.value || '';
-  data.puesto_hudson = byId('f_puesto_hudson')?.value || '';
-  
-  // Choferes
-  data.c1 = byId('f_c1')?.value || '';
-  data.c2 = byId('f_c2')?.value || '';
-  data.c3 = byId('f_c3')?.value || '';
-  data.c4 = byId('f_c4')?.value || '';
-  
-  // Vehículos
-  data.v_trailblazer = byId('f_v_trailblazer')?.value || '';
-  data.v_amarok = byId('f_v_amarok')?.value || '';
-  data.v_sw4 = byId('f_v_sw4')?.value || '';
-  data.v_corolla = byId('f_v_corolla')?.value || '';
-  data.v_q5 = byId('f_v_q5')?.value || '';
-  data.v_q7 = byId('f_v_q7')?.value || '';
-  
-  // Familia
-  data.fam1 = byId('f_fam1')?.value || '';
-  data.fam2 = byId('f_fam2')?.value || '';
-  data.fam3 = byId('f_fam3')?.value || '';
-  data.fam4 = byId('f_fam4')?.value || '';
-  data.fam5 = byId('f_fam5')?.value || '';
-  
-  // Personal doméstico
-  data.empleadas = byId('f_empleadas')?.value || '';
-  data.niniera = byId('f_niniera')?.value || '';
-  
-  // Sistemas técnicos
-  data.tec_camaras = byId('f_tec_camaras')?.value || '';
-  data.tec_cerco = byId('f_tec_cerco')?.value || '';
-  data.tec_portones = byId('f_tec_portones')?.value || '';
-  
-  // Profesionales
-  data.prof_jardinero = byId('f_prof_jardinero')?.value || '';
-  data.prof_piletero = byId('f_prof_piletero')?.value || '';
-  data.prof_paisajistas = byId('f_prof_paisajistas')?.value || '';
-  data.prof_fumigador = byId('f_prof_fumigador')?.value || '';
-  data.prof_floristas = byId('f_prof_floristas')?.value || '';
-  
-  // Amigos
-  data.amigos_sra = byId('f_amigos_sra')?.value || '';
-  data.amigos_isabella = byId('f_amigos_isabella')?.value || '';
-  data.amigos_angie = byId('f_amigos_angie')?.value || '';
-  
-  // Otros
-  data.elementos = byId('f_elementos')?.value || '';
-  data.otros = byId('f_otros')?.value || '';
-  data.agenda_texto = byId('f_agenda_texto')?.value || '';
-  
-  return data;
-}
-
-/* ===== Autocomplete Personas ===== */
-function attachPersonAutocomplete(){
-  const nameEl = byId('f_nombre');
-  const dniEl = byId('f_dni');
-  const vehEl = byId('f_vehiculo');
-  const domEl = byId('f_dominio');
-  const sugName = byId('suggest_nombre');
-  const sugDni = byId('suggest_dni');
-
-  const renderSug = (ul, items) => {
-    if (!items?.length){ ul.classList.add('hidden'); ul.innerHTML = ""; return; }
-    ul.innerHTML = items.map(p => `<li data-json='${JSON.stringify(p)}'>${esc(p.nombre||'')} — <span class="text-gray-500">${esc(p.dni||'')}</span></li>`).join("");
-    ul.classList.remove('hidden');
-    [...ul.querySelectorAll('li')].forEach(li=>{
-      li.addEventListener('click', async ()=>{
-        const p = JSON.parse(li.getAttribute('data-json'));
-        if (nameEl) nameEl.value = p.nombre || "";
-        if (dniEl) dniEl.value = p.dni || "";
-        try{
-          let q = sb.from('accesos').select('vehiculo,dominio,created_at').order('created_at',{ascending:false}).limit(1);
-          if (p.dni) q = q.eq('dni', p.dni);
-          else if (p.nombre) q = q.ilike('nombre', p.nombre);
-          const { data, error } = await q;
-          if (!error && data && data[0]){
-            if (vehEl && !vehEl.value) vehEl.value = data[0].vehiculo || '';
-            if (domEl && !domEl.value) domEl.value = data[0].dominio || '';
-          }
-        }catch(e){ console.warn(e); }
-        sugName?.classList.add('hidden'); sugDni?.classList.add('hidden');
-      });
-    });
-  };
-
-  let t1, t2;
-  nameEl?.addEventListener('input', async ()=>{
-    clearTimeout(t1);
-    t1 = setTimeout(async ()=>{
-      const q = nameEl.value.trim();
-      if (!q){ renderSug(sugName, []); return; }
-      // Permite "nombre apellido" también
-      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('nombre', `%${q}%`).limit(10);
-      if (error){ console.warn(error); return; }
-      renderSug(sugName, data);
-    }, 220);
-  });
-  dniEl?.addEventListener('input', async ()=>{
-    clearTimeout(t2);
-    t2 = setTimeout(async ()=>{
-      const q = dniEl.value.trim();
-      if (!q){ renderSug(sugDni, []); return; }
-      const { data, error } = await sb.from('personas').select('id,nombre,dni').ilike('dni', `%${q}%`).limit(10);
-      if (error){ console.warn(error); return; }
-      renderSug(sugDni, data);
-    }, 220);
-  });
-
-  document.addEventListener('click', (e)=>{
-    if (!sugName?.contains(e.target) && e.target!==nameEl) sugName?.classList.add('hidden');
-    if (!sugDni?.contains(e.target) && e.target!==dniEl) sugDni?.classList.add('hidden');
-  });
-}
-
-// Función para formatear el mensaje de WhatsApp sin emoticones
-function formatWhatsAppMessage(data) {
-  let message = `PARTE DIARIO - ${data.fecha}\n\n`;
-  
-  // Operativo
-  message += `OPERATIVO\n`;
-  message += `Inicio: ${data.hora_inicio || 'N/A'} - Fin: ${data.hora_fin || 'N/A'}\n`;
-  message += `Caja chica: ${data.caja_chica ? '$' + Number(data.caja_chica).toLocaleString('es-AR') : 'N/A'}\n\n`;
-  
-  // Secciones principales
-  if (data.cabina) message += `CABINA\n${data.cabina}\n\n`;
-  if (data.amt) message += `AMT\n${data.amt}\n\n`;
-  if (data.puesto_hudson) message += `PUESTO HUDSON\n${data.puesto_hudson}\n\n`;
-  
-  // Choferes
-  const choferes = [data.c1, data.c2, data.c3, data.c4].filter(c => c);
-  if (choferes.length > 0) {
-    message += `CHOFERES\n`;
-    choferes.forEach((chofer, i) => message += `C-${i+1}: ${chofer}\n`);
-    message += '\n';
-  }
-  
-  // Vehículos
-  const vehiculos = [];
-  if (data.v_trailblazer) vehiculos.push(`Trailblazer: ${data.v_trailblazer}`);
-  if (data.v_amarok) vehiculos.push(`Amarok: ${data.v_amarok}`);
-  if (data.v_sw4) vehiculos.push(`SW4: ${data.v_sw4}`);
-  if (data.v_corolla) vehiculos.push(`Toyota Corolla: ${data.v_corolla}`);
-  if (data.v_q5) vehiculos.push(`Q5: ${data.v_q5}`);
-  if (data.v_q7) vehiculos.push(`Q7: ${data.v_q7}`);
-  
-  if (vehiculos.length > 0) {
-    message += `VEHICULOS\n`;
-    vehiculos.forEach(v => message += `${v}\n`);
-    message += '\n';
-  }
-  
-  // Familia en la quinta
-  const familia = [];
-  if (data.fam1) familia.push(`Familia #1: ${data.fam1}`);
-  if (data.fam2) familia.push(`Familia #2: ${data.fam2}`);
-  if (data.fam3) familia.push(`Familia #3: ${data.fam3}`);
-  if (data.fam4) familia.push(`Familia #4: ${data.fam4}`);
-  if (data.fam5) familia.push(`Familia #5: ${data.fam5}`);
-  
-  if (familia.length > 0) {
-    message += `FAMILIA EN LA QUINTA\n`;
-    familia.forEach(f => message += `${f}\n`);
-    message += '\n';
-  }
-  
-  // Personal doméstico
-  if (data.empleadas || data.niniera) {
-    message += `PERSONAL DOMESTICO\n`;
-    if (data.empleadas) message += `Empleadas: ${data.empleadas}\n`;
-    if (data.niniera) message += `Niñera: ${data.niniera}\n`;
-    message += '\n';
-  }
-  
-  // Sistemas técnicos
-  if (data.tec_camaras || data.tec_cerco || data.tec_portones) {
-    message += `SISTEMAS TECNICOS\n`;
-    if (data.tec_camaras) message += `Camaras: ${data.tec_camaras}\n`;
-    if (data.tec_cerco) message += `Cerco electrico: ${data.tec_cerco}\n`;
-    if (data.tec_portones) message += `Portones: ${data.tec_portones}\n`;
-    message += '\n';
-  }
-  
-  // Profesionales
-  const profesionales = [];
-  if (data.prof_jardinero) profesionales.push(`Jardinero: ${data.prof_jardinero}`);
-  if (data.prof_piletero) profesionales.push(`Piletero: ${data.prof_piletero}`);
-  if (data.prof_paisajistas) profesionales.push(`Paisajistas: ${data.prof_paisajistas}`);
-  if (data.prof_fumigador) profesionales.push(`Fumigador: ${data.prof_fumigador}`);
-  if (data.prof_floristas) profesionales.push(`Floristas: ${data.prof_floristas}`);
-  
-  if (profesionales.length > 0) {
-    message += `PROFESIONALES\n`;
-    profesionales.forEach(p => message += `${p}\n`);
-    message += '\n';
-  }
-  
-  // Amigos / Invitados
-  if (data.amigos_sra || data.amigos_isabella || data.amigos_angie) {
-    message += `AMIGOS / INVITADOS\n`;
-    if (data.amigos_sra) message += `Amigos de la Sra.: ${data.amigos_sra}\n`;
-    if (data.amigos_isabella) message += `Amigos de Isabella: ${data.amigos_isabella}\n`;
-    if (data.amigos_angie) message += `Amigos de Angie: ${data.amigos_angie}\n`;
-    message += '\n';
-  }
-  
-  // Elementos asignados
-  if (data.elementos) {
-    message += `ELEMENTOS ASIGNADOS\n${data.elementos}\n\n`;
-  }
-  
-  // Agenda
-  if (data.agenda_texto) message += `AGENDA\n${data.agenda_texto}\n\n`;
-  
-  // Otros
-  if (data.otros) message += `OTROS\n${data.otros}\n\n`;
-  
-  // Final
-  message += `¡Que tengas un excelente dia!`;
-  
-  return message;
-}
-
-async function save(ev){
-  ev?.preventDefault?.();
-  const { data: u } = await sb.auth.getUser(); const uid = u?.user?.id; if (!uid){ alert("Sesión expirada"); return; }
-  const def = tabs[current]; let payload = { user_id: uid };
-
-  // Guardar todos los campos del formulario
-  const formData = getFormData();
-  
-  // Para la tabla parte_diario, necesitamos guardar todos los campos individualmente
-  if (current === "parte") {
-    // Campos básicos
-    payload.fecha = formData.fecha;
-    payload.hora_inicio = formData.hora_inicio;
-    payload.hora_fin = formData.hora_fin;
-    payload.caja_chica = formData.caja_chica ? Number(formData.caja_chica) : null;
-    
-    // Secciones principales
-    payload.cabina = formData.cabina;
-    payload.amt = formData.amt;
-    payload.puesto_hudson = formData.puesto_hudson;
-    
-    // Choferes
-    payload.c1 = formData.c1;
-    payload.c2 = formData.c2;
-    payload.c3 = formData.c3;
-    payload.c4 = formData.c4;
-    
-    // Vehículos
-    payload.v_trailblazer = formData.v_trailblazer;
-    payload.v_amarok = formData.v_amarok;
-    payload.v_sw4 = formData.v_sw4;
-    payload.v_corolla = formData.v_corolla;
-    payload.v_q5 = formData.v_q5;
-    payload.v_q7 = formData.v_q7;
-    
-    // Familia
-    payload.fam1 = formData.fam1;
-    payload.fam2 = formData.fam2;
-    payload.fam3 = formData.fam3;
-    payload.fam4 = formData.fam4;
-    payload.fam5 = formData.fam5;
-    
-    // Personal doméstico
-    payload.empleadas = formData.empleadas;
-    payload.niniera = formData.niniera;
-    
-    // Sistemas técnicos
-    payload.tec_camaras = formData.tec_camaras;
-    payload.tec_cerco = formData.tec_cerco;
-    payload.tec_portones = formData.tec_portones;
-    
-    // Profesionales
-    payload.prof_jardinero = formData.prof_jardinero;
-    payload.prof_piletero = formData.prof_piletero;
-    payload.prof_paisajistas = formData.prof_paisajistas;
-    payload.prof_fumigador = formData.prof_fumigador;
-    payload.prof_floristas = formData.prof_floristas;
-    
-    // Amigos
-    payload.amigos_sra = formData.amigos_sra;
-    payload.amigos_isabella = formData.amigos_isabella;
-    payload.amigos_angie = formData.amigos_angie;
-    
-    // Otros
-    payload.elementos = formData.elementos;
-    payload.otros = formData.otros;
-    payload.agenda_texto = formData.agenda_texto;
-  } else {
-    // Para otras tablas, usar el método original
-    for (const f of def.fields){
-      if (f.k === "file") continue;
-      const el = byId(`f_${f.k}`); if (!el) continue;
-      let v = el.value;
-      if (f.t==="number" && v!=="") v = Number(v);
-      if (f.r && (v===null || v==="")){ alert(`Completá: ${f.l}`); return; }
-      if (v==="") v = null;
-      payload[f.k] = v;
-    }
-  }
-
-  if (current==="accesos"){
-    try{
-      await sb.rpc('upsert_persona', {
-        p_nombre: val('f_nombre') || null,
-        p_dni: val('f_dni') || null,
-        p_telefono: null,
-        p_email: null
-      });
-    }catch(e){ console.warn(e); }
-  }
-
-  if (current==="contable"){
-    const fi = byId("f_file");
-    if (fi && fi.files && fi.files.length){
-      const file = fi.files[0];
-      const path = `${uid}/${Date.now()}_${file.name}`;
-      const up = await sb.storage.from("tickets").upload(path, file, { upsert: false });
-      if (up.error){ alert("Upload: " + up.error.message); return; }
-      const { data: pub } = sb.storage.from("tickets").getPublicUrl(path);
-      payload.url = pub?.publicUrl || null;
-    }
-  }
-
-  let resp;
-  if (editingId){ 
-    resp = await sb.from(def.table).update(payload).eq('id', editingId);
-  } else { 
-    resp = await sb.from(def.table).insert(payload); 
-  }
-  
-  if (resp.error){ 
-    alert("Guardar: " + resp.error.message); 
-    return; 
-  }
-
-  if (current==="parte"){
-    // Obtener el ID del registro recién guardado
-    let parteId = editingId;
-    if (!parteId) {
-      const { data: newRow } = await sb.from('parte_diario').select('id').eq('user_id', payload.user_id).order('created_at',{ascending:false}).limit(1).maybeSingle();
-      parteId = newRow?.id;
-    }
-    
-    if (parteId) {
-      // Generar el mensaje formateado sin emoticones
-      const mensaje = formatWhatsAppMessage(payload);
-      
-      // Guardar el mensaje en la tabla parte_diario_whatsapp
-      await sb.from('parte_diario_whatsapp').upsert({ 
-        id: parteId, 
-        mensaje: mensaje 
-      });
-      
-      // Abrir WhatsApp
-      const msg = encodeURIComponent(mensaje);
-      if (WHATSAPP_MODE === 'direct'){
-        const phone = (WHATSAPP_PHONE || "").replace(/\D/g,'');
-        const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
-        window.open(url, '_blank');
-      } else {
-        const url = `https://api.whatsapp.com/send?text=${msg}`;
-        window.open(url, '_blank');
-      }
-    }
-  }
-
-  editingId = null;
-  closeModal();
-  await load(true);
-}
-
-/* ===== Exportaciones ===== */
-function exportPDF(){
-  const map = {accesos:"Accesos", paqueteria:"Paquetería", contable:"Contable", parte:"Parte Diario"};
-  let head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0,-1);
-  let body = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0,-1).map(td => td.innerText));
-
-  if (!body.length){ alert("No hay datos para exportar."); return; }
-
-  let resumenHoras = "";
-  if (current==="accesos"){
-    const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].map(td => td.innerText));
-    const horas = rowsData.map(r => {
-      const horasText = r[r.length-2];
-      // Convertir formato "Xh Ym" a minutos totales
-      const match = horasText.match(/(\d+)h\s+(\d+)m/);
-      if (match) {
-        return parseInt(match[1]) * 60 + parseInt(match[2]);
-      }
-      return 0;
-    }).filter(n => !isNaN(n));
-    const totalMinutes = horas.reduce((a,b)=>a+b,0);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    resumenHoras = `Total de horas (lista): ${hours}h ${minutes}m`;
-  }
-
-  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
-  const title = `CRM — ${map[current]}`;
-  doc.setFontSize(16); doc.text(title, 40, 40);
-  if (resumenHoras) { doc.setFontSize(12); doc.text(resumenHoras, 40, 60); }
-
-  const startY = resumenHoras ? 80 : 60;
-  doc.autoTable({ startY, head:[head], body, styles:{ fontSize:10, cellPadding:5 }, headStyles:{ fillColor:[79, 70, 229] }, theme:'striped' });
-  doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
-}
-function exportCSV(){
-  const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0, -1);
-  const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0, -1).map(td => td.innerText.replaceAll("\n"," ").trim()));
-  if (!rowsData.length){ alert("No hay datos para exportar."); return; }
-  const escCSV = (v) => { const s = String(v ?? ""); return /[",\n;]/.test(s) ? `"${s.replaceAll('"','""')}"` : s; };
-  const csv = [head.map(escCSV).join(";")].concat(rowsData.map(r => r.map(escCSV).join(";"))).join("\n");
-  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"}); const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); const map = {accesos:"Accesos", paqueteria:"Paqueteria", contable:"Contable", parte:"Parte_Diario"};
-  a.href = url; a.download = `${map[current]}_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-}
-
-/* ===== Utils ===== */
-function byId(id){ return document.getElementById(id); }
-function esc(v){ return (""+v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
-function formatMoney(n){ const x = Number(n||0); return x.toLocaleString("es-AR",{style:"currency",currency:"ARS"}); }
-function nice(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
-function clean(o){ const x={}; for(const k in o){ const v=o[k]; if(v!==null && v!=="" && !(Array.isArray(v)&&v.length===0)) x[k]=v; } return x; }
-function val(id){ const el=byId(id); return el? (el.value||null) : null; }
-
-/* ==== Enhancements: state persistence, shortcuts, money preview ==== */
-function persistState(){
-  // Save filters and tab
-  try{
-    localStorage.setItem('crm-tab', current);
-    localStorage.setItem('crm-fDesde', byId('fDesde')?.value || '');
-    localStorage.setItem('crm-fHasta', byId('fHasta')?.value || '');
-    localStorage.setItem('crm-q', byId('q')?.value || '');
-  }catch(e){}
-}
-function restoreState(){
-  try{
-    const t = localStorage.getItem('crm-tab');
-    if (t && tabs[t]){
-      current = t;
-      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-      const btn = document.querySelector(`[data-tab="${t}"]`);
-      if (btn) btn.classList.add('active');
-    }
-    const d = localStorage.getItem('crm-fDesde'); if (d!==null) byId('fDesde').value = d;
-    const h = localStorage.getItem('crm-fHasta'); if (h!==null) byId('fHasta').value = h;
-    const qv = localStorage.getItem('crm-q'); if (qv!==null) byId('q').value = qv;
-  }catch(e){}
-}
-['fDesde','fHasta','q'].forEach(id=>{
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', persistState);
-  if (el) el.addEventListener('change', persistState);
-});
-// Persist when changing tab as well (handled in click handler by calling persistState after switching)
-document.querySelectorAll("[data-tab]").forEach(b=>{
-  b.addEventListener("click", ()=>{ setTimeout(persistState, 0); });
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e)=>{
-  if (e.key === '/' && !e.ctrlKey && !e.metaKey){
-    const q = byId('q'); if (q){ e.preventDefault(); q.focus(); q.select(); }
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
-    e.preventDefault(); byId('newBtn')?.click();
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
-    // Trigger search
-    setTimeout(()=> byId('filterBtn')?.click(), 0);
-  }
-  if (e.key === 'Escape'){
-    // Close modal if open
-    if (modal.classList.contains('show')){ closeModal(); }
-  }
-});
-
-// Money preview for Caja Chica
-function updateCajaPreview(){
-  const el = byId('f_caja_chica');
-  const pv = byId('caja_preview');
-  if (el && pv){
-    const val = Number(el.value || 0);
-    if (el.value === "" || isNaN(val)){ pv.textContent = ""; return; }
-    try{
-      pv.textContent = `Vista previa: ${val.toLocaleString('es-AR',{style:'currency', currency:'ARS'})}`;
-    }catch(e){ pv.textContent = ""; }
-  }
-}
-window.addEventListener('input', (e)=>{
-  if (e.target && e.target.id === 'f_caja_chica'){ updateCajaPreview(); }
-});
-// Call on modal open
-const __openModalOrig = openModal;
-openModal = async function(data=null){
-  await __openModalOrig(data);
-  updateCajaPreview();
-}
-
-// Initialize restore before first load
-restoreState();
-
-</script>
-</body>
-</html>
+    <div><label class="label">Niñera</label><input id="f_niniera" class="input"
