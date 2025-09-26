@@ -1611,6 +1611,30 @@ async function load(clearBefore = true){
   if (current === 'paqueteria') {
     q = q.eq('estado', paqueteriaEstado);
   }
+  rows.innerHTML = "";
+
+const estadoIdx = tabs[current].head.indexOf("Estado"); // calcula índice por título
+
+data.forEach(r => {
+  const tr = document.createElement('tr');
+  tr.className = 'row-fade';
+
+  const arr = tabs[current].row(r);
+  arr.forEach((val, idx) => {
+    const td = document.createElement('td');
+
+    // usamos `current` (no activeTab) y el índice real de "Estado"
+    if (current === 'paqueteria' && idx === estadoIdx && typeof val === 'string' && val.includes('status-badge')) {
+      td.innerHTML = val;   // renderiza el badge como HTML
+    } else {
+      td.textContent = (val ?? '—'); // resto seguro
+    }
+
+    tr.appendChild(td);
+  });
+
+  rows.appendChild(tr);
+});
 
   // Orden centralizado (desc)
   q = applyOrdering(q);
