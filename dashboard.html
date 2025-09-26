@@ -1552,6 +1552,8 @@ function calcHorasRaw(r){
 
 function totalHoras(list){
   let totalMinutes = 0;
+  const estadoIdx = tabs[current].head.indexOf(\"Estado\");
+
   for(const r of list){ 
     const h = calcHorasRaw(r);
     if(h != null) totalMinutes += h;
@@ -1607,12 +1609,12 @@ async function load(clearBefore = true){
     if (orStr) q = q.or(orStr);
   }
 
-  // Filtro adicional para paquetería
-  if (current === 'paqueteria') {
-    q = q.eq('estado', paqueteriaEstado);
-  }
-
-  // Orden centralizado (desc)
+  // Filtro adicional para paquetería (solo si hay valor válido)
+if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paqueteriaEstado && paqueteriaEstado !== 'todos') {
+  const _norm = s => s.toString().trim().toLowerCase().replace(/\s+/g,' ');
+  q = q.eq('estado', _norm(paqueteriaEstado));
+}
+// Orden centralizado (desc)
   q = applyOrdering(q);
 
   // Paginación
@@ -1660,11 +1662,15 @@ async function load(clearBefore = true){
   for (const r of list){
     const arr = tabs[current].row(r);
     const t = arr.map((v,i)=> {
-      const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
-      return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
-    }).join("");
-
-    // Alternancia de filas + animación
+  const allowEstadoHtml = (
+    current === 'paqueteria' && i === estadoIdx && typeof v === 'string' && v.includes('status-badge')
+  );
+  const isLink    = (typeof v === 'string' && /<a\\s/i.test(v));
+  const isActions = (i === arr.length - 1);
+  const isRaw = allowEstadoHtml || isLink || isActions;
+  return `<td class=\"py-3 pr-4 border-b border-slate-100 align-top\">${isRaw ? (v ?? \"\") : esc(v ?? \"\")}</td>`;
+}).join(\"\");
+// Alternancia de filas + animación
     const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
     rows.insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${t}</tr>`);
     __rowStripeIndex++;
