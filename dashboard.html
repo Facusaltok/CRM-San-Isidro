@@ -1195,6 +1195,12 @@
 const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+// === Helpers de Estado (Paquetería) ===
+const ESTADOS_PAQ = { 'en cabina': 'status-warning', 'entregado': 'status-success' };
+function normalizeEstado(v){ if(!v) return 'en cabina'; return v.toString().trim().toLowerCase().replace(/\s+/g,' '); }
+function humanize(str){ return str.split(' ').map(s => s ? s[0].toUpperCase()+s.slice(1) : s).join(' '); }
+function estadoBadge(v){ const key=normalizeEstado(v); const cls=ESTADOS_PAQ[key]||'status-info'; const label=humanize(key); return `<span class="status-badge ${cls}">${label}</span>`; }
+
 
 /** WhatsApp */
 const WHATSAPP_MODE  = 'chooser';
@@ -1607,12 +1613,12 @@ async function load(clearBefore = true){
     if (orStr) q = q.or(orStr);
   }
 
-  // Filtro adicional para paquetería
-  if (current === 'paqueteria') {
-    q = q.eq('estado', paqueteriaEstado);
-  }
-
-  // Orden centralizado (desc)
+  // Filtro adicional para paquetería (solo si hay valor válido)
+if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paqueteriaEstado && paqueteriaEstado !== 'todos') {
+  const _norm = s => s.toString().trim().toLowerCase().replace(/\s+/g,' ');
+  q = q.eq('estado', _norm(paqueteriaEstado));
+}
+// Orden centralizado (desc)
   q = applyOrdering(q);
 
   // Paginación
@@ -2634,6 +2640,33 @@ document.head.appendChild(style);
 
 // Initialize restore before first load
 restoreState();
+
+
+// Decora celdas de Estado en Paquetería después del render
+function decoratePaqueteriaEstadoCells(){
+  try{
+    if (current !== 'paqueteria') return;
+    const estadoIdx = (tabs[current].head||[]).indexOf('Estado');
+    if (estadoIdx < 0) return;
+    const tbody = document.getElementById('rows');
+    const trs = tbody ? tbody.querySelectorAll('tr') : [];
+    trs.forEach(tr => {
+      const tds = tr.children;
+      if (!tds || !tds[estadoIdx]) return;
+      const td = tds[estadoIdx];
+      const raw = td.textContent.trim();
+      if (!raw) return;
+      if (raw.startsWith('<span') || raw.includes('status-badge')){
+        td.innerHTML = raw;
+        return;
+      }
+      const key = normalizeEstado(raw);
+      if (key === 'en cabina' || key === 'entregado'){
+        td.innerHTML = estadoBadge(key);
+      }
+    });
+  }catch(e){ console.warn('decoratePaqueteriaEstadoCells error', e); }
+}
 
 </script>
 </body>
