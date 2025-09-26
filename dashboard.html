@@ -6,7 +6,7 @@
 <meta http-equiv="Expires" content="0">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CRM — Dashboard</title>
+<title>CRM — Dashboard Premium</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -996,7 +996,7 @@
           </div>
           <div>
             <h1 class="text-4xl font-bold text-white">San Isidro</h1>
-            <p class="text-sm text-amber-100 mt-1">Panel de Control </p>
+            <p class="text-sm text-amber-100 mt-1">Panel de Control Premium</p>
           </div>
         </div>
         <div class="flex items-center gap-4">
@@ -1196,31 +1196,6 @@ const SUPABASE_URL = "https://ecmjxpnpdgmvnxmbciur.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbWp4cG5wZGdtdm54bWJjaXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTkyOTcsImV4cCI6MjA3MTY5NTI5N30.ARF49W4hlEbS9KSu2jAeN-W-Q0ORTbHowfVaZv62Cis";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 
-// === Helpers de Paquetería: normalización y badge ===
-const ESTADOS_PAQ = {
-  'en cabina': 'status-warning',
-  'entregado': 'status-success'
-};
-
-function normalizeEstado(v){
-  if (!v) return 'en cabina';
-  return v.toString().trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-function humanize(str){
-  return str.split(' ')
-            .map(s => s ? s[0].toUpperCase() + s.slice(1) : s)
-            .join(' ');
-}
-
-function estadoBadge(v){
-  const key = normalizeEstado(v);
-  const cls = ESTADOS_PAQ[key] || 'status-info';   // fallback si viene algo inesperado
-  const label = humanize(key);                     // "en cabina" -> "En Cabina"
-  return `<span class="status-badge ${cls}">${label}</span>`;
-}
-  
-  
 /** WhatsApp */
 const WHATSAPP_MODE  = 'chooser';
 const WHATSAPP_PHONE = '54911XXXXXXXX';
@@ -1258,35 +1233,28 @@ const tabs = {
     table: "paqueteria",
     head: ["Receptor","Descripción","N° ID","Estado","Fecha","Hora","Entregado a","F. Entrega","H. Entrega","Notas",""],
     fields: [
-      {k:"receptor",       l:"Receptor", t:"text", r:true},
-      {k:"descripcion",    l:"Descripción", t:"text", r:true},
-      {k:"id_num",         l:"N° ID", t:"text"},
-      {k:"estado",         l:"Estado", t:"select", p:["en cabina","entregado"], r:true},
-      {k:"fecha",          l:"Fecha", t:"date"},
-      {k:"hora",           l:"Hora", t:"time"},
-      {k:"entregado_a",    l:"Entregado a", t:"text"},
-      {k:"fecha_entrega",  l:"Fecha de entrega", t:"date"},
-      {k:"hora_entrega",   l:"Hora de entrega", t:"time"},
-      {k:"notas",          l:"Notas", t:"textarea"},
+      {k:"receptor",    l:"Receptor", t:"text", r:true},
+      {k:"descripcion", l:"Descripción", t:"text", r:true},
+      {k:"id_num",      l:"N° ID", t:"text"},
+      {k:"estado",      l:"Estado", t:"select", p:["en cabina","entregado"], r:true},
+      {k:"fecha",       l:"Fecha",    t:"date"},
+      {k:"hora",        l:"Hora",     t:"time"},
+      {k:"entregado_a", l:"Entregado a", t:"text"},
+      {k:"fecha_entrega", l:"Fecha de entrega", t:"date"},
+      {k:"hora_entrega",  l:"Hora de entrega",  t:"time"},
+      {k:"notas",       l:"Notas",    t:"textarea"},
     ],
+    // CAMBIO: Mejorar la visualización del estado en la tabla
     row: r => [
-      r.receptor,
-      r.descripcion,
-      r.id_num,
-      // === Estado normalizado con badge ===
-      estadoBadge(r.estado),
-      r.fecha,
-      r.hora,
-      r.entregado_a || "—",
-      r.fecha_entrega || "—",
-      r.hora_entrega || "—",
-      r.notas || "",
-      actions(r.id)
+      r.receptor, r.descripcion, r.id_num, 
+      `<span class="status-badge ${r.estado === 'entregado' ? 'status-success' : 'status-warning'}">${r.estado || 'en cabina'}</span>`, 
+      r.fecha, r.hora,
+      r.entregado_a || "—", r.fecha_entrega || "—", r.hora_entrega || "—",
+      r.notas || "", actions(r.id)
     ],
     icon: "fas fa-box",
     color: "purple"
   },
-
   contable: {
     table: "movimientos",
     head: ["Tipo","Concepto","Monto","Fecha","Comprobante",""],
@@ -1612,15 +1580,15 @@ window.deleteRow = async function(id){
 
 let __rowStripeIndex = 0; // para alternar blanco / dorado
 
-async function load(clearBefore = true) {
-  if (clearBefore) {
-    rows.innerHTML = "";
-    resetPaging();
-    __rowStripeIndex = 0;
+async function load(clearBefore = true){
+  if (clearBefore) { 
+    rows.innerHTML=""; 
+    resetPaging(); 
+    __rowStripeIndex = 0; 
   }
-  empty.classList.add("hidden");
-  errEl.textContent = "";
-  
+  empty.classList.add("hidden"); 
+  errEl.textContent="";
+
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
   const qText = byId("q").value.trim();
 
@@ -1643,29 +1611,6 @@ async function load(clearBefore = true) {
   if (current === 'paqueteria') {
     q = q.eq('estado', paqueteriaEstado);
   }
-  // Render de filas (fragmento)
-rows.innerHTML = "";                     // Limpio el tbody
-data.forEach(r => {
-  const tr = document.createElement('tr');
-  tr.className = 'row-fade';
-
-  const arr = tabs[activeTab].row(r);    // <-- ya te arma el array de celdas
-  arr.forEach((val, idx) => {
-    const td = document.createElement('td');
-
-    // Permitir HTML SOLO en Paquetería, columna "Estado" (índice 3)
-    if (activeTab === 'paqueteria' && idx === 3 && typeof val === 'string' && val.includes('status-badge')) {
-      td.innerHTML = val;                // <span class="status-badge …">…</span>
-    } else {
-      td.textContent = (val ?? '—');     // resto seguro como texto
-    }
-
-    tr.appendChild(td);
-  });
-
-  rows.appendChild(tr);
-});
-
 
   // Orden centralizado (desc)
   q = applyOrdering(q);
