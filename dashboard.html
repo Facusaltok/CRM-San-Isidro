@@ -1612,14 +1612,41 @@ window.deleteRow = async function(id){
 
 let __rowStripeIndex = 0; // para alternar blanco / dorado
 
-async function load(clearBefore = true){
-  if (clearBefore) { 
-    rows.innerHTML=""; 
-    resetPaging(); 
-    __rowStripeIndex = 0; 
+async function load(clearBefore = true) {
+  if (clearBefore) {
+    rows.innerHTML = "";
+    resetPaging();
+    __rowStripeIndex = 0;
   }
-  empty.classList.add("hidden"); 
-  errEl.textContent="";
+  empty.classList.add("hidden");
+  errEl.textContent = "";
+
+  // ... tu lógica de consulta a Supabase ...
+
+  // Render de filas
+  rows.innerHTML = ""; // Limpio el tbody
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = 'row-fade';
+
+    const arr = tabs[activeTab].row(r);
+    arr.forEach((val, idx) => {
+      const td = document.createElement('td');
+
+      // SOLO para Paquetería → Estado (columna 3) permito HTML
+      if (activeTab === 'paqueteria' && idx === 3 && typeof val === 'string' && val.includes('status-badge')) {
+        td.innerHTML = val;
+      } else {
+        td.textContent = (val ?? '—');
+      }
+
+      tr.appendChild(td);
+    });
+
+    rows.appendChild(tr);
+  });
+}
+
 
   const desde = byId("fDesde").value, hasta = byId("fHasta").value;
   const qText = byId("q").value.trim();
