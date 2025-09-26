@@ -1582,14 +1582,15 @@ let __rowStripeIndex = 0; // para alternar blanco / dorado
 
 async function load(clearBefore = true){
   if (clearBefore) { 
-    rows.innerHTML=""; 
+    rows.innerHTML = ""; 
     resetPaging(); 
     __rowStripeIndex = 0; 
   }
   empty.classList.add("hidden"); 
-  errEl.textContent="";
+  errEl.textContent = "";
 
-  const desde = byId("fDesde").value, hasta = byId("fHasta").value;
+  const desde = byId("fDesde").value;
+  const hasta = byId("fHasta").value;
   const qText = byId("q").value.trim();
 
   // Base query sin orden inicial
@@ -1597,21 +1598,25 @@ async function load(clearBefore = true){
             .select("*", { count: "exact", head: false });
 
   // Fechas por tabla
-  const dateCol = current==="accesos" ? "f_ing" : current==="paqueteria" ? "fecha" : current==="contable" ? "fecha" : "fecha";
+  const dateCol = (current === "accesos") ? "f_ing" : "fecha";
   if (desde) q = q.gte(dateCol, desde);
   if (hasta) q = q.lte(dateCol, hasta);
 
-  // Filtro en servidor
+  // Filtro en servidor por texto
   if (qText){
     const orStr = buildSearchOr(current, qText);
     if (orStr) q = q.or(orStr);
   }
 
-  // Filtro adicional para paquetería
-  if (current === 'paqueteria') {
-    q = q.eq('estado', paqueteriaEstado);
+  // ✅ Filtro adicional para paquetería: SOLO si hay un valor válido
+  //    Evitamos vaciar la tabla cuando paqueteriaEstado no está seteado
+  if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paqueteriaEstado && paqueteriaEstado !== 'todos') {
+    // Normalizo el valor para asegurar coincidencia exacta
+    const norm = (s)=> s.toString().trim().toLowerCase().replace(/\s+/g,' ');
+    const estadoFiltro = norm(paqueteriaEstado); // "en cabina" | "entregado"
+    q = q.eq('estado', estadoFiltro);
   }
- 
+
   // Orden centralizado (desc)
   q = applyOrdering(q);
 
@@ -1636,9 +1641,10 @@ async function load(clearBefore = true){
     return; 
   }
 
-  const list = qText ? (data||[]) : filterLocal(data||[]);
-  lastBatchCount = (data||[]).length;
-  
+  // Filtro local (si lo usás)
+  const list = qText ? (data || []) : filterLocal(data || []);
+  lastBatchCount = (data || []).length;
+
   // Actualizar contador de registros
   if (clearBefore) {
     recordCount.textContent = `${count || 0} registros`;
@@ -1657,10 +1663,23 @@ async function load(clearBefore = true){
     return;
   }
 
+  // ===== Render de filas =====
+  // Permitimos HTML solo en la columna "Estado" de Paquetería
+  const estadoIdx = tabs[current].head.indexOf("Estado");
+
   for (const r of list){
     const arr = tabs[current].row(r);
+
     const t = arr.map((v,i)=> {
-      const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
+      // Permitir HTML en:
+      // - la columna Estado de Paquetería (badge)
+      // - celdas con enlaces <a ...> (comprobantes)
+      // - última columna (botones acciones)
+      const allowHtmlForEstado = (current === 'paqueteria' && i === estadoIdx && typeof v === 'string' && v.includes('status-badge'));
+      const isLink = (typeof v === 'string' && /<a\s/i.test(v));
+      const isActions = (i === arr.length - 1);
+
+      const isRaw = allowHtmlForEstado || isLink || isActions;
       return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
     }).join("");
 
@@ -1674,34 +1693,7 @@ async function load(clearBefore = true){
 
   byId('loadMoreBtn').classList.toggle('hidden', !canLoadMore());
 }
-function updateKpis(list){
-  let ing=0,egr=0; for(const r of list){ if(r.tipo==="Ingreso") ing+=Number(r.monto||0); if(r.tipo==="Egreso") egr+=Number(r.monto||0); }
-  byId("k_ing").textContent = formatMoney(ing);
-  byId("k_egr").textContent = formatMoney(egr);
-  byId("k_saldo").textContent = formatMoney(ing-egr);
-}
 
-// Cargar contadores de paquetería
-async function loadPaqueteriaCounts() {
-  try {
-    // Contar pendientes
-    const { count: pendientes, error: error1 } = await sb
-      .from('paqueteria')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'en cabina');
-    
-    // Contar entregados
-    const { count: entregados, error: error2 } = await sb
-      .from('paqueteria')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'entregado');
-    
-    if (!error1) pendientesCount.textContent = pendientes || 0;
-    if (!error2) entregadosCount.textContent = entregados || 0;
-  } catch (e) {
-    console.error('Error al cargar contadores de paquetería:', e);
-  }
-}
 
 async function kpiSaldoHasta(fechaISO){
   const { data, error } = await sb.from('movimientos').select('monto,tipo').lte('fecha', fechaISO);
