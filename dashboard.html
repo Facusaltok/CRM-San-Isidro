@@ -2646,10 +2646,11 @@ function decoratePaqueteriaEstadoCells(){
 try{
 if (current !== 'paqueteria') return;
 const estadoIdx = (() => {
-const heads = (tabs[current].head || []).map(h => (h || '').toString().trim().toLowerCase());
-const i = heads.indexOf('estado');
-return i >= 0 ? i : 3; // en Paquetería normalmente es la 4ª columna (index 3)
+  const heads = (tabs[current].head || []).map(h => (h || '').toString().trim().toLowerCase());
+  const i = heads.indexOf('estado');
+  return i >= 0 ? i : 3; // fallback: suele ser la 4ª columna en Paquetería
 })();
+
 
 
 const tbody = document.getElementById('rows');
