@@ -1394,12 +1394,10 @@ document.querySelectorAll("[data-tab]").forEach(b=>{
     current = b.dataset.tab; editingId=null;
     
     // Mostrar/ocultar sub-pestañas de paquetería
-    if (current === 'paqueteria') {
-      paqueteriaSubTabs.classList.remove('hidden');
-      await loadPaqueteriaCounts();
-    } else {
-      paqueteriaSubTabs.classList.add('hidden');
-    }
+   if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paqueteriaEstado && paqueteriaEstado !== 'todos') {
+const _norm = s => s.toString().trim().toLowerCase().replace(/\s+/g,' ');
+q = q.eq('estado', _norm(paqueteriaEstado));
+}
     
     updateTableInfo();
     buildHead(); toggleExtras(); resetPaging(); await load(true);
