@@ -1407,6 +1407,7 @@ document.querySelectorAll("[data-tab]").forEach(b=>{
 });
 
 // Eventos para las sub-pestañas de paquetería
+  if (!window.__paqTabsBound) {
 document.getElementById('tabPendientes').addEventListener('click', async () => {
   paqueteriaEstado = 'en cabina';
   document.getElementById('tabPendientes').classList.add('active');
@@ -1422,7 +1423,9 @@ document.getElementById('tabEntregados').addEventListener('click', async () => {
   resetPaging();
   await load(true);
 });
-
+  window.__paqTabsBound = true;   // ← bandera global
+}
+    
 byId("logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.replace("./index.html"); });
 
 byId("refreshBtn").addEventListener("click", async ()=>{
@@ -1614,17 +1617,19 @@ async function load(clearBefore = true){
   }
 
   // Filtro adicional para paquetería (solo si hay valor válido)
+// Filtro adicional para paquetería (solo si corresponde)
 if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paqueteriaEstado && paqueteriaEstado !== 'todos') {
   const _norm = s => s.toString().trim().toLowerCase().replace(/\s+/g,' ');
-  q = q.eq('estado', _norm(paqueteriaEstado));
+  q = q.eq('estado', _norm(paqueteriaEstado)); // "en cabina" | "entregado"
 }
+
 // Orden centralizado (desc)
   q = applyOrdering(q);
 
   // Paginación
-  const from = page * PAGE_SIZE;
-  const to   = from + PAGE_SIZE - 1;
-  q = q.range(from, to);
+const PAGE_SIZE = 50;     // ya lo tenés
+const from = page * PAGE_SIZE, to = from + PAGE_SIZE - 1;
+q = q.range(from, to);
 
   // Verificar si el usuario es administrador
   const { data: { user } } = await sb.auth.getUser();
@@ -1666,9 +1671,14 @@ if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paque
   for (const r of list){
     const arr = tabs[current].row(r);
     const t = arr.map((v,i)=> {
-      const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
-      return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
-    }).join("");
+      const allowEstadoHtml =
+  (current === 'paqueteria' && i === estadoIdx && typeof v === 'string' && v.includes('status-badge'));
+
+const isLink    = (typeof v === 'string' && /<a\s/i.test(v));   // lo que ya tenías
+const isActions = (i === arr.length - 1);                       // lo que ya tenías
+
+const isRaw = allowEstadoHtml || isLink || isActions;
+return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
 
     // Alternancia de filas + animación
     const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
