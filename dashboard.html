@@ -1666,7 +1666,7 @@ if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paque
   for (const r of list){
     const arr = tabs[current].row(r);
     const t = arr.map((v,i)=> {
-      const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
+     const isRaw = (typeof v === 'string' && /^<\s*(a|span|div|button|img|svg)\b/i.test(v)) || i === arr.length - 1;
       return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
     }).join("");
 
