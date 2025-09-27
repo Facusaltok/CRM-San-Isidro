@@ -1669,12 +1669,23 @@ q = q.range(from, to);
   }
 
   for (const r of list){
-    const arr = tabs[current].row(r);
-    const t = arr.map((v,i)=> {
-      const allowEstadoHtml =
-    const isRaw = (typeof v === 'string' && /<a\s/i.test(v)) || i === arr.length - 1;
-      return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
-    }).join("");
+// índice robusto de la columna Estado
+const estadoIdx = (() => {
+const heads = (tabs[current].head || []).map(h => (h || '').toString().trim().toLowerCase());
+const i = heads.indexOf('estado');
+return i >= 0 ? i : 3; // fallback típico en Paquetería
+})();
+
+
+const t = arr.map((v,i)=> {
+const allowEstadoHtml = (
+current === 'paqueteria' && i === estadoIdx && typeof v === 'string' && v.includes('status-badge')
+);
+const isLink = (typeof v === 'string' && /<a\s/i.test(v));
+const isActions = (i === arr.length - 1);
+const isRaw = allowEstadoHtml || isLink || isActions;
+return `<td class="py-3 pr-4 border-b border-slate-100 align-top">${isRaw ? (v ?? "") : esc(v ?? "")}</td>`;
+}).join("");
 
     // Alternancia de filas + animación
     const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
