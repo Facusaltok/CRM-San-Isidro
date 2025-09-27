@@ -1338,7 +1338,7 @@ const whatsappPreviewContainer = byId("whatsappPreviewContainer");
 const whatsappPreview = byId("whatsappPreview");
 const previewBtn = byId("previewBtn");
 
-let current = "accesos", editingId = null, paqueteriaEstado = 'en cabina';
+let current = 'accesos', editingId = null, paqueteriaEstado = 'todos';
 
 /* Paginación */
 const PAGE_SIZE = 200;
@@ -1625,7 +1625,7 @@ if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paque
   q = applyOrdering(q);
 
   // Paginación
-const PAGE_SIZE = 50;     // ya lo tenés
+const PAGE_SIZE = 50; // 50 o 100
 const from = page * PAGE_SIZE, to = from + PAGE_SIZE - 1;
 q = q.range(from, to);
 
