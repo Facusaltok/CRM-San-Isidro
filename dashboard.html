@@ -1673,7 +1673,6 @@ if (current === 'paqueteria' && typeof paqueteriaEstado !== 'undefined' && paque
     // Alternancia de filas + animación
     const stripeClass = (__rowStripeIndex % 2 === 0) ? 'row-blank' : 'row-gold';
     rows.insertAdjacentHTML("beforeend", `<tr class="row-fade ${stripeClass}">${t}</tr>`);
-    if (current === 'paqueteria') { decoratePaqueteriaEstadoCells(); }
     __rowStripeIndex++;
   }
 
