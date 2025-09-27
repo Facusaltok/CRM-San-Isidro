@@ -2009,8 +2009,8 @@ function attachPersonAutocomplete(){
 function formatWhatsAppMessage(data) {
   let message = `PARTE DIARIO - ${data.fecha}\n\n`;
   
-  // Operativo
-  message += `OPERATIVO\n`;
+  // Seguridad
+  message += `SEGURIDAD\n`;
   message += `Inicio: ${data.hora_inicio || 'N/A'} - Fin: ${data.hora_fin || 'N/A'}\n`;
   message += `Caja chica: ${data.caja_chica ? '$' + Number(data.caja_chica).toLocaleString('es-AR') : 'N/A'}\n\n`;
   
@@ -2090,7 +2090,7 @@ function formatWhatsAppMessage(data) {
   // Amigos / Invitados
   if (data.amigos_sra || data.amigos_isabella || data.amigos_angie) {
     message += `AMIGOS / INVITADOS\n`;
-    if (data.amigos_sra) message += `Amigos de la Sra.: ${data.amigos_sra}\n`;
+    if (data.amigos_sra) message += `Amigos de Amalia: ${data.amigos_sra}\n`;
     if (data.amigos_isabella) message += `Amigos de Isabella: ${data.amigos_isabella}\n`;
     if (data.amigos_angie) message += `Amigos de Angie: ${data.amigos_angie}\n`;
     message += '\n';
@@ -2108,7 +2108,7 @@ function formatWhatsAppMessage(data) {
   if (data.otros) message += `OTROS\n${data.otros}\n\n`;
   
   // Final
-  message += `¡Que tengas un excelente dia!`;
+  message += `¡CRM - San Isidro!`;
   
   return message;
 }
