@@ -2006,11 +2006,10 @@ function attachPersonAutocomplete(){
 
 // Función para formatear el mensaje de WhatsApp sin emoticones
 function formatWhatsAppMessage(data) {
-  let message = `PARTE DIARIO - ${data.fecha}\n\n`;
+  let message = `SERVICIO - ${data.fecha}\n\n`;
   
   // Seguridad
-  message += `SEGURIDAD\n`;
-  message += `Inicio: ${data.hora_inicio || 'N/A'} - Fin: ${data.hora_fin || 'N/A'}\n`;
+   message += `Inicio: ${data.hora_inicio || 'N/A'} - Fin: ${data.hora_fin || 'N/A'}\n`;
   message += `Caja chica: ${data.caja_chica ? '$' + Number(data.caja_chica).toLocaleString('es-AR') : 'N/A'}\n\n`;
   
   // Secciones principales
@@ -2032,7 +2031,8 @@ function formatWhatsAppMessage(data) {
   if (data.v_amarok) vehiculos.push(`Amarok: ${data.v_amarok}`);
   if (data.v_sw4) vehiculos.push(`SW4: ${data.v_sw4}`);
   if (data.v_corolla) vehiculos.push(`Toyota Corolla: ${data.v_corolla}`);
-  if (data.v_q5) vehiculos.push(`Q5: ${data.v_q5}`);
+  if (data.v_q5) vehiculos.push(`Q5 C-1: ${data.v_q5}`);
+  if (data.v_q5) vehiculos.push(`Q5 C-2: ${data.v_q5}`);
   if (data.v_q7) vehiculos.push(`Q7: ${data.v_q7}`);
   
   if (vehiculos.length > 0) {
@@ -2048,6 +2048,7 @@ function formatWhatsAppMessage(data) {
   if (data.fam3) familia.push(`Familia #3: ${data.fam3}`);
   if (data.fam4) familia.push(`Familia #4: ${data.fam4}`);
   if (data.fam5) familia.push(`Familia #5: ${data.fam5}`);
+  if (data.fam5) familia.push(`Familia #6: ${data.fam5}`);
   
   if (familia.length > 0) {
     message += `FAMILIA EN LA QUINTA\n`;
@@ -2079,6 +2080,7 @@ function formatWhatsAppMessage(data) {
   if (data.prof_paisajistas) profesionales.push(`Paisajistas: ${data.prof_paisajistas}`);
   if (data.prof_fumigador) profesionales.push(`Fumigador: ${data.prof_fumigador}`);
   if (data.prof_floristas) profesionales.push(`Floristas: ${data.prof_floristas}`);
+  if (data.prof_jardinero) profesionales.push(`Parrillero: ${data.prof_jardinero}`);
   
   if (profesionales.length > 0) {
     message += `PROFESIONALES\n`;
