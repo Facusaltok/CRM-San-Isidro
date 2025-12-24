@@ -1116,11 +1116,11 @@
         <div id="paqueteriaSubTabs" class="sub-tabs-container hidden">
           <button id="tabPendientes" class="sub-tab active">
             <i class="fas fa-clock"></i> Pendientes
-            <span id="pendientesCount" class="tab-count">0</span>
+            <span id="pendientesCount" class="tab-count"></span>
           </button>
           <button id="tabEntregados" class="sub-tab">
             <i class="fas fa-check-circle"></i> Entregados
-            <span id="entregadosCount" class="tab-count">0</span>
+            <span id="entregadosCount" class="tab-count"></span>
           </button>
         </div>
 
@@ -2006,10 +2006,9 @@ function attachPersonAutocomplete(){
 
 // Función para formatear el mensaje de WhatsApp sin emoticones
 function formatWhatsAppMessage(data) {
-  let message = `PARTE DIARIO - ${data.fecha}\n\n`;
+  let message = `SERVICIO - ${data.fecha}\n\n`;
   
   // Seguridad
-  message += `SEGURIDAD\n`;
   message += `Inicio: ${data.hora_inicio || 'N/A'} - Fin: ${data.hora_fin || 'N/A'}\n`;
   message += `Caja chica: ${data.caja_chica ? '$' + Number(data.caja_chica).toLocaleString('es-AR') : 'N/A'}\n\n`;
   
