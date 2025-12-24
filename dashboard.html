@@ -2329,138 +2329,117 @@ function exportPDF(){
 
   const startY = resumenHoras ? 80 : 60;
 
-if (current === "contable") {
-    // 1. PROCESAMIENTO DE DATOS PARA EL CONTADOR
-    const datosPorFecha = {};
-    let totalIngresos = 0;
-    let totalEgresos = 0;
+exportBtn.onclick = async () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const head = tabs[current].head;
+    const body = tabs[current].data;
+    const startY = 40;
 
-    body.forEach(row => {
-        const tipo = row[0]; 
-        const monto = parseFloat(row[2].replace(/[^\d.-]/g, '')) || 0;
-        const fecha = row[3];
-        
-        if (!datosPorFecha[fecha]) {
-            datosPorFecha[fecha] = { ingresos: 0, egresos: 0 };
-        }
-        if (tipo === 'Ingreso') {
-            datosPorFecha[fecha].ingresos += monto;
-            totalIngresos += monto;
-        } else if (tipo === 'Egreso') {
-            datosPorFecha[fecha].egresos += monto;
-            totalEgresos += monto;
-        }
-    });
+    // SI ES CONTABLE - INFORME PROFESIONAL
+    if (current === "contable") {
+        try {
+            const datosPorFecha = {};
+            let totalIngresos = 0;
+            let totalEgresos = 0;
 
-    const fechas = Object.keys(datosPorFecha).sort();
-    let saldoAcumulado = 0;
-    const dataIngresos = fechas.map(f => datosPorFecha[f].ingresos);
-    const dataEgresos = fechas.map(f => datosPorFecha[f].egresos);
-    const dataSaldos = fechas.map(f => {
-        saldoAcumulado += (datosPorFecha[f].ingresos - datosPorFecha[f].egresos);
-        return saldoAcumulado;
-    });
+            body.forEach(row => {
+                const tipo = row[0]; 
+                const monto = parseFloat(row[2].replace(/[^\d.-]/g, '')) || 0;
+                const fecha = row[3];
+                if (!datosPorFecha[fecha]) datosPorFecha[fecha] = { ingresos: 0, egresos: 0 };
+                if (tipo === 'Ingreso') { datosPorFecha[fecha].ingresos += monto; totalIngresos += monto; }
+                else if (tipo === 'Egreso') { datosPorFecha[fecha].egresos += monto; totalEgresos += monto; }
+            });
 
-    const formatCurr = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
+            const fechas = Object.keys(datosPorFecha).sort();
+            const dataIngresos = fechas.map(f => datosPorFecha[f].ingresos);
+            const dataEgresos = fechas.map(f => datosPorFecha[f].egresos);
 
-    // 2. FUNCIÓN DE RENDERIZADO DE ALTA CALIDAD
-    const crearImagenGrafico = (config) => {
-        return new Promise((resolve) => {
+            const formatCurr = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
+
+            // Generar Gráfico en alta resolución
             const canvas = document.createElement('canvas');
-            canvas.width = 1200; // Alta resolución
-            canvas.height = 500;
+            canvas.width = 1200; canvas.height = 500;
             const ctx = canvas.getContext('2d');
+            
             new Chart(ctx, {
-                ...config,
+                type: 'bar',
+                data: {
+                    labels: fechas,
+                    datasets: [
+                        { label: 'Ingresos', data: dataIngresos, backgroundColor: '#B8860B' },
+                        { label: 'Egresos', data: dataEgresos, backgroundColor: '#1E293B' }
+                    ]
+                },
                 options: {
-                    ...config.options,
                     devicePixelRatio: 2,
-                    responsive: false,
-                    animation: { onComplete: () => resolve(canvas.toDataURL('image/png', 1.0)) }
+                    animation: {
+                        onComplete: function() {
+                            const imgBar = canvas.toDataURL('image/png');
+                            const pageWidth = doc.internal.pageSize.getWidth();
+
+                            // Encabezado
+                            doc.setFillColor(30, 41, 59);
+                            doc.rect(0, 0, pageWidth, 35, 'F');
+                            doc.setTextColor(255, 255, 255);
+                            doc.setFontSize(20);
+                            doc.text("INFORME DE AUDITORÍA CONTABLE", 15, 18);
+                            doc.setFontSize(10);
+                            doc.text("SAN ISIDRO - GESTIÓN DE PROPIEDADES", 15, 25);
+                            doc.text(`EMITIDO: ${new Date().toLocaleDateString()}`, pageWidth - 15, 25, { align: 'right' });
+
+                            // Resumen
+                            doc.setTextColor(30, 41, 59);
+                            doc.text("1. RESUMEN EJECUTIVO", 15, 45);
+                            doc.autoTable({
+                                startY: 50,
+                                head: [['CONCEPTO', 'TOTAL']],
+                                body: [
+                                    ['INGRESOS', formatCurr(totalIngresos)],
+                                    ['EGRESOS', formatCurr(totalEgresos)],
+                                    ['BALANCE NETO', formatCurr(totalIngresos - totalEgresos)]
+                                ],
+                                theme: 'striped',
+                                headStyles: { fillColor: [184, 134, 11] }
+                            });
+
+                            // Gráfico
+                            doc.text("2. FLUJO DE CAJA", 15, doc.lastAutoTable.finalY + 15);
+                            doc.addImage(imgBar, 'PNG', 15, doc.lastAutoTable.finalY + 20, 180, 75);
+
+                            // Tabla detalle en otra página
+                            doc.addPage();
+                            doc.text("3. DETALLE DE MOVIMIENTOS", 15, 20);
+                            doc.autoTable({
+                                startY: 25,
+                                head: [head],
+                                body: body,
+                                theme: 'grid',
+                                headStyles: { fillColor: [30, 41, 59] }
+                            });
+
+                            doc.save(`Informe_SanIsidro_${new Date().toISOString().slice(0,10)}.pdf`);
+                        }
+                    }
                 }
             });
-        });
-    };
-
-    (async () => {
-        // Generar imágenes de gráficos
-        const imgBar = await crearImagenGrafico({
-            type: 'bar',
-            data: {
-                labels: fechas,
-                datasets: [
-                    { label: 'Ingresos Totales', data: dataIngresos, backgroundColor: '#B8860B' }, // Dorado Oscuro
-                    { label: 'Egresos Totales', data: dataEgresos, backgroundColor: '#1E293B' }  // Slate/Azul Marino
-                ]
-            },
-            options: { plugins: { title: { display: true, text: 'FLUJO DE CAJA MENSUAL', font: { size: 18 } } } }
-        });
-
-        // 3. CONSTRUCCIÓN DEL PDF PROFESIONAL
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = doc.internal.pageSize.getWidth();
-
-        // Encabezado Institucional
-        doc.setFillColor(30, 41, 59);
-        doc.rect(0, 0, pageWidth, 35, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(20);
-        doc.text("INFORME DE AUDITORÍA CONTABLE", 15, 18);
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text("SAN ISIDRO - GESTIÓN DE PROPIEDADES", 15, 25);
-        doc.text(`FECHA DE EMISIÓN: ${new Date().toLocaleDateString()}`, pageWidth - 15, 25, { align: 'right' });
-
-        // Resumen Ejecutivo para el Apoderado
-        doc.setTextColor(30, 41, 59);
-        doc.setFontSize(14);
-        doc.text("1. RESUMEN EJECUTIVO", 15, 45);
-        
-        doc.autoTable({
-            startY: 50,
-            head: [['CONCEPTO', 'VALOR ACUMULADO']],
-            body: [
-                ['TOTAL INGRESOS PERÍODO', formatCurr(totalIngresos)],
-                ['TOTAL EGRESOS PERÍODO', formatCurr(totalEgresos)],
-                ['BALANCE OPERATIVO', formatCurr(totalIngresos - totalEgresos)]
-            ],
-            theme: 'striped',
-            headStyles: { fillColor: [184, 134, 11] },
-            styles: { cellPadding: 4 }
-        });
-
-        // Gráficos
-        doc.setFontSize(14);
-        doc.text("2. ANÁLISIS VISUAL DE MOVIMIENTOS", 15, doc.lastAutoTable.finalY + 15);
-        doc.addImage(imgBar, 'PNG', 15, doc.lastAutoTable.finalY + 20, 180, 75);
-
-        // Tabla de Detalles (Nueva Página)
-        doc.addPage();
-        doc.text("3. DETALLE CRONOLÓGICO DE MOVIMIENTOS", 15, 20);
-        doc.autoTable({
-            startY: 25,
-            head: [head],
-            body: body,
-            theme: 'grid',
-            headStyles: { fillColor: [30, 41, 59], fontSize: 9 },
-            styles: { fontSize: 8, cellPadding: 2 },
-            columnStyles: { 2: { halign: 'right', fontStyle: 'bold' } } // Monto resaltado
-        });
-
-        // Pie de página con firma
-        const finalY = doc.lastAutoTable.finalY + 30;
-        if(finalY < 250) {
-            doc.line(15, finalY, 75, finalY);
-            doc.setFontSize(8);
-            doc.text("Firma Responsable Contable", 15, finalY + 5);
+        } catch (err) {
+            console.error("Error en PDF Contable:", err);
+            alert("Error al generar el PDF contable. Revisa la consola.");
         }
 
-        doc.save(`Informe_Contable_SanIsidro_${new Date().toISOString().slice(0,10)}.pdf`);
-    })();
-
-}
+    } else {
+        // EXPORTACIÓN NORMAL PARA OTRAS PESTAÑAS
+        doc.text(`Reporte de ${current.toUpperCase()}`, 15, 20);
+        doc.autoTable({
+            startY: 30,
+            head: [head],
+            body: body,
+            headStyles: { fillColor: [245, 158, 11] }
+        });
+        doc.save(`Reporte_${current}.pdf`);
+    }
 function exportCSV(){
   const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0, -1);
   const rowsData = [...document.querySelectorAll('#rows tr')].map(tr => [...tr.children].slice(0, -1).map(td => td.innerText.replaceAll("\n"," ").trim()));
