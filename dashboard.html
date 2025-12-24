@@ -1691,10 +1691,9 @@ function updateKpis(list){
 async function loadPaqueteriaCounts() {
   try {
     // Contar pendientes
-    const { count: pendientes, error: error1 } = await sb
-      .from('paqueteria')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'en cabina');
+    const { data, error } = await supabase
+  .from('paqueteria')
+  .select('*');
     
     // Contar entregados
     const { count: entregados, error: error2 } = await sb
