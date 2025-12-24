@@ -2329,159 +2329,117 @@ function exportPDF(){
 
   const startY = resumenHoras ? 80 : 60;
 
-  // Si es contable, agregar gráficos
-  if (current === "contable") {
-    // Preparar datos para gráficos
-    const ingresos = [];
-    const egresos = [];
-    const fechas = [];
-    const saldoPorFecha = {};
-
-    // Recorrer los datos para extraer ingresos, egresos y fechas
+if (current === "contable") {
+    // 1. PROCESAMIENTO DE DATOS OPTIMIZADO
+    const datosPorFecha = {};
     body.forEach(row => {
-      const tipo = row[0];
-      const monto = parseFloat(row[2].replace(/[^\d.-]/g, '')) || 0;
-      const fecha = row[3];
-
-      if (!saldoPorFecha[fecha]) {
-        saldoPorFecha[fecha] = 0;
-        fechas.push(fecha);
-      }
-
-      if (tipo === 'Ingreso') {
-        ingresos.push({ fecha, monto });
-        saldoPorFecha[fecha] += monto;
-      } else if (tipo === 'Egreso') {
-        egresos.push({ fecha, monto });
-        saldoPorFecha[fecha] -= monto;
-      }
+        const tipo = row[0]; // Ingreso o Egreso
+        const monto = parseFloat(row[2].replace(/[^\d.-]/g, '')) || 0;
+        const fecha = row[3];
+        
+        if (!datosPorFecha[fecha]) {
+            datosPorFecha[fecha] = { ingresos: 0, egresos: 0 };
+        }
+        if (tipo === 'Ingreso') datosPorFecha[fecha].ingresos += monto;
+        else if (tipo === 'Egreso') datosPorFecha[fecha].egresos += monto;
     });
 
-    // Ordenar fechas
-    fechas.sort();
-
-    // Calcular saldo acumulado
+    const fechas = Object.keys(datosPorFecha).sort();
     let saldoAcumulado = 0;
-    const saldos = fechas.map(fecha => {
-      saldoAcumulado += saldoPorFecha[fecha];
-      return saldoAcumulado;
+    const dataIngresos = [];
+    const dataEgresos = [];
+    const dataSaldos = [];
+
+    fechas.forEach(f => {
+        dataIngresos.push(datosPorFecha[f].ingresos);
+        dataEgresos.push(datosPorFecha[f].egresos);
+        saldoAcumulado += (datosPorFecha[f].ingresos - datosPorFecha[f].egresos);
+        dataSaldos.push(saldoAcumulado);
     });
 
-    // Crear canvas para gráficos
-    const canvas1 = document.createElement('canvas');
-    canvas1.width = 500;
-    canvas1.height = 300;
-    const ctx1 = canvas1.getContext('2d');
-
-    // Gráfico de barras: Ingresos vs Egresos
-    const chart1 = new Chart(ctx1, {
-      type: 'bar',
-      data: {
-        labels: fechas,
-        datasets: [
-          {
-            label: 'Ingresos',
-            data: fechas.map(fecha => {
-              const ingreso = ingresos.find(i => i.fecha === fecha);
-              return ingreso ? ingreso.monto : 0;
-            }),
-            backgroundColor: 'rgba(251, 191, 36, 0.6)',
-          },
-          {
-            label: 'Egresos',
-            data: fechas.map(fecha => {
-              const egreso = egresos.find(e => e.fecha === fecha);
-              return egreso ? egreso.monto : 0;
-            }),
-            backgroundColor: 'rgba(239, 68, 68, 0.6)',
-          }
-        ]
-      },
-      options: {
-        responsive: false,
-        plugins: {
-          title: {
-            display: true,
-            text: 'Ingresos vs Egresos',
-            font: {
-              family: 'Playfair Display',
-              size: 16
-            }
-          }
-        }
-      }
-    });
-
-    // Esperar a que el gráfico se dibuje
-    setTimeout(() => {
-      const imgData1 = canvas1.toDataURL('image/png');
-      doc.addImage(imgData1, 'PNG', 40, startY, 500, 300);
-      const nextY = startY + 320;
-
-      // Gráfico de línea: Saldo acumulado
-      const canvas2 = document.createElement('canvas');
-      canvas2.width = 500;
-      canvas2.height = 300;
-      const ctx2 = canvas2.getContext('2d');
-
-      const chart2 = new Chart(ctx2, {
-        type: 'line',
-        data: {
-          labels: fechas,
-          datasets: [
-            {
-              label: 'Saldo Acumulado',
-              data: saldos,
-              borderColor: 'rgba(59, 130, 246, 1)',
-              backgroundColor: 'rgba(59, 130, 246, 0.2)',
-              fill: true
-            }
-          ]
-        },
-        options: {
-          responsive: false,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Evolución del Saldo',
-              font: {
-                family: 'Playfair Display',
-                size: 16
-              }
-            }
-          }
-        }
-      });
-
-      setTimeout(() => {
-        const imgData2 = canvas2.toDataURL('image/png');
-        doc.addImage(imgData2, 'PNG', 40, nextY, 500, 300);
-        const finalY = nextY + 320;
-
-        // Tabla de datos
-        doc.autoTable({ 
-          startY: finalY, 
-          head:[head], 
-          body, 
-          styles:{ fontSize:10, cellPadding:5 }, 
-          headStyles:{ fillColor:[251, 191, 36] }, 
-          theme:'striped' 
+    // 2. FUNCIÓN PARA CREAR IMAGEN DE GRÁFICO (Retorna Promesa)
+    const crearImagenGrafico = (config) => {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 800; // Mayor resolución para el PDF
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            
+            new Chart(ctx, {
+                ...config,
+                options: {
+                    ...config.options,
+                    devicePixelRatio: 2, // Mejora la nitidez
+                    animation: {
+                        onComplete: () => resolve(canvas.toDataURL('image/png'))
+                    }
+                }
+            });
         });
-        doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
-      }, 500);
-    }, 500);
-  } else {
-    // Para otras secciones, solo la tabla
-    doc.autoTable({ 
-      startY, 
-      head:[head], 
-      body, 
-      styles:{ fontSize:10, cellPadding:5 }, 
-      headStyles:{ fillColor:[251, 191, 36] }, 
-      theme:'striped' 
+    };
+
+    // 3. EJECUCIÓN SECUENCIAL
+    (async () => {
+        // Gráfico 1: Barras
+        const imgBar = await crearImagenGrafico({
+            type: 'bar',
+            data: {
+                labels: fechas,
+                datasets: [
+                    { label: 'Ingresos', data: dataIngresos, backgroundColor: '#fbbf24' },
+                    { label: 'Egresos', data: dataEgresos, backgroundColor: '#ef4444' }
+                ]
+            },
+            options: { plugins: { title: { display: true, text: 'BALANCE MENSUAL' } } }
+        });
+
+        // Gráfico 2: Línea
+        const imgLine = await crearImagenGrafico({
+            type: 'line',
+            data: {
+                labels: fechas,
+                datasets: [{
+                    label: 'Saldo Acumulado',
+                    data: dataSaldos,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { plugins: { title: { display: true, text: 'EVOLUCIÓN DE CAJA' } } }
+        });
+
+        // 4. CONSTRUCCIÓN DEL PDF
+        doc.setFontSize(14);
+        doc.text("Análisis Contable", 15, startY);
+        
+        doc.addImage(imgBar, 'PNG', 15, startY + 5, 180, 70);
+        doc.addImage(imgLine, 'PNG', 15, startY + 80, 180, 70);
+
+        doc.autoTable({
+            startY: startY + 155,
+            head: [head],
+            body: body,
+            theme: 'striped',
+            headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+            styles: { fontSize: 9 },
+            margin: { top: 20 }
+        });
+
+        doc.save(`Informe_Contable_${new Date().toISOString().slice(0,10)}.pdf`);
+    })();
+
+} else {
+    // Lógica para otras pestañas (sin cambios mayores, solo estética)
+    doc.autoTable({
+        startY: startY,
+        head: [head],
+        body: body,
+        theme: 'grid',
+        headStyles: { fillColor: [245, 158, 11] }
     });
-    doc.save(`${map[current]}_${new Date().toISOString().slice(0,10)}.pdf`);
-  }
+    doc.save(`${current}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 function exportCSV(){
   const head = [...document.querySelectorAll('#thead th')].map(th => th.textContent.trim()).slice(0, -1);
