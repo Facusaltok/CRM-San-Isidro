@@ -1120,7 +1120,7 @@
           </button>
           <button id="tabEntregados" class="sub-tab">
             <i class="fas fa-check-circle"></i> Entregados
-            <span id="entregadosCount" class="tab-count">0</span>
+            <span id="entregadosCount" class="tab-count"></span>
           </button>
         </div>
 
@@ -1690,16 +1690,7 @@ function updateKpis(list){
 // Cargar contadores de paquetería
 async function loadPaqueteriaCounts() {
   try {
-    // Contar pendientes
-    const { data, error } = await supabase
-  .from('paqueteria')
-  .select('*');
-    
-    // Contar entregados
-    const { count: entregados, error: error2 } = await sb
-      .from('paqueteria')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'entregado');
+ 
     
     if (!error1) pendientesCount.textContent = pendientes || 0;
     if (!error2) entregadosCount.textContent = entregados || 0;
