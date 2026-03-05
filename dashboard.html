@@ -1225,17 +1225,19 @@ const tabs = {
   accesos: {
     table: "accesos",
     head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal","Horas",""],
-    fields: [
-      {k:"nombre", l:"Persona", t:"text", r:true, autocomplete:"personas"},
-      {k:"dni", l:"DNI", t:"text", autocomplete:"personas"},
-      {k:"vehiculo", l:"Vehículo", t:"text"},
-      {k:"dominio", l:"Dominio", t:"text"},
-      {k:"motivo", l:"Motivo", t:"text"},
-      {k:"f_ing", l:"Fecha ingreso", t:"date"},
-      {k:"h_ing", l:"Hora ingreso", t:"time"},
-      {k:"f_sal", l:"Fecha salida", t:"date"},
-      {k:"h_sal", l:"Hora salida", t:"time"}
-    ],
+  fields: [
+  {k:"nombre", l:"Persona", t:"text", r:true, autocomplete:"personas"},
+  {k:"dni", l:"DNI", t:"text", autocomplete:"personas"},
+  {k:"vehiculo", l:"Vehículo", t:"text"},
+  {k:"dominio", l:"Dominio", t:"text"},
+  {k:"motivo", l:"Motivo", t:"text"},
+  {k:"f_ing", l:"Fecha ingreso", t:"date"},
+  {k:"h_ing", l:"Hora ingreso", t:"time"},
+  {k:"f_sal", l:"Fecha salida", t:"date"},
+  {k:"h_sal", l:"Hora salida", t:"time"},
+
+  {k:"documento", l:"Documento (DNI / ART / Autorización)", t:"file"}
+],
     row: r => {
       const horas = calcHoras(r);
       return [
