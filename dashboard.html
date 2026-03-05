@@ -2278,7 +2278,7 @@ try {
     } else {
       // Para otras tablas, usar el método original
       for (const f of def.fields){
-        if (f.k === "file") continue;
+     if (f.t === "file") continue;
         const el = byId(`f_${f.k}`); 
         if (!el) continue;
         let v = el.value;
