@@ -2193,9 +2193,7 @@ async function save(ev){
  const formData = getFormData();
 
 // SUBIR DOCUMENTO A SUPABASE
-const fileInput = form.querySelector('input[type="file"]');
-
-let documento_url = null;
+const fileInput = document.querySelector('#f_documento_url');
 
 if (fileInput && fileInput.files.length > 0) {
 
@@ -2207,7 +2205,7 @@ if (fileInput && fileInput.files.length > 0) {
     .upload(fileName, file);
 
   if (error) {
-    alert("Error subiendo documento: " + error.message);
+    alert(error.message);
     return;
   }
 
@@ -2215,11 +2213,7 @@ if (fileInput && fileInput.files.length > 0) {
     .from("documentos-accesos")
     .getPublicUrl(fileName);
 
-  documento_url = data.publicUrl;
-}
-
-if (documento_url) {
-  formData.documento_url = documento_url;
+  formData.documento_url = data.publicUrl;
 }
 try {
     // Para la tabla parte_diario, necesitamos guardar todos los campos individualmente
