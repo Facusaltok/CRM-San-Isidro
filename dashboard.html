@@ -2201,19 +2201,24 @@ if (fileInput && fileInput.files.length > 0) {
   const file = fileInput.files[0];
   const fileName = Date.now() + "_" + file.name;
 
-  const { data: uploadData, error: uploadError } = await sb.storage
+  const { data, error } = await sb.storage
     .from("documentos-accesos")
     .upload(fileName, file);
 
-  if (uploadError) {
-    alert("Error subiendo documento: " + uploadError.message);
+  if (error) {
+    alert("Error subiendo documento: " + error.message);
     return;
   }
 
- const { data: urlData } = sb.storage
-  .from("documentos-accesos")
-  .getPublicUrl(fileName);
-documento_url = urlData.publicUrl;
+  const { data: urlData } = sb.storage
+    .from("documentos-accesos")
+    .getPublicUrl(fileName);
+
+  documento_url = urlData.publicUrl;
+}
+
+if (documento_url) {
+  formData.documento_url = documento_url;
 }
 
 if(documento_url){
