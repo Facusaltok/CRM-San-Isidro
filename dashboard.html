@@ -1224,8 +1224,8 @@ const ADMIN_USER_IDS = [
 const tabs = {
   accesos: {
     table: "accesos",
-    head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal","Horas",""],
-  fields: [
+    head: ["Nombre","DNI","Vehículo","Dominio","Motivo","F.Ing","H.Ing","F.Sal","H.Sal","Horas","Documento",""],
+fields: [
   {k:"nombre", l:"Persona", t:"text", r:true, autocomplete:"personas"},
   {k:"dni", l:"DNI", t:"text", autocomplete:"personas"},
   {k:"vehiculo", l:"Vehículo", t:"text"},
@@ -1235,25 +1235,25 @@ const tabs = {
   {k:"h_ing", l:"Hora ingreso", t:"time"},
   {k:"f_sal", l:"Fecha salida", t:"date"},
   {k:"h_sal", l:"Hora salida", t:"time"},
-
   {k:"documento", l:"Documento (DNI / ART / Autorización)", t:"file"}
 ],
-    row: r => {
-      const horas = calcHoras(r);
-      return [
-        r.nombre,
-        r.dni,
-        r.vehiculo,
-        r.dominio,
-        r.motivo,
-        r.f_ing,
-        r.h_ing,
-        r.f_sal,
-        r.h_sal,
-        horas != null ? horas : "—",
-        actions(r.id)
-      ]
-    },
+   row: r => {
+  const horas = calcHoras(r);
+  return [
+    r.nombre,
+    r.dni,
+    r.vehiculo,
+    r.dominio,
+    r.motivo,
+    r.f_ing,
+    r.h_ing,
+    r.f_sal,
+    r.h_sal,
+    horas != null ? horas : "—",
+    r.documento_url ? `<a class="underline text-amber-700" target="_blank" href="${r.documento_url}">Ver</a>` : "—",
+    actions(r.id)
+  ]
+},
     showHorasKpi: true,
     icon: "fas fa-door-open",
     color: "blue"
