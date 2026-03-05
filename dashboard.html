@@ -2210,15 +2210,14 @@ if (fileInput && fileInput.files.length > 0) {
     return;
   }
 
-  const { data: urlData } = sb.storage
-    .from("documentos-accesos")
-    .getPublicUrl(fileName);
-
-  documento_url = urlData.publicUrl;
+ const { data: urlData } = sb.storage
+  .from("documentos-accesos")
+  .getPublicUrl(fileName);
+documento_url = urlData.publicUrl;
 }
 
 if(documento_url){
-  formData.documento_url = documento_url;
+formData.documento_url = documento_url;
 }
 
 try {
