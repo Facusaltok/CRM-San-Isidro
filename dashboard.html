@@ -2179,8 +2179,11 @@ async function save(ev){
     return; 
   }
   
-  const def = tabs[current]; 
-  let payload = { user_id: uid };
+ const def = tabs[current];
+let payload = { user_id: uid };
+
+const data = getFormData();
+Object.assign(payload, data);
 
   // Guardar todos los campos del formulario
 for (const f of def.fields){
