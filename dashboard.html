@@ -2236,12 +2236,16 @@ if (fileInput && fileInput.files.length > 0) {
 if (documento_url) {
   payload.documento_url = documento_url;
 }
+
+const formData = getFormData();   // ← AGREGAR ESTA LÍNEA
+
 try {
-    // Para la tabla parte_diario, necesitamos guardar todos los campos individualmente
-    if (current === "parte") {
-      // Campos básicos
-      payload.fecha = formData.fecha;
-      payload.hora_inicio = formData.hora_inicio;
+
+  // Para la tabla parte_diario, necesitamos guardar todos los campos
+  if (current === "parte") {
+
+    payload.fecha = formData.fecha;
+    payload.hora_inicio = formData.hora_inicio;
       payload.hora_fin = formData.hora_fin;
       payload.caja_chica = formData.caja_chica ? Number(formData.caja_chica) : null;
       
