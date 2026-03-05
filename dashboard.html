@@ -2194,6 +2194,7 @@ async function save(ev){
 
 // SUBIR DOCUMENTO A SUPABASE
 const fileInput = form.querySelector('input[type="file"]');
+
 let documento_url = null;
 
 if (fileInput && fileInput.files.length > 0) {
@@ -2201,7 +2202,7 @@ if (fileInput && fileInput.files.length > 0) {
   const file = fileInput.files[0];
   const fileName = Date.now() + "_" + file.name;
 
-  const { data, error } = await sb.storage
+  const { error } = await sb.storage
     .from("documentos-accesos")
     .upload(fileName, file);
 
@@ -2210,17 +2211,16 @@ if (fileInput && fileInput.files.length > 0) {
     return;
   }
 
-  const { data: urlData } = sb.storage
+  const { data } = sb.storage
     .from("documentos-accesos")
     .getPublicUrl(fileName);
 
-  documento_url = urlData.publicUrl;
+  documento_url = data.publicUrl;
 }
 
 if (documento_url) {
   formData.documento_url = documento_url;
 }
-
 try {
     // Para la tabla parte_diario, necesitamos guardar todos los campos individualmente
     if (current === "parte") {
