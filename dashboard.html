@@ -1940,26 +1940,68 @@ window.copyAgendaDelDia = async () => {
 };
 
 // Obtener datos del formulario
-function getFormData(){
-
-  const obj = {};
-  const fields = tabs[current].fields;
-
-  fields.forEach(f => {
-
-    const el = document.querySelector(`[name="${f.k}"]`);
-    if(!el) return;
-
-    let v = el.value;
-
-    if(v === "") v = null;
-
-    obj[f.k] = v;
-
-  });
-
-  return obj;
-
+function getFormData() {
+  const data = {};
+  
+  // Campos básicos
+  data.fecha = byId('f_fecha')?.value || '';
+  data.hora_inicio = byId('f_hora_inicio')?.value || '';
+  data.hora_fin = byId('f_hora_fin')?.value || '';
+  data.caja_chica = byId('f_caja_chica')?.value || '';
+  
+  // Secciones
+  data.cabina = byId('f_cabina')?.value || '';
+  data.amt = byId('f_amt')?.value || '';
+  data.puesto_hudson = byId('f_puesto_hudson')?.value || '';
+  
+  // Choferes
+  data.c1 = byId('f_c1')?.value || '';
+  data.c2 = byId('f_c2')?.value || '';
+  data.c3 = byId('f_c3')?.value || '';
+  data.c4 = byId('f_c4')?.value || '';
+  
+  // Vehículos
+  data.v_trailblazer = byId('f_v_trailblazer')?.value || '';
+  data.v_amarok = byId('f_v_amarok')?.value || '';
+  data.v_sw4 = byId('f_v_sw4')?.value || '';
+  data.v_corolla = byId('f_v_corolla')?.value || '';
+  data.v_q5 = byId('f_v_q5')?.value || '';
+  data.v_q7 = byId('f_v_q7')?.value || '';
+  
+  // Familia
+  data.fam1 = byId('f_fam1')?.value || '';
+  data.fam2 = byId('f_fam2')?.value || '';
+  data.fam3 = byId('f_fam3')?.value || '';
+  data.fam4 = byId('f_fam4')?.value || '';
+  data.fam5 = byId('f_fam5')?.value || '';
+  
+  // Personal doméstico
+  data.empleadas = byId('f_empleadas')?.value || '';
+  data.niniera = byId('f_niniera')?.value || '';
+  
+  // Sistemas técnicos
+  data.tec_camaras = byId('f_tec_camaras')?.value || '';
+  data.tec_cerco = byId('f_tec_cerco')?.value || '';
+  data.tec_portones = byId('f_tec_portones')?.value || '';
+  
+  // Profesionales
+  data.prof_jardinero = byId('f_prof_jardinero')?.value || '';
+  data.prof_piletero = byId('f_prof_piletero')?.value || '';
+  data.prof_paisajistas = byId('f_prof_paisajistas')?.value || '';
+  data.prof_fumigador = byId('f_prof_fumigador')?.value || '';
+  data.prof_floristas = byId('f_prof_floristas')?.value || '';
+  
+  // Amigos
+  data.amigos_sra = byId('f_amigos_sra')?.value || '';
+  data.amigos_isabella = byId('f_amigos_isabella')?.value || '';
+  data.amigos_angie = byId('f_amigos_angie')?.value || '';
+  
+  // Otros
+  data.elementos = byId('f_elementos')?.value || '';
+  data.otros = byId('f_otros')?.value || '';
+  data.agenda_texto = byId('f_agenda_texto')?.value || '';
+  
+  return data;
 }
 
 /* ===== Autocomplete Personas ===== */
